@@ -5,11 +5,11 @@
         <p class="login-subtitle">간편하게 로그인하고 시작하세요</p>
         
         <div class="social-login-buttons">
-          <button class="google-login" @click="handleGoogleLogin">
+          <button class="google-login" @click="googleLogin">
             <img src="@/assets/google-icon.png" alt="Google" class="social-icon">
             Google로 로그인
           </button>
-          <button class="naver-login" @click="handleNaverLogin">
+          <button class="naver-login" @click="naverLogin">
             <img src="@/assets/naver-icon.png" alt="Naver" class="social-icon">
             Naver로 로그인
           </button>
@@ -23,14 +23,29 @@
   
   <script>
   export default {
+    data(){
+      return{
+            googleUrl: "https://accounts.google.com/o/oauth2/v2/auth",
+            googleClientId: "922955916790-2ps4baqsfkd5i1rrd1isscm34g5n7c7s.apps.googleusercontent.com",
+            googleRedirectUrl: "http://localhost:3000/member/google/redirect",
+            googleScope: "openid email profile https://www.googleapis.com/auth/user.birthday.read https://www.googleapis.com/auth/user.gender.read https://www.googleapis.com/auth/user.phonenumbers.read",
+
+            naverUrl: "https://nid.naver.com/oauth2.0/authorize",
+            naverClientId: "Aplw9X7yB984ri9fEMr0",
+            naverRedirectUrl: "http://localhost:3000/member/naver/redirect",
+            naverScope: "id email gender birthyear birthday age mobile name"
+        }
+    },
     name: 'LoginPage',
-    methods: {
-      handleGoogleLogin() {
-        // Google 로그인 처리
-      },
-      handleNaverLogin() {
-        // Naver 로그인 처리
-      }
+    methods:{
+        googleLogin(){
+            const auth_uri = `${this.googleUrl}?client_id=${this.googleClientId}&redirect_uri=${this.googleRedirectUrl}&response_type=code&scope=${this.googleScope}`;
+            window.location.href = auth_uri;
+        },
+        naverLogin(){
+            const auth_uri = `${this.naverUrl}?client_id=${this.naverClientId}&redirect_uri=${this.naverRedirectUrl}&response_type=code&scope=${this.naverScope}`;
+            window.location.href = auth_uri;
+        },
     }
   }
   </script>
