@@ -2,7 +2,7 @@ import VodDetailPage from "@/views/vodDetailPage.vue";
 
 export default [
   {
-    path: '/vod/:postId',
+    path: '/vod/:vodId',
     name: 'VOD',
     component: VodDetailPage
   },
