@@ -5,11 +5,9 @@ import ClipsView from '@/views/ClipsView.vue';
 import CategoryView from '@/views/CategoryView.vue';
 import FollowingView from '@/views/FollowingView.vue';
 import MyProfileView from '@/views/MyProfileView.vue';
-import LoginPage from '@/views/loginPage.vue';
-import GoogleRedirect from '@/components/GoogleRedirect.vue';
-import NaverRedirect from '@/components/NaverRedirect.vue';
 import PostCreateView from '@/views/PostCreateView.vue';
 import PostDetailView from '@/views/PostDetailView.vue';
+import MemberRouter from './MemberRouter';
 
 const routes = [
     { path: '/', component: HomeView },
@@ -18,13 +16,11 @@ const routes = [
     { path: '/category', component: CategoryView },
     { path: '/following', component: FollowingView },
     { path: '/my-profile', component: MyProfileView },
-    { path: '/member/login', component: LoginPage },
-    { path: '/member/google/redirect', component: GoogleRedirect },
-    { path: '/member/naver/redirect', component: NaverRedirect },
     { path: '/post/community/create/:memberId', component: PostCreateView },
     { path: '/post/community/detail/:postId', component: PostDetailView },
     // { path: '/video/vod/:videoId', component: () => import('@/views/VideoDetailView.vue') },
     // { path: '/video/clip/:clipId', component: () => import('@/views/ClipDetailView.vue') },
+    ...MemberRouter
 ];
 
 const router = createRouter({

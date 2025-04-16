@@ -1,7 +1,7 @@
 <template>
   <v-app-bar app color="surface" dark>
     <router-link to="/" class="d-flex align-center text-decoration-none">
-      <img src="@/assets/BEST_PLACE_logo.gif" height="30" width="91" alt="logo" />
+      <v-img src="@/assets/BEST_PLACE_logo.gif" height="30" width="91" alt="logo" />
     </router-link>
 
     <v-spacer />

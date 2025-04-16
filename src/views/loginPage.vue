@@ -6,11 +6,11 @@
 
       <div class="social-login-buttons">
         <v-btn variant="outlined" class="google-login" @click="googleLogin">
-          <img src="@/assets/google-icon.png" alt="Google" class="social-icon"/>
+          <v-img src="@/assets/google-icon.png" alt="Google" class="social-icon"/>
           Google로 로그인
         </v-btn>
         <v-btn class="naver-login" @click="naverLogin">
-          <img src="@/assets/naver-icon.png" alt="Naver" class="social-icon"/>
+          <v-img src="@/assets/naver-icon.png" alt="Naver" class="social-icon"/>
           Naver로 로그인
         </v-btn>
       </div>
