@@ -8,6 +8,8 @@ import MyProfileView from '@/views/MyProfileView.vue';
 import PostCreateView from '@/views/PostCreateView.vue';
 import PostDetailView from '@/views/PostDetailView.vue';
 import MemberRouter from './MemberRouter';
+import VideoRouter from './VideoRouter';
+import StreamingRouter from './streamingRouter';
 
 const routes = [
     { path: '/', component: HomeView },
@@ -20,7 +22,9 @@ const routes = [
     { path: '/post/community/detail/:postId', component: PostDetailView },
     // { path: '/video/vod/:videoId', component: () => import('@/views/VideoDetailView.vue') },
     // { path: '/video/clip/:clipId', component: () => import('@/views/ClipDetailView.vue') },
-    ...MemberRouter
+    ...MemberRouter,
+    ...VideoRouter,
+    ...StreamingRouter
 ];
 
 const router = createRouter({
