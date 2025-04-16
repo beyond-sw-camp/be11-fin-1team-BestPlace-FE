@@ -22,7 +22,7 @@ export default{
             localStorage.setItem("refreshToken", refreshToken);
             setTimeout(() => {
             window.location.href = "/member/login";
-            }, 1000);
+            }, 3000);
         }
     }
 }
