@@ -1,0 +1,74 @@
+:root {
+    font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    font-weight: 400;
+
+    color-scheme: dark;
+    color: #c4bab4;
+    background-color: #15161b;
+
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    margin: 0;
+    min-width: 320px;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+@font-face {
+    font-family: 'SDNemony2dBasicBd';
+    src: url('https://ext.same-assets.com/2621616590/1904530945.woff2') format('woff2'),
+    url('https://ext.same-assets.com/2621616590/1790820782.woff2') format('woff2');
+    font-weight: normal;
+    font-style: normal;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'SDNemony2dBasicBd', sans-serif;
+    color: #ffffff;
+}
+
+.live-badge {
+    background-color: #c82c35;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.viewer-count {
+    font-size: 12px;
+    color: #c4bab4;
+}
+
+.stream-tag {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #c4bab4;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    margin-right: 4px;
+}
+
+.v-card {
+    border-radius: 8px;
+    overflow: hidden;
+    transition: transform 0.2s ease;
+}
+
+.v-card:hover {
+    transform: translateY(-4px);
+}
