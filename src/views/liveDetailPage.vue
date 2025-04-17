@@ -108,12 +108,23 @@
       <div class="chat-messages" ref="chatContainer">
         <div
           v-for="message in messages"
-          :key="message.id"
+          :key="message.messageId"
           class="chat-message"
-          :class="{ 'own-message': message.memberId === userId }"
+          :class="{ 'own-message': message.memberId === memberId }"
+          @contextmenu.prevent="openContextMenu($event, message)"
         >
           <span class="sender">{{ message.sender }}</span>
           <span class="message-content">{{ message.message }}</span>
+        </div>
+        <div
+          v-if="contextMenu.visible"
+          class="context-menu"
+          :style="{ top: `${contextMenu.y}px`, left: `${contextMenu.x}px` }"
+        >
+          <ul>
+            <li @click="banUser">🚫 차단하기</li>
+            <li @click="reportMessage">🚨 신고하기</li>
+          </ul>
         </div>
       </div>
       <div class="chat-input">
@@ -151,6 +162,8 @@ const route = useRoute()
 const video = ref(null)
 const streamId = route.params.streamId
 const streamingApi = process.env.VUE_APP_STREAMING_API
+const selectedMessage = ref(null)
+const contextMenu = ref({ visible: false, x: 0, y: 0 })
 
 // 스트리밍 정보
 const streamInfo = ref({
@@ -171,7 +184,7 @@ const streamInfo = ref({
 // 채팅 관련 상태
 const messages = ref([])
 const newMessage = ref('')
-const userId = ref(null)
+const memberId = ref(null)
 const senderNickname = ref(null)
 const stompClient = ref(null)
 const isConnected = ref(false)
@@ -204,7 +217,7 @@ const prepareToken = async () => {
       }).join(''))
       
       const payload = JSON.parse(jsonPayload)
-      userId.value = payload.sub
+      memberId.value = payload.sub
       senderNickname.value = payload.nickname
       console.log('사용자 정보:', payload)
     } catch (error) {
@@ -286,6 +299,13 @@ const connectWebsocket = () => {
     })
   }, (err) => {
     console.error('WebSocket 연결 실패:', err)
+    isConnected.value = false
+
+      // 🔁 3초 뒤 재연결
+      setTimeout(() => {
+        console.log('WebSocket 재연결 시도 중...')
+        connectWebsocket()
+      }, 3000)
   })
 }
 
@@ -317,6 +337,36 @@ const sendMessage = () => {
   )
 
   newMessage.value = ''
+}
+
+const openContextMenu = (e, message) => {
+  console.log('contextMenu:', contextMenu.value)
+  console.log('우클릭 발생', e.clientX, e.clientY)
+  console.log('selectedMessage:', selectedMessage.value)
+  console.log('contextMenu visible?', contextMenu.value.visible)
+  e.stopPropagation() // 상위로 이벤트가 전파되지 않게 함
+  selectedMessage.value = message
+  contextMenu.value = {
+    visible: true,
+    x: e.offsetX,
+    y: e.offsetY
+  }
+}
+
+const closeContextMenu = () => {
+  contextMenu.value.visible = false
+}
+
+const banUser = () => {
+  console.log('차단 대상:', selectedMessage.value)
+  closeContextMenu()
+  // API 호출 또는 이벤트 emit 등 추가
+}
+
+const reportMessage = () => {
+  console.log('신고 대상:', selectedMessage.value)
+  closeContextMenu()
+  // 신고 처리 로직 추가
 }
 
 const scrollToBottom = () => {
@@ -523,10 +573,12 @@ onMounted(() => {
   initializeStreaming()
   setInterval(calculateUptime, 1000)
   handleVideoEvents()
+  document.addEventListener('click', closeContextMenu)
 })
 
 onBeforeUnmount(() => {
   disconnectWebSocket()
+  document.removeEventListener('click', closeContextMenu)
 })
 </script>
 
@@ -826,6 +878,7 @@ video {
   flex: 1;
   overflow-y: auto;
   padding: 16px;
+  position: relative
 }
 
 .chat-message {
@@ -986,5 +1039,30 @@ video {
   color: #C9CEDC;
   font-weight: 800;
   font-size: 14px;
+}
+
+.context-menu {
+  position: absolute;
+  z-index: 1000;
+  background: white;
+  border: 1px solid #ccc;
+  box-shadow: 0px 0px 5px rgba(0,0,0,0.15);
+  border-radius: 5px;
+  padding: 0;
+}
+
+.context-menu ul {
+  margin: 0;
+  padding: 5px 0;
+  list-style: none;
+}
+
+.context-menu li {
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.context-menu li:hover {
+  background-color: #eee;
 }
 </style>
