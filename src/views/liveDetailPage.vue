@@ -172,6 +172,7 @@ const streamInfo = ref({
 const messages = ref([])
 const newMessage = ref('')
 const userId = ref(null)
+const senderNickname = ref(null)
 const stompClient = ref(null)
 const isConnected = ref(false)
 const isLogin = ref(false)
@@ -204,6 +205,7 @@ const prepareToken = async () => {
       
       const payload = JSON.parse(jsonPayload)
       userId.value = payload.sub
+      senderNickname.value = payload.nickname
       console.log('사용자 정보:', payload)
     } catch (error) {
       console.error('토큰 파싱 실패:', error)
@@ -273,7 +275,7 @@ const connectWebsocket = () => {
           message: parsed.message,
           sender: parsed.sender,
           type: parsed.type,
-          CreatedTime: parsed.CreatedTime
+          createdTime: parsed.createdTime
         })
         scrollToBottom()
       } catch (err) {
