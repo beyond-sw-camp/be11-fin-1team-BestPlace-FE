@@ -83,7 +83,7 @@
                   <span v-for="tag in streamInfo.hashTag" :key="tag" class="hashtag">{{ tag }}</span>
                 </div>
                 <span class="dot"> </span>
-                <span class="viewer-count">63명 시청 중</span>
+                <span class="viewer-count">{{ streamInfo.viewerCount+10 }}명 시청 중</span>
                 <span class="uptime">{{ formattedUptime }} 스트리밍 중</span>
               </div>
             </div>
@@ -164,7 +164,8 @@ const streamInfo = ref({
   category: '',
   hashTag: [],
   managerRole: '',
-  startTime: ''
+  startTime: '',
+  viewerCount: 0
 })
 
 // 채팅 관련 상태
@@ -220,6 +221,7 @@ const getStreamInfo = async () => {
     if (response.data && response.data.result) {
       streamInfo.value = response.data.result
       console.log('스트리밍 정보:', streamInfo.value)
+      console.log('스트리밍 정보:', streamInfo)
       return true
     } else {
       console.error('스트리밍 정보가 없습니다:', response.data)
@@ -277,6 +279,8 @@ const connectWebsocket = () => {
       } catch (err) {
         console.error('메시지 파싱 실패:', err)
       }
+    },{
+        streamId: streamInfo.value.streamId
     })
   }, (err) => {
     console.error('WebSocket 연결 실패:', err)
