@@ -34,7 +34,7 @@
           class="cursor-pointer mx-2"
           @click="profileMenuOpen = !profileMenuOpen"
       >
-        <v-img :src="userProfile.profileImage || 'https://via.placeholder.com/36'" />
+        <v-img :src="userProfile.profileImage || '@/assets/profile.png'" />
       </v-avatar>
 
       <!-- 프로필 드롭다운 메뉴 -->
@@ -61,7 +61,7 @@
           <v-card-item>
             <div class="d-flex align-center">
               <v-avatar size="36" class="cursor-pointer mx-2" @click="profileMenuOpen = !profileMenuOpen">
-                <v-img :src="userProfile.profileImage || 'https://via.placeholder.com/36'" />
+                <v-img :src="userProfile.profileImage || '@/assets/profile-avatar.png'" />
               </v-avatar>
               <div>
                 <v-card-title class="pa-0 text-body-1">{{ userProfile.nickname || '사용자' }}</v-card-title>
@@ -158,7 +158,7 @@ export default {
   },
   methods: {
     doLogout() {
-      localStorage.removeItem('token');
+      localStorage.clear();
       this.isLogin = false;
       this.profileMenuOpen = false;
       this.$router.push('/');

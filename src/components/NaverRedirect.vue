@@ -1,6 +1,6 @@
 <template>
   <div class="loading-container">
-    <img src="@/assets/홈페이지 로그인 중 화면.gif" alt="로딩 중..." class="loading-gif"/>
+    <v-img src="@/assets/홈페이지 로그인 중 화면.gif" alt="로딩 중..." class="loading-gif"/>
     <p>구글 로그인 진행중...</p>
   </div>
 </template>
@@ -21,7 +21,7 @@ export default {
       localStorage.setItem("token", token);
       localStorage.setItem("refreshToken", refreshToken);
       setTimeout(() => {
-        window.location.href = "/member/login";
+        window.location.href = "/";
       }, 3000);
     }
   }

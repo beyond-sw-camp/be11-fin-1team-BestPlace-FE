@@ -20,7 +20,7 @@
       <v-card class="post-content">
         <div class="post-author">
           <v-avatar size="40" class="mr-3">
-            <v-img :src="post.streamerProfileImage || 'https://via.placeholder.com/40'" />
+            <v-img :src="post.streamerProfileImage || '@/assets/profile-avatar.png'" />
           </v-avatar>
           <div>
             <div class="author-name">{{ post.streamerNickname }}</div>
@@ -73,7 +73,7 @@
         <div class="comment-form pa-4">
           <div class="d-flex">
             <v-avatar size="36" class="mr-3">
-              <v-img :src="userProfile.profileImage || 'https://via.placeholder.com/36'" />
+              <v-img :src="userProfile.profileImage || '@/assets/profile-avatar.png'" />
             </v-avatar>
             <v-text-field
                 v-model="newComment"
@@ -115,7 +115,7 @@
           >
             <div class="d-flex">
               <v-avatar size="36" class="mr-3">
-                <v-img :src="comment.profileImageUrl || 'https://via.placeholder.com/36'" />
+                <v-img :src="comment.profileImageUrl || '@/assets/profile-avatar.png'" />
               </v-avatar>
               <div class="flex-grow-1">
                 <div class="comment-header">
@@ -179,7 +179,7 @@
                 </div>
 
                 <!-- 대댓글 목록 -->
-                <div v-if="comment.childComments && comment.childComments.length > 0" class="child-comments mt-3">
+                <div v-if="Array.isArray(comment.childComments) && comment.childComments.length > 0" class="child-comments mt-3">
                   <div
                       v-for="childComment in comment.childComments"
                       :key="childComment.commentId"
@@ -187,7 +187,7 @@
                   >
                     <div class="d-flex">
                       <v-avatar size="28" class="mr-2">
-                        <v-img :src="childComment.profileImageUrl || 'https://via.placeholder.com/28'" />
+                        <v-img :src="childComment.profileImageUrl || '@/assets/profile-avatar.png'" />
                       </v-avatar>
                       <div class="flex-grow-1">
                         <div class="comment-header">
@@ -358,7 +358,7 @@ export default {
           ],
           streamerNickname: '샘플 사용자',
           streamerId: 1,
-          streamerProfileImage: 'https://via.placeholder.com/40',
+          streamerProfileImage: '@/assets/profile-avatar.png',
           views: 123,
           likeCount: 45,
           liked: false,
@@ -393,7 +393,7 @@ export default {
           const userData = response.data.result;
           this.userProfile = {
             nickname: userData.name || '사용자',
-            profileImage: userData.profileImg || 'https://via.placeholder.com/36'
+            profileImage: userData.profileImg || '@/assets/default-avatar.png',
           };
         }
       } catch (error) {
@@ -423,7 +423,7 @@ export default {
         );
 
         if (response.data && response.data.result) {
-          const newComments = response.data.result.content || [];
+          const newComments = response.data.result || [];
 
           if (this.commentPage === 0) {
             this.comments = newComments;
@@ -434,9 +434,11 @@ export default {
           // 댓글마다 좋아요 상태 추가
           this.comments = this.comments.map(comment => ({
             ...comment,
+            commentId: comment.commentId || comment.id, // 🔥 서버에서 id로 들어온 경우 대응
             isLiked: false,
             childComments: (comment.childComments || []).map(child => ({
               ...child,
+              commentId: child.commentId || child.id, // 🔥 대댓글도 대응
               isLiked: false
             }))
           }));
@@ -546,7 +548,7 @@ export default {
         const newComment = {
           commentId: Date.now(),
           nickName: this.userProfile.nickname || '사용자',
-          profileImageUrl: this.userProfile.profileImage || 'https://via.placeholder.com/36',
+          profileImageUrl: this.userProfile.profileImage || '@/assets/default-avatar.png',
           contents: this.newComment,
           createdTime: new Date().toISOString(),
           imageUrls: [],

@@ -1,6 +1,6 @@
 <template>
     <div class="loading-container">
-        <img src="@/assets/홈페이지 로그인 중 화면.gif" alt="로딩 중..." class="loading-gif" />
+        <v-img src="@/assets/홈페이지 로그인 중 화면.gif" alt="로딩 중..." class="loading-gif" />
         <p>구글 로그인 진행중...</p>
     </div>
 </template>
@@ -18,10 +18,12 @@ export default{
             const response = await axios.post(`${process.env.VUE_APP_MEMBER_API}/member/google/doLogin`, {code});
             const token = response.data.token;
             const refreshToken = response.data.refreshToken;
+            const userId = response.data.id;
             localStorage.setItem("token", token);
             localStorage.setItem("refreshToken", refreshToken);
+            localStorage.setItem("userId", userId);
             setTimeout(() => {
-            window.location.href = "/member/login";
+            window.location.href = "/";
             }, 1000);
 
         }

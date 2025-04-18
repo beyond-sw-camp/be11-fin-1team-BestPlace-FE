@@ -26,14 +26,14 @@
           <v-icon>mdi-text</v-icon>
           사진
         </div>
-        <div
-            class="tab-item"
-            :class="{ active: activeTab === 'sticker' }"
-            @click="activeTab = 'sticker'"
-        >
-          <v-icon>mdi-sticker-emoji</v-icon>
-          스티커
-        </div>
+<!--        <div-->
+<!--            class="tab-item"-->
+<!--            :class="{ active: activeTab === 'sticker' }"-->
+<!--            @click="activeTab = 'sticker'"-->
+<!--        >-->
+<!--          <v-icon>mdi-sticker-emoji</v-icon>-->
+<!--          스티커-->
+<!--        </div>-->
       </div>
 
       <div class="editor-content">
@@ -197,9 +197,16 @@ export default {
         formData.append('content', this.postContent);
 
         // 이미지 파일 추가
+        if (this.selectedImages.length > 0) {
         this.selectedImages.forEach((image) => {
           formData.append('imageFiles', image.file);
         });
+        }
+        // 디버깅을 위한 로그 추가
+        console.log('폼 데이터 내용:');
+        for (let pair of formData.entries()) {
+          console.log(pair[0] + ': ' + pair[1]);
+        }
 
         // API 호출
         const response = await axios.post(
@@ -228,7 +235,8 @@ export default {
         }
       } catch (error) {
         console.error('게시물 작성 중 오류 발생:', error);
-
+        console.error('오류 상세:', error.response ? error.response.data : '응답 없음');
+        console.error('요청 상태:', error.response ? error.response.status : '상태 코드 없음');
         if (error.response) {
           console.error('서버 응답:', error.response.data);
           this.errorMessage = `오류: ${error.response.data.status_message || '서버 오류가 발생했습니다.'}`;

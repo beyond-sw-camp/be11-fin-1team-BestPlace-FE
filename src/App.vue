@@ -4,6 +4,7 @@
     <SidebarComponent :mini="mini"/>
     <v-main class="main-content">
       <router-view/>
+    <FooterComponent/>
     </v-main>
   </v-app>
 </template>
@@ -11,9 +12,11 @@
 <script>
 import SidebarComponent from '@/components/SidebarComponent.vue';
 import HeaderComponent from '@/components/HeaderComponent.vue';
+import FooterComponent from "@/components/FooterComponent.vue";
 
 export default {
   components: {
+    FooterComponent,
     HeaderComponent,
     SidebarComponent,
   },
@@ -63,4 +66,5 @@ export default {
   scrollbar-width: none !important; /* Firefox */
   -ms-overflow-style: none !important; /* IE and Edge */
 }
+
 </style>
