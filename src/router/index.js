@@ -7,6 +7,10 @@ import FollowingView from '@/views/FollowingView.vue';
 import MyProfileView from '@/views/MyProfileView.vue';
 import MemberRouter from './MemberRouter';
 import PostRouter from './PostRouter';
+import VideoRouter from './VideoRouter';
+import StreamingRouter from './streamingRouter';
+
+
 const routes = [
     { path: '/', component: HomeView },
     { path: '/lives', component: LivesView },
@@ -18,6 +22,9 @@ const routes = [
     // { path: '/video/clip/:clipId', component: () => import('@/views/ClipDetailView.vue') },
     ...MemberRouter,
     ...PostRouter,
+    ...VideoRouter,
+    ...StreamingRouter
+
 ];
 
 const router = createRouter({
