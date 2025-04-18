@@ -16,9 +16,11 @@
       <div class="stream-header">
         <div class="stream-info">
           <div class="streamer-info">
-            <div class="streamer-avatar"></div>
+            <div class="streamer-avatar">
+              <img v-if="streamerInfo.streamerProfileImageUrl" :src="streamerInfo.streamerProfileImageUrl" alt="스트리머 프로필">
+            </div>
             <div class="streamer-details">
-              <span class="streamer-name">스트리머 이름</span>
+              <span class="streamer-name">{{ streamerInfo.streamerNickName }}</span>
               <h1 class="stream-title">{{ vodInfo.title }}</h1>
               <div class="stream-meta">
                 <span class="category">{{ vodInfo.category }}</span>
@@ -34,9 +36,9 @@
             </div>
           </div>
           <div class="stream-actions">
-            <button class="follow-button">
+            <button class="follow-button" :class="{ 'following': streamerInfo.isFollow === 'Y' }">
               <span class="plus-icon">+</span>
-              팔로우
+              {{ streamerInfo.isFollow === 'Y' ? '팔로잉' : '팔로우' }}
             </button>
           </div>
         </div>
@@ -94,6 +96,15 @@ const vodInfo = ref({
   startTime: ''
 })
 
+// 스트리머 정보
+const streamerInfo = ref({
+  streamerNickName: '',
+  streamerProfileImageUrl: '',
+  streamingYn: '',
+  followerCount: 0,
+  isFollow: ''
+})
+
 // 채팅 관련 상태
 const visibleMessages = ref([])
 const chatHistory = ref([])
@@ -142,8 +153,21 @@ const getVodInfo = async () => {
     // VOD 정보 설정
     vodInfo.value = response.data.result
     
+    // 스트리머 정보 가져오기
+    if (vodInfo.value.owner) {
+      const streamerResponse = await axios.get(`${memberApi}/member/info/${vodInfo.value.owner}`, {
+        headers: {
+          Authorization: `Bearer ${token.value}`
+        }
+      })
+      
+      if (streamerResponse.data && streamerResponse.data.result) {
+        streamerInfo.value = streamerResponse.data.result
+      }
+    }
+    
     console.log('VOD 정보:', vodInfo.value)
-    console.log('VOD 시작 시간:', new Date(vodInfo.value.startTime).toLocaleString())
+    console.log('스트리머 정보:', streamerInfo.value)
     return true
 
   } catch (error) {

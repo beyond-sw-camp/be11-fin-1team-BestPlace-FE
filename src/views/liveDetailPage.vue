@@ -11,10 +11,6 @@
               playsinline
               width="1440"
             ></video>
-            <div class="live-badge">
-              <span class="live-dot"></span>
-              LIVE
-            </div>
             <div class="video-controls">
               <div class="control-group">
                 <div class="volume-control">
@@ -71,28 +67,41 @@
 
       <div class="stream-header">
         <div class="stream-info">
-          <div class="streamer-info">
-            <div class="streamer-avatar"></div>
-            <div class="streamer-details">
-              <span class="streamer-name">스트리머 이름</span>
-              <h1 class="stream-title">{{ streamInfo.title }}</h1>
-              <div class="stream-meta">
-                <span class="category">{{ streamInfo.category }}</span>
-                <div class="hashtags" v-if="streamInfo.hashTag && streamInfo.hashTag.length > 0">
-                  <span class="dot"> </span>
-                  <span v-for="tag in streamInfo.hashTag" :key="tag" class="hashtag">{{ tag }}</span>
-                </div>
+          <div class="stream-title-section">
+            <h1 class="stream-title">{{ streamInfo.title }}</h1>
+            <div class="stream-meta">
+              <span class="category">{{ streamInfo.category }}</span>
+              <div class="hashtags" v-if="streamInfo.hashTag && streamInfo.hashTag.length > 0">
                 <span class="dot"> </span>
-                <span class="viewer-count">{{ streamInfo.viewerCount+10 }}명 시청 중</span>
-                <span class="uptime">{{ formattedUptime }} 스트리밍 중</span>
+                <span v-for="tag in streamInfo.hashTag" :key="tag" class="hashtag">{{ tag }}</span>
               </div>
+              <span class="dot"> </span>
+              <span class="viewer-count">{{ streamInfo.viewerCount+10 }}명 시청 중</span>
+              <span class="dot"> </span>
+              <span class="uptime">{{ formattedUptime }} 스트리밍 중</span>
             </div>
           </div>
-          <div class="stream-actions">
-            <button class="follow-button">
-              <span class="plus-icon">+</span>
-              팔로우
-            </button>
+          
+          <div class="streamer-section">
+            <div class="streamer-info">
+              <div class="streamer-avatar">
+                <img v-if="streamerInfo.streamerProfileImageUrl" :src="streamerInfo.streamerProfileImageUrl" alt="스트리머 프로필">
+                <div v-if="streamerInfo.streamingYn === 'Y'" class="live-badge">
+                  <span class="live-dot"></span>
+                  LIVE
+                </div>
+              </div>
+              <div class="streamer-details">
+                <span class="streamer-name">{{ streamerInfo.streamerNickName }}</span>
+                <span class="follower-count">팔로워 {{ streamerInfo.followerCount }}명</span>
+              </div>
+            </div>
+            <div class="stream-actions">
+              <button class="follow-button" :class="{ 'following': streamerInfo.isFollow === 'Y' }">
+                <span class="plus-icon">+</span>
+                {{ streamerInfo.isFollow === 'Y' ? '팔로잉' : '팔로우' }}
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -162,14 +171,15 @@ const route = useRoute()
 const video = ref(null)
 const streamId = route.params.streamId
 const streamingApi = process.env.VUE_APP_STREAMING_API
+const memberApi = process.env.VUE_APP_MEMBER_API
 const selectedMessage = ref(null)
 const contextMenu = ref({ visible: false, x: 0, y: 0 })
 
 // 스트리밍 정보
 const streamInfo = ref({
   streamId: null,
-  streamKey: '',
   memberId: null,
+  streamKey: '',
   title: '',
   roomId: null,
   minDonation: 0,
@@ -179,6 +189,15 @@ const streamInfo = ref({
   managerRole: '',
   startTime: '',
   viewerCount: 0
+})
+
+// 스트리머 정보
+const streamerInfo = ref({
+  streamerNickName: '',
+  streamerProfileImageUrl: '',
+  streamingYn: '',
+  followerCount: 0,
+  isFollow: ''
 })
 
 // 채팅 관련 상태
@@ -244,6 +263,28 @@ const getStreamInfo = async () => {
     }
   } catch (error) {
     console.error('스트리밍 정보 로드 실패:', error)
+    return false
+  }
+}
+
+const getStreamerInfo = async () => {
+  try {
+    const response = await axios.get(`${memberApi}/member/info/${streamInfo.value.memberId}`, {
+      headers: {
+        Authorization: `Bearer ${token.value}`
+      }
+    })
+    console.log(streamInfo.value.memberId)
+    if (response.data && response.data.result) {
+      streamerInfo.value = response.data.result
+      console.log('스트리머 정보:', streamerInfo)
+      return true
+    } else {
+      console.error('스트리머 정보가 없습니다:', response.data)
+      return false
+    }
+  } catch (error) {
+    console.error('스트리머 정보 로드 실패:', error)
     return false
   }
 }
@@ -419,7 +460,7 @@ const initializeStreaming = async () => {
       console.error('룸 ID가 없습니다.')
       return
     }
-
+    getStreamerInfo()
     await prepareToken()
     await joinChatRoom()
     connectWebsocket()
@@ -609,35 +650,14 @@ onBeforeUnmount(() => {
 
 .stream-info {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 20px;
-}
-
-.streamer-info {
-  display: flex;
+  flex-direction: column;
   gap: 16px;
-  flex: 1;
 }
 
-.streamer-avatar {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  background: #2D2D2D;
-  flex-shrink: 0;
-}
-
-.streamer-details {
+.stream-title-section {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-}
-
-.streamer-name {
-  font-size: 14px;
-  color: #fff;
-  font-weight: 500;
+  gap: 8px;
 }
 
 .stream-title {
@@ -654,16 +674,91 @@ onBeforeUnmount(() => {
   gap: 8px;
   color: #7B7B7B;
   font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.category {
+  color: #00FF84;
+  font-weight: 800;
+  font-size: 15px;
+  text-shadow: 0 0 1px rgba(0, 255, 132, 0.3);
 }
 
 .dot {
   color: #7B7B7B;
+  margin: 0 2px;
 }
 
-.category {
-  color: #00E693;
-  font-weight: 800;
-  font-size: 14px;
+.streamer-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 8px;
+  border-top: 1px solid #2D2D2D;
+}
+
+.streamer-info {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.streamer-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #2D2D2D;
+  position: relative;
+  overflow: hidden;
+}
+
+.streamer-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.streamer-details {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.streamer-name {
+  font-size: 17px;
+  color: #fff;
+  font-weight: 600;
+}
+
+.follower-count {
+  font-size: 15px;
+  color: #7B7B7B;
+  font-weight: 600;
+}
+
+.live-badge {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: #00FF84;
+  padding: 2px 4px;
+  border-radius: 2px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #000;
+}
+
+.live-dot {
+  width: 6px;
+  height: 6px;
+  background: #FF0000;
+  border-radius: 50%;
+  animation: pulse 1.5s ease-in-out infinite;
 }
 
 .stream-actions {
@@ -683,11 +778,20 @@ onBeforeUnmount(() => {
   font-weight: 600;
   font-size: 14px;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.2s;
+}
+
+.follow-button.following {
+  background: #2D2D2D;
+  color: #fff;
 }
 
 .follow-button:hover {
   background: #00E676;
+}
+
+.follow-button.following:hover {
+  background: #3D3D3D;
 }
 
 .plus-icon {
