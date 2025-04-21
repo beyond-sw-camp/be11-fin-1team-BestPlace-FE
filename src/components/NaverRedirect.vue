@@ -17,7 +17,7 @@ export default {
     async sendCodeToServer(code) {
       const response = await axios.post(`${process.env.VUE_APP_MEMBER_API}/member/naver/doLogin`, {code});
       const token = response.data.token;
-      const refreshToken = response.data.refreshtoken;
+      const refreshToken = response.data.refreshToken;
       localStorage.setItem("token", token);
       localStorage.setItem("refreshToken", refreshToken);
       setTimeout(() => {

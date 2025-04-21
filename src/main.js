@@ -8,6 +8,20 @@ import * as directives from 'vuetify/directives';
 import {aliases, mdi} from 'vuetify/iconsets/mdi';
 import '@mdi/font/css/materialdesignicons.css';
 import './style.css';
+import axios from 'axios';
+
+axios.interceptors.request.use(
+    config => {
+        const token = localStorage.getItem('token')
+        if(token) {
+            config.headers['Authorization'] = `Bearer ${token}`
+        }
+        return config
+    },
+    error => {
+        return Promise.reject(error);
+    }
+)
 
 const chzzkTheme = {
     dark: true,

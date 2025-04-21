@@ -158,7 +158,7 @@ export default {
   },
   methods: {
     doLogout() {
-      localStorage.removeItem('token');
+      localStorage.clear();
       this.isLogin = false;
       this.profileMenuOpen = false;
       this.$router.push('/');
