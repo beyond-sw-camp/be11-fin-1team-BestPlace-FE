@@ -26,6 +26,9 @@
         <v-tab value="seoul">사용 내역</v-tab>
         <v-tab value="gyeonggi">구매 내역</v-tab>
         <v-tab value="busan">후원 받은 내역</v-tab>
+        <div v-if="activeTab === 'busan'" class="total-donation-badge">
+          총 후원받은 베리: <span class="total-donation-amount">{{ formatNumber(totalDonatedBerry) }}개</span>
+        </div>
       </v-tabs>
       
       <!-- 사용 내역 탭 내용 -->
@@ -352,7 +355,8 @@ export default {
       // 후원받은 내역 관련
       donationHistories: [],
       donationPage: 1,
-      donationTotalPages: 0
+      donationTotalPages: 0,
+      totalDonatedBerry: 0
     }
   },
   mounted() {
@@ -360,6 +364,7 @@ export default {
     this.fetchBerryHistories()
     this.fetchBerryPayments()
     this.loadPaymentSDK()
+    this.fetchTotalDonatedBerry()
   },
   methods: {
     async fetchBerryBalance() {
@@ -444,6 +449,16 @@ export default {
       } catch (error) {
         console.error('후원 받은 내역을 가져오는 중 오류가 발생했습니다:', error)
         this.donationHistories = []
+      }
+    },
+    async fetchTotalDonatedBerry() {
+      try {
+        const response = await axios.get(`${this.paymentApi}/payment/my/received/dona`)
+        this.totalDonatedBerry = response.data.result || 0
+        console.log('총 후원받은 베리:', this.totalDonatedBerry)
+      } catch (error) {
+        console.error('총 후원받은 베리 정보를 가져오는 중 오류가 발생했습니다:', error)
+        this.totalDonatedBerry = 0
       }
     },
     formatDateTime(dateTime) {
@@ -628,6 +643,7 @@ export default {
       } else if (newTab === 'busan') {
         this.donationPage = 1
         this.fetchDonationHistories()
+        this.fetchTotalDonatedBerry()
       }
     }
   }
@@ -984,5 +1000,29 @@ export default {
 
 .donation-sender {
   width: 34%;
+}
+
+.v-tabs {
+  position: relative;
+}
+
+.total-donation-badge {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 16px;
+  background-color: #1a1a1a;
+  border-radius: 8px;
+  padding: 6px 12px;
+  color: #aaa;
+  display: flex;
+  align-items: center;
+}
+
+.total-donation-amount {
+  color: #b084cc;
+  font-weight: 600;
+  margin-left: 5px;
 }
 </style>
