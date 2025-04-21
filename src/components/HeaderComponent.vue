@@ -1,21 +1,23 @@
 <template>
-  <v-app-bar app color="surface" dark>
-    <router-link to="/" class="d-flex align-center text-decoration-none">
-      <v-img src="@/assets/BEST_PLACE_logo.gif" height="30" width="91" alt="logo" />
-    </router-link>
+  <v-app-bar app color="#141517" dark elevation="0" class="header-no-border">
+    <div class="logo-container ml-4">
+      <router-link to="/" class="d-flex align-center text-decoration-none">
+        <v-img src="@/assets/BEST_PLACE_logo.gif" height="30" width="91" alt="logo" />
+      </router-link>
+    </div>
 
     <v-spacer />
 
     <!-- 검색창 추가 -->
     <v-text-field
         v-model="searchQuery"
-        placeholder="스트리머, 게임 검색"
+        placeholder="스트리머 검색"
         prepend-inner-icon="mdi-magnify"
-        variant="solo"
+        variant="outlined"
         hide-details
         density="compact"
-        bg-color="grey-darken-3"
-        class="search-bar mx-4"
+        bg-color="#141517"
+        class="search-bar mx-4 chzzk-search"
         @keyup.enter="search"
         rounded
         clearable
@@ -224,6 +226,55 @@ export default {
   max-width: 400px;
 }
 
+.logo-container {
+  margin-left: 16px;
+  padding-left: 5px;
+}
+
+.chzzk-search {
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.chzzk-search :deep(.v-field__outline) {
+  color: rgba(255, 255, 255, 0.5) !important;
+  opacity: 1;
+}
+
+.chzzk-search :deep(.v-field__input) {
+  color: #ffffff;
+}
+
+.chzzk-search :deep(.v-field) {
+  border-radius: 20px;
+  background-color: #000000;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  transition: all 0.3s ease;
+}
+
+.chzzk-search :deep(.v-field:hover) {
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.chzzk-search :deep(.v-field--focused) {
+  border-color: rgba(255, 255, 255, 0.7) !important;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.3);
+}
+
+.chzzk-search :deep(.v-field--focused .v-field__outline) {
+  opacity: 0;
+}
+
+.chzzk-search :deep(.v-field__prepend-inner) {
+  color: #ffffff;
+  opacity: 0.7;
+  transition: opacity 0.3s ease;
+}
+
+.chzzk-search :deep(.v-field--focused .v-field__prepend-inner) {
+  opacity: 1;
+}
+
 /* 모바일 화면에서 검색창 반응형 처리 */
 @media (max-width: 768px) {
   .search-bar {
@@ -242,5 +293,15 @@ export default {
 .profile-menu {
   background-color: #1e2029;
   border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.header-no-border {
+  box-shadow: none !important;
+  border-bottom: none !important;
+}
+
+.header-no-border :deep(.v-toolbar__content) {
+  box-shadow: none !important;
+  border-bottom: none !important;
 }
 </style>

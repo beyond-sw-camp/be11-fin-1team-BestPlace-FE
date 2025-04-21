@@ -1,5 +1,5 @@
 <template>
-  <v-navigation-drawer app permanent width="240" color="surface" class="sidebar">
+  <v-navigation-drawer app permanent width="160" color="#141517" class="sidebar">
     <div class="sidebar-content">
       <v-list dense>
         <v-list-item to="/lives" class="sidebar-item">
@@ -146,10 +146,11 @@ export default {
 
 <style>
 .sidebar {
-  border-right: 1px solid rgba(255, 255, 255, 0.05);
   display: flex;
   flex-direction: column;
   height: 100%;
+  background-color: #000000;
+  border-right: none !important;
 }
 
 .sidebar-content {

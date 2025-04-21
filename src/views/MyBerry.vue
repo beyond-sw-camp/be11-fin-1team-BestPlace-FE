@@ -653,7 +653,7 @@ export default {
 <style scoped>
 .berry-wrapper {
   width: 100%;
-  background-color: #000000;
+  background-color: #141517;
   color: white;
   min-height: calc(100vh - 60px); /* 헤더 높이를 뺀 전체 화면 높이 */
 }
