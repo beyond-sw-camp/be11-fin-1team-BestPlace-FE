@@ -137,9 +137,45 @@
       
       <!-- 후원 받은 내역 탭 내용 -->
       <div v-if="activeTab === 'busan'">
-        <!-- 후원받은 내역 구현 예정 -->
-        <div class="no-data">
-          <p>후원 받은 내역 준비 중입니다.</p>
+        <!-- 후원받은 내역 헤더 -->
+        <div class="berry-history-header">
+          <div class="history-cell donation-date">후원일시</div>
+          <div class="history-cell donation-amount">후원수량</div>
+          <div class="history-cell donation-sender">후원자아이디</div>
+        </div>
+
+        <!-- 후원받은 내역 목록 -->
+        <div class="berry-history-list" v-if="donationHistories.length > 0">
+          <div class="berry-history-item" v-for="(donation, index) in donationHistories" :key="index">
+            <div class="history-cell donation-date">
+              {{ formatDateTime(donation.createdTime) }}
+            </div>
+            <div class="history-cell donation-amount">
+              {{ donation.balance }}개
+            </div>
+            <div class="history-cell donation-sender">
+              <div class="sender-info">
+                <img :src="donation.memberProfileUrl || defaultProfileImage" alt="프로필" class="sender-avatar" />
+                <span>{{ donation.memberNickname }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 데이터가 없을 때 -->
+        <div class="no-data" v-else>
+          <p>후원 받은 내역이 없습니다.</p>
+        </div>
+
+        <!-- 페이지네이션 -->
+        <div class="pagination-container" v-if="donationTotalPages > 0">
+          <v-pagination
+            v-model="donationPage"
+            :length="donationTotalPages"
+            :total-visible="5"
+            @update:model-value="fetchDonationHistories"
+            color="#b084cc"
+          ></v-pagination>
         </div>
       </div>
     </div>
@@ -311,12 +347,18 @@ export default {
       // 결제 취소 관련
       cancelConfirmOpen: false,
       selectedPaymentId: null,
-      cancelLoading: false
+      cancelLoading: false,
+      
+      // 후원받은 내역 관련
+      donationHistories: [],
+      donationPage: 1,
+      donationTotalPages: 0
     }
   },
   mounted() {
     this.fetchBerryBalance()
     this.fetchBerryHistories()
+    this.fetchBerryPayments()
     this.loadPaymentSDK()
   },
   methods: {
@@ -334,7 +376,7 @@ export default {
         // 백엔드는 페이지를 0부터 시작하므로 -1 처리
         const pageIndex = this.currentPage - 1
         
-        const response = await axios.get(`${this.paymentApi}/payment/my/received/done`, {
+        const response = await axios.get(`${this.paymentApi}/payment/my/sent/done`, {
           params: {
             page: pageIndex,
             size: this.pageSize,
@@ -377,6 +419,31 @@ export default {
       } catch (error) {
         console.error('베리 구매내역을 가져오는 중 오류가 발생했습니다:', error)
         this.berryPayments = []
+      }
+    },
+    async fetchDonationHistories() {
+      try {
+        // 백엔드는 페이지를 0부터 시작하므로 -1 처리
+        const pageIndex = this.donationPage - 1
+        
+        const response = await axios.get(`${this.paymentApi}/payment/my/received/done`, {
+          params: {
+            page: pageIndex,
+            size: this.pageSize,
+            sort: 'createdTime,desc'
+          }
+        })
+        
+        if (response.data && response.data.result) {
+          const result = response.data.result
+          this.donationHistories = result.content || []
+          this.donationTotalPages = result.totalPages || 0
+          
+          console.log('후원 받은 내역:', this.donationHistories)
+        }
+      } catch (error) {
+        console.error('후원 받은 내역을 가져오는 중 오류가 발생했습니다:', error)
+        this.donationHistories = []
       }
     },
     formatDateTime(dateTime) {
@@ -558,6 +625,9 @@ export default {
       } else if (newTab === 'gyeonggi') {
         this.paymentPage = 1
         this.fetchBerryPayments()
+      } else if (newTab === 'busan') {
+        this.donationPage = 1
+        this.fetchDonationHistories()
       }
     }
   }
@@ -901,5 +971,18 @@ export default {
 
 .confirm-btn {
   flex: 2;
+}
+
+/* 후원 받은 내역 스타일 */
+.donation-date {
+  width: 33%;
+}
+
+.donation-amount {
+  width: 33%;
+}
+
+.donation-sender {
+  width: 34%;
 }
 </style>
