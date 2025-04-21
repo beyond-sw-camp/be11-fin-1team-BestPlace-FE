@@ -1,509 +1,610 @@
-<!-- views/MyProfileView.vue -->
 <template>
-  <div class="channel-page">
-    <!-- 상단 프로필 섹션 -->
-    <profile-header :profile="userProfile"/>
+  <div class="profile-wrapper">
+    <!-- 베플 프로필 섹션 -->
+    <div class="profile-content">
+      <h1 class="profile-title"><span class="purple-text">베플</span> <span class="white-text">프로필</span></h1>
 
-    <!-- 탭 메뉴 -->
-    <profile-tabs
-        :activeTab="activeTab"
-        @update:activeTab="activeTab = $event"
-    />
-
-    <!-- 탭 내용 -->
-    <v-window v-model="activeTab" class="tab-content">
-      <!-- 홈 탭 -->
-      <v-window-item value="home">
-        <profile-home-tab
-            :recentPosts="recentCommunityPosts"
-            :recentVideos="recentVideos"
-            :recentClips="recentClips"
-            :isLoading="isLoading"
-            @switch-tab="activeTab = $event"
-            @view-post="viewPostDetail"
-            @view-video="viewVideoDetail"
-            @view-clip="viewClipDetail"
-        />
-      </v-window-item>
-
-      <!-- 동영상 탭 -->
-      <v-window-item value="videos">
-        <profile-videos-tab
-            :videos="videos"
-            :isLoading="videosLoading"
-            :error="videosError"
-            :hasMoreVideos="videos.length >= pageSize"
-            :loadingMore="loadingMoreVideos"
-            @load-more="loadMoreVideos"
-            @view-video="viewVideoDetail"
-            @retry="fetchVideos"
-        />
-      </v-window-item>
-
-      <!-- 클립 탭 -->
-      <v-window-item value="clips">
-        <profile-clips-tab
-            :clips="clips"
-            :isLoading="clipsLoading"
-            :error="clipsError"
-            :hasMoreClips="clips.length >= pageSize"
-            :loadingMore="loadingMoreClips"
-            @load-more="loadMoreClips"
-            @view-clip="viewClipDetail"
-            @retry="fetchClips"
-        />
-      </v-window-item>
-
-      <!-- 커뮤니티 탭 -->
-      <v-window-item value="community">
-        <profile-community-tab
-            :posts="communityPosts"
-            :isLoading="postsLoading"
-            :error="postsError"
-            :hasMorePosts="communityPosts.length >= pageSize"
-            :loadingMore="loadingMorePosts"
-            @load-more="loadMorePosts"
-            @view-post="viewPostDetail"
-            @create-post="navigateToCreatePost"
-            @retry="fetchCommunityPosts"
-        />
-      </v-window-item>
-
-      <!-- 정보 탭 -->
-      <v-window-item value="about">
-        <profile-about-tab :profile="userProfile"/>
-      </v-window-item>
-    </v-window>
+      <!-- 프로필 정보 섹션 -->
+      <div class="profile-info-section">
+        <div class="profile-avatar">
+          <img 
+            :src="profileData.profileImageUrl || defaultProfileImage" 
+            alt="프로필 이미지" 
+            class="avatar-image" 
+          />
+        </div>
+        
+        <div class="profile-details">
+          <h2 class="username">{{ profileData.memberNickname }}</h2>
+          <p v-if="profileData.introduction" class="introduction">{{ profileData.introduction }}</p>
+          <p v-else class="introduction">한줄 자기소개를 작성해보세요.</p>
+        </div>
+        
+        <v-btn class="edit-profile-btn" variant="outlined" color="white" rounded @click="openEditModal">
+          프로필 편집
+        </v-btn>
+      </div>
+      
+      <!-- 구분선 -->
+      <div class="divider"></div>
+      
+      <!-- 프로필 통계 섹션 - 세로 배치 -->
+      <div class="profile-stats">
+        <div class="stat-item">
+          <div class="stat-label">활동기간</div>
+          <div class="stat-value">{{ getActivityPeriodNumber }}<span class="stat-unit">{{ getActivityPeriodUnit }}</span></div>
+        </div>
+        
+        <div class="stat-item">
+          <div class="stat-label">베리</div>
+          <div class="stat-value">{{ berryBalance }} <span class="stat-unit">개</span></div>
+        </div>
+      </div>
+      
+      <!-- 추가 공간 (스크롤이 필요하도록) -->
+      <div class="spacer"></div>
+    </div>
+    
+    <!-- 프로필 편집 모달 -->
+    <v-dialog v-model="editModalOpen" max-width="400" content-class="profile-edit-modal">
+      <div class="modal-container">
+        <div class="modal-header">
+          <div class="modal-title">프로필 편집</div>
+          <v-btn icon @click="closeEditModal" class="close-btn">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </div>
+        
+        <div class="modal-content">
+          <!-- 프로필 이미지 변경 -->
+          <div class="profile-image-edit">
+            <div class="profile-image-container">
+              <img 
+                :src="previewImage || profileData.profileImageUrl || defaultProfileImage" 
+                alt="프로필 이미지" 
+                class="edit-avatar-image" 
+              />
+              <label for="profile-image-upload" class="image-upload-label">
+                <v-icon class="upload-icon">mdi-camera</v-icon>
+              </label>
+              <input 
+                type="file" 
+                id="profile-image-upload" 
+                class="image-upload-input" 
+                accept="image/*"
+                @change="handleImageChange" 
+              />
+            </div>
+          </div>
+          
+          <!-- 닉네임 입력 -->
+          <div class="input-group">
+            <div class="input-label">닉네임</div>
+            <input 
+              type="text" 
+              v-model="editForm.nickname" 
+              class="profile-input" 
+              placeholder="닉네임을 입력하세요"
+            />
+            <div v-if="nicknameError" class="error-message">{{ nicknameError }}</div>
+          </div>
+          
+          <!-- 자기소개 입력 -->
+          <div class="input-group">
+            <div class="input-label">한 줄 자기소개</div>
+            <textarea 
+              v-model="editForm.introduction" 
+              class="profile-textarea" 
+              placeholder="자기소개를 입력하세요"
+            ></textarea>
+            <div class="char-count" :class="{ 'error': introError }">
+              {{ editForm.introduction.length }}/30
+            </div>
+            <div v-if="introError" class="error-message">{{ introError }}</div>
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <v-btn 
+            color="#b084cc" 
+            block 
+            :disabled="!isFormChanged" 
+            @click="updateProfile"
+            class="submit-btn"
+          >
+            수정
+          </v-btn>
+        </div>
+      </div>
+    </v-dialog>
   </div>
 </template>
 
 <script>
-import ProfileHeader from '@/components/profile/ProfileHeader.vue';
-import ProfileTabs from '@/components/profile/Tabs/ProfileTabs.vue';
-import ProfileHomeTab from '@/components/profile/Tabs/ProfileHomeTab.vue';
-import ProfileVideosTab from '@/components/profile/Tabs/ProfileVideosTab.vue';
-import ProfileClipsTab from '@/components/profile/Tabs/ProfileClipsTab.vue';
-import ProfileCommunityTab from '@/components/profile/Tabs/ProfileCommunityTab.vue';
-import ProfileAboutTab from '@/components/profile/Tabs/ProfileAboutTab.vue';
-import axios from 'axios';
+import axios from 'axios'
 
 export default {
-  name: 'MyProfileView',
-  components: {
-    ProfileHeader,
-    ProfileTabs,
-    ProfileHomeTab,
-    ProfileVideosTab,
-    ProfileClipsTab,
-    ProfileCommunityTab,
-    ProfileAboutTab
-  },
   data() {
     return {
-      activeTab: 'home',
-      defaultAvatar: require('@/assets/default-avatar.png'),
-      userProfile: {
-        nickname: '',
+      profileData: {
+        id: '',
+        memberNickname: '',
         email: '',
-        profileImage: '',
-        bannerImg: null,
-        followers: 0,
-        following: 0,
-        description: '',
-        joinDate: '',
-        totalViews: 0,
+        profileImageUrl: '',
+        createdTime: '',
         berryBalance: 0,
-        adult: '',
-        gender: '',
-        birthYear: '',
-        streamer: ''
+        introduction: ''
       },
-      communityPosts: [], // 커뮤니티 게시물
-      videos: [], // 동영상
-      clips: [], // 클립
-      isLoading: false, // 전체 로딩 상태
-      postsLoading: false, // 게시물 로딩 상태
-      postsError: null, // 게시물 에러 상태
-      videosLoading: false, // 비디오 로딩 상태
-      videosError: null, // 비디오 에러 상태
-      clipsLoading: false, // 클립 로딩 상태
-      clipsError: null, // 클립 에러 상태
-      postPage: 0, // 게시물 페이지
-      videoPage: 0, // 비디오 페이지
-      clipPage: 0, // 클립 페이지
-      pageSize: 9, // 페이지 크기
-      loadingMorePosts: false, // 추가 게시물 로딩 중
-      loadingMoreVideos: false, // 추가 비디오 로딩 중
-      loadingMoreClips: false // 추가 클립 로딩 중
-    };
+      berryBalance: 0,
+      defaultProfileImage: 'https://bestplace-media.s3.ap-northeast-2.amazonaws.com/bestplace-basic-profile-image.png',
+      memberApi: process.env.VUE_APP_MEMBER_API,
+      paymentApi: process.env.VUE_APP_PAYMENT_API,
+      
+      // 모달 관련
+      editModalOpen: false,
+      editForm: {
+        nickname: '',
+        introduction: '',
+        image: null
+      },
+      previewImage: null,
+      originalForm: {
+        nickname: '',
+        introduction: ''
+      },
+      nicknameError: '',
+      introError: ''
+    }
   },
   computed: {
-    // 홈 탭에 표시할 최근 게시물 (각 카테고리별로 최대 3개)
-    recentCommunityPosts() {
-      return this.communityPosts.slice(0, 3);
+    calcActivityPeriod() {
+      if (!this.profileData.createdTime) return '0개월+'
+      
+      const createdDate = new Date(this.profileData.createdTime)
+      const currentDate = new Date()
+      
+      const yearDiff = currentDate.getFullYear() - createdDate.getFullYear()
+      const monthDiff = currentDate.getMonth() - createdDate.getMonth()
+      
+      const totalMonths = yearDiff * 12 + monthDiff
+      
+      if (totalMonths >= 12) {
+        const years = Math.floor(totalMonths / 12)
+        const months = totalMonths % 12
+        return months > 0 ? `${years}년 ${months}개월+` : `${years}년+`
+      } else {
+        return `${totalMonths}개월+`
+      }
     },
-    recentVideos() {
-      return this.videos.slice(0, 3);
+    // 활동기간 값과 단위 분리
+    getActivityPeriodNumber() {
+      const period = this.calcActivityPeriod;
+      if (period.includes('년')) {
+        return period.split('년')[0];
+      } else {
+        return period.split('개월')[0];
+      }
     },
-    recentClips() {
-      return this.clips.slice(0, 3);
+    getActivityPeriodUnit() {
+      const period = this.calcActivityPeriod;
+      if (period.includes('년') && period.includes('개월')) {
+        return '년 ' + period.split('년 ')[1];
+      } else if (period.includes('년')) {
+        return '년+';
+      } else {
+        return '개월+';
+      }
     },
-    // 모든 컨텐츠가 없는지 확인
-    noContent() {
-      return this.communityPosts.length === 0 && this.videos.length === 0 && this.clips.length === 0;
+    // 폼 변경 감지
+    isFormChanged() {
+      return (this.editForm.nickname !== this.originalForm.nickname ||
+             this.editForm.introduction !== this.originalForm.introduction ||
+             this.editForm.image !== null) && !this.nicknameError && !this.introError;
     }
   },
   watch: {
-    // URL 쿼리 변화 감지
-    '$route.query': {
-      handler(query) {
-        if (query.refresh === 'true') {
-          // 새로고침 필요한 탭 확인
-          if (query.tab) {
-            this.activeTab = query.tab;
-          }
-
-          // 데이터 새로고침
-          if (query.tab === 'community') {
-            this.fetchCommunityPosts();
-          } else if (query.tab === 'videos') {
-            this.fetchVideos();
-          } else if (query.tab === 'clips') {
-            this.fetchClips();
-          }
-
-          // 쿼리 파라미터 제거 (히스토리에 남지 않게)
-          this.$router.replace({
-            path: this.$route.path,
-            query: {}
-          });
-        }
-      },
-      immediate: true
+    'editForm.nickname': function(newVal) {
+      this.validateNickname(newVal);
     },
-    // 탭 변경 감지
-    activeTab(newTab) {
-      if (newTab === 'community' && this.communityPosts.length === 0 && !this.postsLoading) {
-        this.fetchCommunityPosts();
-      } else if (newTab === 'videos' && this.videos.length === 0 && !this.videosLoading) {
-        this.fetchVideos();
-      } else if (newTab === 'clips' && this.clips.length === 0 && !this.clipsLoading) {
-        this.fetchClips();
-      } else if (newTab === 'home' && this.noContent && !this.isLoading) {
-        this.fetchHomeData();
-      }
+    'editForm.introduction': function(newVal) {
+      this.validateIntroduction(newVal);
     }
   },
   mounted() {
-    this.fetchUserProfile();
-    this.fetchHomeData();
+    this.fetchProfileData()
+    this.fetchBerryBalance()
   },
   methods: {
-    async fetchUserProfile() {
+    async fetchProfileData() {
       try {
-        const token = localStorage.getItem('token');
-        const userId = localStorage.getItem('userId');
-
-        if (!token || !userId) {
-          this.$router.push('/member/login');
-          return;
-        }
-
-        // API 호출 - 사용자 정보 가져오기
-        const response = await axios.get(`http://localhost:8080/member-service/member/detail/${userId}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'X-User-Id': userId
-          }
-        });
-
-        // 응답 처리
-        if (response.data && response.data.result) {
-          const userData = response.data.result;
-          this.userProfile = {
-            nickname: userData.name || '사용자',
-            email: userData.email || '',
-            profileImage: userData.profileImg || this.defaultAvatar,
-            bannerImg: null, // 백엔드에서 제공하지 않는 정보
-            followers: 0, // 백엔드에서 제공하지 않는 정보
-            following: 0, // 백엔드에서 제공하지 않는 정보
-            description: '안녕하세요! 저의 채널에 오신 것을 환영합니다.',
-            joinDate: userData.createdTime ? new Date(userData.createdTime).toLocaleDateString('ko-KR') : '정보 없음',
-            totalViews: 0, // 백엔드에서 제공하지 않는 정보
-            berryBalance: userData.berryBalance || 0,
-            adult: userData.adult || 'N',
-            gender: userData.gender || '미설정',
-            birthYear: userData.birthYear || '미설정',
-            streamer: userData.streamer || 'N'
-          };
-        }
+        const response = await axios.get(`${this.memberApi}/member/my/profile`)
+        this.profileData = response.data.result
+        console.log('프로필 데이터:', this.profileData) // 디버깅용 로그 추가
       } catch (error) {
-        console.error('사용자 정보를 가져오는 중 오류 발생:', error);
+        console.error('프로필 정보를 가져오는 중 오류가 발생했습니다:', error)
       }
     },
-
-    // 홈 탭 데이터 로드
-    async fetchHomeData() {
-      this.isLoading = true;
-
+    async fetchBerryBalance() {
       try {
-        // 병렬로 여러 종류의 컨텐츠 가져오기
-        await Promise.all([
-          this.fetchCommunityPosts(),
-          this.fetchVideos(),
-          this.fetchClips()
-        ]);
+        const response = await axios.get(`${this.paymentApi}/payment/my/berry`)
+        console.log(response)
+        this.berryBalance = response.data.result.balance || 0
       } catch (error) {
-        console.error('홈 데이터 로드 중 오류:', error);
-      } finally {
-        this.isLoading = false;
+        console.error('베리 정보를 가져오는 중 오류가 발생했습니다:', error)
+        this.berryBalance = 0
       }
     },
-
-    // 커뮤니티 게시물 가져오기
-    async fetchCommunityPosts() {
-      if (this.postsLoading) return;
-
-      this.postsLoading = true;
-      this.postsError = null;
-
-      try {
-        const token = localStorage.getItem('token');
-        const userId = localStorage.getItem('userId');
-
-        if (!token || !userId) {
-          this.$router.push('/member/login');
-          return;
-        }
-
-        // 백엔드 API 호출 - 사용자의 게시물 가져오기
-        try {
-          const response = await axios.get(
-              `http://localhost:8080/member-service/post/community/${userId}/list`,
-              {
-                headers: {
-                  'Authorization': `Bearer ${token}`,
-                  'X-User-Id': userId
-                },
-                params: {
-                  page: this.postPage,
-                  size: this.pageSize
-                }
-              }
-          );
-
-          // 응답 처리
-          if (response.data && response.data.result) {
-            const posts = response.data.result || [];
-
-            if (this.postPage === 0) {
-              this.communityPosts = posts;
-            } else {
-              this.communityPosts = [...this.communityPosts, ...posts];
-            }
-
-            console.log('게시물 로드됨:', this.communityPosts);
-          }
-        } catch (error) {
-          console.error('API 호출 오류:', error);
-
-          // API 오류를 표시하지 않음(중요!)
-          // this.postsError = '게시물을 불러오는 중 오류가 발생했습니다.';
-        }
-      } catch (error) {
-        console.error('게시물 로드 중 오류:', error);
-        if (this.postPage === 0) {
-          this.communityPosts = [];
-        }
-      } finally {
-        this.postsLoading = false;
-        this.loadingMorePosts = false;
-      }
+    
+    // 모달 관련 메서드
+    openEditModal() {
+      this.editForm.nickname = this.profileData.memberNickname || '';
+      this.editForm.introduction = this.profileData.introduction || '';
+      this.editForm.image = null;
+      this.previewImage = null;
+      
+      // 원본 데이터 저장 (변경 감지용)
+      this.originalForm = {
+        nickname: this.editForm.nickname,
+        introduction: this.editForm.introduction
+      };
+      
+      this.editModalOpen = true;
     },
-
-    // 비디오 가져오기
-    async fetchVideos() {
-      if (this.videosLoading) return;
-
-      this.videosLoading = true;
-      this.videosError = null;
-
-      try {
-        const token = localStorage.getItem('token');
-        const userId = localStorage.getItem('userId');
-
-        if (!token || !userId) {
-          this.$router.push('/member/login');
-          return;
-        }
-
-        // 백엔드 API 호출 - VOD 목록 가져오기
-        const response = await axios.get(
-            `http://localhost:8080/member-service/videoPost/vod/list/${userId}`,
-            {
-              headers: {
-                'Authorization': `Bearer ${token}`,
-                'X-User-Id': userId
-              },
-              params: {
-                page: this.videoPage,
-                size: this.pageSize
-              }
-            }
-        );
-
-        // 응답 처리
-        if (response.data && response.data.result) {
-          const videos = response.data.result.content || [];
-
-          if (this.videoPage === 0) {
-            this.videos = videos;
-          } else {
-            this.videos = [...this.videos, ...videos];
-          }
-        }
-      } catch (error) {
-        console.error('동영상 로드 중 오류:', error);
-
-        // API가 없는 경우 예시 데이터
-        if (this.videoPage === 0) {
-          this.videos = [];
-        } else {
-          this.videosError = '동영상을 불러오는 중 오류가 발생했습니다.';
-        }
-      } finally {
-        this.videosLoading = false;
-        this.loadingMoreVideos = false;
-      }
+    
+    closeEditModal() {
+      this.editModalOpen = false;
     },
-
-    // 클립 가져오기
-    async fetchClips() {
-      if (this.clipsLoading) return;
-
-      this.clipsLoading = true;
-      this.clipsError = null;
-
-      try {
-        const token = localStorage.getItem('token');
-        const userId = localStorage.getItem('userId');
-
-        if (!token || !userId) {
-          this.$router.push('/member/login');
-          return;
-        }
-
-        // 백엔드 API 호출 - 클립 목록 가져오기
-        const response = await axios.get(
-            `http://localhost:8080/member-service/videoPost/clip/list/${userId}`,
-            {
-              headers: {
-                'Authorization': `Bearer ${token}`,
-                'X-User-Id': userId
-              },
-              params: {
-                page: this.clipPage,
-                size: this.pageSize
-              }
-            }
-        );
-
-        // 응답 처리
-        if (response.data && response.data.result) {
-          const clips = response.data.result.content || [];
-
-          if (this.clipPage === 0) {
-            this.clips = clips;
-          } else {
-            this.clips = [...this.clips, ...clips];
-          }
-        }
-      } catch (error) {
-        console.error('클립 로드 중 오류:', error);
-
-        // API가 없는 경우 예시 데이터
-        if (this.clipPage === 0) {
-          this.clips = [];
-        } else {
-          this.clipsError = '클립을 불러오는 중 오류가 발생했습니다.';
-        }
-      } finally {
-        this.clipsLoading = false;
-        this.loadingMoreClips = false;
-      }
-    },
-
-    // 게시물 상세 보기
-    viewPostDetail(postId) {
-      this.$router.push(`/post/community/detail/${postId}`);
-    },
-
-    // 비디오 상세 보기
-    viewVideoDetail(videoId) {
-      this.$router.push(`/video/vod/${videoId}`);
-    },
-
-    // 클립 상세 보기
-    viewClipDetail(clipId) {
-      this.$router.push(`/video/clip/${clipId}`);
-    },
-
-    // 게시물 작성 페이지로 이동
-    navigateToCreatePost() {
-      // 사용자 ID가 없는 경우 처리
-      if (!localStorage.getItem('userId')) {
-        console.error('사용자 ID가 없습니다.');
+    
+    handleImageChange(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      
+      // 이미지 파일만 허용
+      if (!file.type.match('image.*')) {
+        alert('이미지 파일만 업로드 가능합니다.');
         return;
       }
-
-      // localStorage에서 사용자 ID를 가져와 라우팅
-      const userId = localStorage.getItem('userId');
-      console.log('게시물 작성 페이지로 이동합니다. 사용자 ID:', userId);
-
-      // 라우터 이동 시도 로그
-      console.log('라우터 푸시 시도:', `/post/community/create/${userId}`);
-      this.$router.push(`/post/community/create/${userId}`).then(() => {
-        console.log('라우터 푸시 성공');
-      }).catch(err => {
-        console.error('라우터 푸시 실패:', err);
-      });
+      
+      this.editForm.image = file;
+      
+      // 이미지 미리보기 생성
+      const reader = new FileReader();
+      reader.onload = e => {
+        this.previewImage = e.target.result;
+      };
+      reader.readAsDataURL(file);
     },
-
-    // 더 많은 게시물 로드
-    loadMorePosts() {
-      this.postPage++;
-      this.loadingMorePosts = true;
-      this.fetchCommunityPosts();
+    
+    // 닉네임 유효성 검사
+    validateNickname(nickname) {
+      // 길이 검사 (2-15자)
+      if (nickname.length < 2 || nickname.length > 15) {
+        this.nicknameError = '닉네임은 2자 이상 15자 이하로 입력해주세요.';
+        return false;
+      }
+      
+      // 특수문자 검사
+      const regex = /^[가-힣a-zA-Z0-9]*$/;
+      if (!regex.test(nickname)) {
+        this.nicknameError = '닉네임은 특수문자를 포함할 수 없습니다.';
+        return false;
+      }
+      
+      // 모든 검사 통과
+      this.nicknameError = '';
+      return true;
     },
-
-    // 더 많은 비디오 로드
-    loadMoreVideos() {
-      this.videoPage++;
-      this.loadingMoreVideos = true;
-      this.fetchVideos();
+    
+    // 자기소개 유효성 검사
+    validateIntroduction(introduction) {
+      if (introduction && (introduction.length < 2 || introduction.length > 30)) {
+        this.introError = '자기소개는 2자 이상 30자 이하로 입력해주세요.';
+        return false;
+      }
+      
+      this.introError = '';
+      return true;
     },
-
-    // 더 많은 클립 로드
-    loadMoreClips() {
-      this.clipPage++;
-      this.loadingMoreClips = true;
-      this.fetchClips();
+    
+    async updateProfile() {
+      // 닉네임 유효성 검사
+      if (!this.validateNickname(this.editForm.nickname)) {
+        return;
+      }
+      
+      // 자기소개 유효성 검사
+      if (!this.validateIntroduction(this.editForm.introduction)) {
+        return;
+      }
+      
+      try {
+        const formData = new FormData();
+        
+        // 변경된 항목만 FormData에 추가
+        if (this.editForm.nickname !== this.originalForm.nickname) {
+          formData.append('nickname', this.editForm.nickname);
+        }
+        
+        if (this.editForm.introduction !== this.originalForm.introduction) {
+          formData.append('introduction', this.editForm.introduction);
+        }
+        
+        if (this.editForm.image) {
+          formData.append('image', this.editForm.image);
+        }
+        
+        // 폼데이터 내용 디버깅
+        for (let pair of formData.entries()) {
+          console.log(pair[0] + ': ' + pair[1]);
+        }
+        
+        // 프로필 업데이트 API 호출
+        const response = await axios.patch(`${this.memberApi}/member/change/profile`, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        });
+        
+        console.log('프로필 업데이트 응답:', response.data); // 디버깅용 로그 추가
+        
+        if (response.data) {
+          // 모달 닫기 전에 타이머 설정
+          setTimeout(async () => {
+            // 프로필 데이터 다시 불러오기
+            await this.fetchProfileData();
+            
+            // 성공 시 모달 닫기
+            this.closeEditModal();
+          }, 500); // 0.5초 딜레이
+        }
+      } catch (error) {
+        console.error('프로필 업데이트 중 오류가 발생했습니다:', error);
+        alert('프로필 업데이트에 실패했습니다. 다시 시도해주세요.');
+      }
     }
   }
-};
+}
 </script>
 
 <style scoped>
-.channel-page {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 16px;
+.profile-wrapper {
+  width: 100%;
+  background-color: #000000;
+  color: white;
+  min-height: calc(100vh - 60px); /* 헤더 높이를 뺀 전체 화면 높이 */
 }
 
-.tab-content {
-  background-color: #1e2029;
-  min-height: 400px;
-  border-radius: 0 0 8px 8px;
-  margin-bottom: 24px;
+.profile-content {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding-bottom: 50vh; /* 푸터를 아래로 밀기 위한 추가 공간 */
+}
+
+.profile-title {
+  font-size: 24px;
+  font-weight: 500;
+  padding: 20px 0 10px 15px;
+}
+
+.purple-text {
+  color: #B084CC;
+}
+
+.white-text {
+  color: #FFFFFF;
+}
+
+.profile-info-section {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 0 15px 20px;
+  position: relative;
+}
+
+.profile-avatar {
+  flex-shrink: 0;
+}
+
+.avatar-image {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background-color: #e6d7ff;
+  object-fit: cover;
+}
+
+.profile-details {
+  flex-grow: 1;
+}
+
+.username {
+  font-size: 28px;
+  font-weight: 500;
+  margin-bottom: 5px;
+  color: #FFFFFF;
+}
+
+.introduction {
+  font-size: 14px;
+  color: #aaa;
+  margin: 0 0 10px 0;
+}
+
+.edit-profile-btn {
+  text-transform: none;
+  font-weight: 500;
+  height: 36px;
+  border-radius: 20px;
+  padding: 0 16px;
+  position: absolute;
+  right: 15px;
+  top: calc(50% - 18px);
+}
+
+.divider {
+  height: 1px;
+  background-color: #222;
+  margin: 0;
+}
+
+.profile-stats {
+  display: flex;
+  flex-direction: column; /* 세로 배치 */
+  padding: 0 15px;
+}
+
+.stat-item {
+  padding: 20px 0; /* 간격 조정 */
+}
+
+.stat-label {
+  font-size: 18px; /* 더 키움 */
+  color: #FFFFFF; /* 색상 변경 */
+  margin-bottom: 10px;
+  font-weight: 500;
+}
+
+.stat-value {
+  font-size: 24px; /* 더 키움 */
+  font-weight: 600;
+  color: #FFFFFF; /* 색상 변경 */
+}
+
+.stat-unit {
+  font-weight: 400; /* 단위 부분 굵기 감소 */
+  font-size: 20px; /* 단위 부분 크기 감소 */
+}
+
+.spacer {
+  height: 50vh; /* 스크롤이 필요하도록 추가 공간 확보 */
+}
+
+/* 프로필 편집 모달 스타일 */
+.profile-edit-modal {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.modal-container {
+  background-color: #1a1a1a;
+  border-radius: 12px;
+  overflow: hidden;
+  color: white;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid #333;
+}
+
+.modal-title {
+  font-size: 18px;
+  font-weight: 500;
+  color: white;
+}
+
+.modal-content {
+  padding: 20px;
+}
+
+.profile-image-edit {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.profile-image-container {
+  position: relative;
+  width: 120px;
+  height: 120px;
+}
+
+.edit-avatar-image {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+  background-color: #e6d7ff;
+}
+
+.image-upload-label {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  background-color: #b084cc;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.upload-icon {
+  color: white;
+  font-size: 18px;
+}
+
+.image-upload-input {
+  display: none;
+}
+
+.input-group {
+  margin-bottom: 20px;
+}
+
+.input-label {
+  font-size: 14px;
+  color: #aaa;
+  margin-bottom: 8px;
+}
+
+.profile-input, .profile-textarea {
+  width: 100%;
+  padding: 12px;
+  background-color: #333;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 16px;
+}
+
+.profile-textarea {
+  min-height: 80px;
+  resize: none;
+}
+
+.modal-footer {
+  padding: 16px;
+  border-top: 1px solid #333;
+}
+
+.submit-btn {
+  height: 44px;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.error-message {
+  color: #ff5252;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.char-count {
+  font-size: 12px;
+  color: #aaa;
+  text-align: right;
+  margin-top: 4px;
+}
+
+.char-count.error {
+  color: #ff5252;
 }
 </style>
