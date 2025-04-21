@@ -1,6 +1,7 @@
 import GoogleRedirect from '@/components/GoogleRedirect.vue';
 import NaverRedirect from '@/components/NaverRedirect.vue';
 import LoginPage from '@/views/loginPage.vue';
+import MyBerry from '@/views/MyBerry.vue';
 
 export default [
   {
@@ -15,5 +16,9 @@ export default [
   {
       path: "/member/naver/redirect",
       component: NaverRedirect
+  },
+  {
+    path: "/member/my/berry",
+    component: MyBerry
   },
 ];
