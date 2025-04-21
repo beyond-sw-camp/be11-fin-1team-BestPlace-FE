@@ -54,7 +54,7 @@ export default {
 
 <style scoped>
 .footer {
-  background-color: #121212;
+  background-color: #141517;
   color: #fff;
   padding: 1.5rem 0;
 }
@@ -112,7 +112,7 @@ export default {
   text-align: center;
   margin-top: 1.5rem;
   padding-top: 0.8rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  border-top: none;
   font-size: 0.85rem;
 }
 
