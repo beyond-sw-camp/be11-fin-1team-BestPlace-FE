@@ -120,19 +120,30 @@
           :key="message.messageId"
           class="chat-message"
           :class="{ 'own-message': message.memberId === memberId }"
-          @contextmenu.prevent="openContextMenu($event, message)"
+          @contextmenu.prevent="message.memberId !== memberId && openContextMenu($event, message)"
         >
-          <span class="sender">{{ message.sender }}</span>
-          <span class="message-content">{{ message.message }}</span>
+          <template v-if="blockedUsers.has(message.memberId)">
+            <span class="blocked-message">내가 차단한 작성자의 채팅입니다</span>
+          </template>
+          <template v-else-if="reportedUsers.has(message.memberId)">
+            <span class="reported-message">내가 신고한 작성자의 채팅입니다</span>
+          </template>
+          <template v-else>
+            <span class="sender">{{ message.sender }}</span>
+            <span class="message-content">{{ message.message }}</span>
+          </template>
         </div>
         <div
           v-if="contextMenu.visible"
           class="context-menu"
           :style="{ top: `${contextMenu.y}px`, left: `${contextMenu.x}px` }"
         >
-          <ul>
-            <li @click="banUser">🚫 차단하기</li>
-            <li @click="reportMessage">🚨 신고하기</li>
+          <ul v-if="selectedMessage?.memberId !== memberId">
+            <li @click="showBlockModal = true">🚫 차단하기</li>
+            <li @click="showReportModal = true">🚨 신고하기</li>
+          </ul>
+          <ul v-else>
+            <!-- 자신의 메시지일 때는 빈 메뉴 -->
           </ul>
         </div>
       </div>
@@ -156,6 +167,18 @@
         </button>
       </div>
     </div>
+
+    <ReportModal
+      v-model="showReportModal"
+      :message="selectedMessage"
+      @submit="handleReport"
+    />
+
+    <BlockModal
+      v-model="showBlockModal"
+      :message="selectedMessage"
+      @confirm="handleBlock"
+    />
   </div>
 </template>
 
@@ -166,6 +189,8 @@ import Hls from 'hls.js'
 import SockJS from 'sockjs-client'
 import Stomp from 'webstomp-client'
 import axios from 'axios'
+import ReportModal from '@/components/ReportModal.vue'
+import BlockModal from '@/components/BlockModal.vue'
 
 const route = useRoute()
 const video = ref(null)
@@ -220,6 +245,10 @@ const volume = ref(0)
 const isPip = ref(false)
 const isFullscreen = ref(false)
 const lastVolume = ref(0.5) // 마지막 볼륨값 저장
+
+// 차단/신고 관련 상태 추가
+const blockedUsers = ref(new Set())
+const reportedUsers = ref(new Set())
 
 // 채팅 관련 함수
 const prepareToken = async () => {
@@ -323,7 +352,11 @@ const connectWebsocket = () => {
         const parsed = JSON.parse(message.body)
         console.log('수신된 메시지:', parsed)
         
+        // messageId가 있는지 확인하고 로그 출력
+        console.log('메시지 ID:', parsed.messageId)
+        
         messages.value.push({
+          messageId: parsed.messageId,  // messageId 추가
           roomId: parsed.roomId,
           memberId: parsed.memberId,
           message: parsed.message,
@@ -380,35 +413,86 @@ const sendMessage = () => {
   newMessage.value = ''
 }
 
-const openContextMenu = (e, message) => {
-  console.log('contextMenu:', contextMenu.value)
-  console.log('우클릭 발생', e.clientX, e.clientY)
-  console.log('selectedMessage:', selectedMessage.value)
-  console.log('contextMenu visible?', contextMenu.value.visible)
-  e.stopPropagation() // 상위로 이벤트가 전파되지 않게 함
-  selectedMessage.value = message
-  contextMenu.value = {
-    visible: true,
-    x: e.offsetX,
-    y: e.offsetY
+const showReportModal = ref(false)
+const showBlockModal = ref(false)
+
+const openContextMenu = async (event, message) => {
+  if (!isLogin.value) return;
+  
+  try {
+    // 서버에서 메시지의 실제 멤버 ID를 가져옵니다
+    const response = await axios.post(`${streamingApi}/chat/getMemberId`, message.messageId, {
+      headers: {
+        'Authorization': `Bearer ${token.value}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    console.log('멤버 ID 조회 응답:', response.data); // 디버깅용 로그
+    
+    // 메시지 객체에 실제 멤버 ID를 설정합니다
+    message.memberId = response.data;
+    
+    selectedMessage.value = message;
+    contextMenu.value = {
+      visible: true,
+      x: event.clientX,
+      y: event.clientY
+    };
+    
+    // 메뉴 외부 클릭 시 닫기
+    document.addEventListener('click', closeContextMenu);
+  } catch (error) {
+    console.error('메시지 멤버 ID 조회 실패:', error);
+    console.error('요청 URL:', `${streamingApi}/chat/getMemberId`); // 디버깅용 로그
+    console.error('요청 데이터:', message.messageId); // 디버깅용 로그
   }
-}
+};
 
 const closeContextMenu = () => {
-  contextMenu.value.visible = false
-}
+  contextMenu.value.visible = false;
+  document.removeEventListener('click', closeContextMenu);
+};
 
-const banUser = () => {
-  console.log('차단 대상:', selectedMessage.value)
-  closeContextMenu()
-  // API 호출 또는 이벤트 emit 등 추가
-}
+const handleReport = async (reportData) => {
+  try {
+    await axios.post(`${streamingApi}/chat/report`, reportData, {
+      headers: {
+        'Authorization': `Bearer ${token.value}`
+      }
+    });
 
-const reportMessage = () => {
-  console.log('신고 대상:', selectedMessage.value)
-  closeContextMenu()
-  // 신고 처리 로직 추가
-}
+    // 신고한 사용자 목록에 추가
+    reportedUsers.value.add(selectedMessage.value.memberId)
+    alert('신고가 접수되었습니다.');
+  } catch (error) {
+    console.error('신고 처리 중 오류 발생:', error);
+    alert('신고 처리 중 오류가 발생했습니다.');
+  }
+};
+
+const handleBlock = async (message) => {
+  try {
+    await axios.post(`${memberApi}/member/block`, null, {
+      params: {
+        blockMemberId: message.memberId
+      },
+      headers: {
+        'Authorization': `Bearer ${token.value}`
+      }
+    });
+
+    // 차단된 사용자 목록에 추가
+    blockedUsers.value.add(message.memberId)
+    
+    // 차단된 사용자의 메시지 필터링
+    messages.value = messages.value.filter(msg => msg.memberId !== message.memberId);
+    alert('사용자가 차단되었습니다.');
+  } catch (error) {
+    console.error('차단 처리 중 오류 발생:', error);
+    alert('차단 처리 중 오류가 발생했습니다.');
+  }
+};
 
 const scrollToBottom = () => {
   const chatContainer = document.querySelector('.chat-messages')
@@ -1146,27 +1230,42 @@ video {
 }
 
 .context-menu {
-  position: absolute;
+  position: fixed;
+  background-color: #1e2029;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  padding: 8px 0;
   z-index: 1000;
-  background: white;
-  border: 1px solid #ccc;
-  box-shadow: 0px 0px 5px rgba(0,0,0,0.15);
-  border-radius: 5px;
-  padding: 0;
 }
 
 .context-menu ul {
-  margin: 0;
-  padding: 5px 0;
   list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
 .context-menu li {
-  padding: 8px 12px;
+  padding: 8px 16px;
   cursor: pointer;
+  color: #fff;
+  font-size: 14px;
 }
 
 .context-menu li:hover {
-  background-color: #eee;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.blocked-message,
+.reported-message {
+  color: #999;
+  font-style: italic;
+  font-size: 0.9em;
+  padding: 4px 8px;
+  background-color: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+}
+
+.reported-message {
+  color: #ff6b6b;
 }
 </style>
