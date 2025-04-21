@@ -63,7 +63,7 @@
               <v-avatar size="36" class="cursor-pointer mx-2" @click="profileMenuOpen = !profileMenuOpen">
                 <v-img :src="userProfile.profileImage || '@/assets/profile-avatar.png'" />
               </v-avatar>
-              <div>
+              <div class="cursor-pointer" @click="$router.push('/my-profile')">
                 <v-card-title class="pa-0 text-body-1">{{ userProfile.nickname || '사용자' }}</v-card-title>
                 <v-card-subtitle class="pa-0 text-caption">{{ userProfile.email }}</v-card-subtitle>
               </div>
@@ -74,7 +74,7 @@
 
           <!-- 메뉴 항목들 -->
           <v-list density="compact">
-            <v-list-item to="/my-profile">
+            <v-list-item to="/streamer-profile">
               <template v-slot:prepend>
                 <v-icon>mdi-account</v-icon>
               </template>
