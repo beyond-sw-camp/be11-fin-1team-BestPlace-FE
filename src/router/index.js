@@ -17,6 +17,7 @@ const routes = [
     { path: '/lives', component: LivesView },
     { path: '/clips', component: ClipsView },
     { path: '/category', component: CategoryView },
+    { path: '/category/:id', component: () => import('@/views/CategoryDetailView.vue') },
     { path: '/following', component: FollowingView },
     { path: '/my-profile', component: MyProfileView },
     
