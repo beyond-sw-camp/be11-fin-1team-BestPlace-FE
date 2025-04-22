@@ -89,6 +89,13 @@
               <span class="menu-title">내 베리</span>
             </div>
           </router-link>
+
+          <router-link to="/member/my/clip" custom v-slot="{ isExactActive, navigate }">
+            <div @click="navigate" :class="['menu-item', { 'is-active': isExactActive }]">
+              <v-icon class="menu-icon">mdi-video-box</v-icon>
+              <span class="menu-title">내 클립</span>
+            </div>
+          </router-link>
         </template>
       </div>
     </div>
