@@ -76,7 +76,7 @@
                 <span v-for="tag in streamInfo.hashTag" :key="tag" class="hashtag">{{ tag }}</span>
               </div>
               <span class="dot"> </span>
-              <span class="viewer-count">{{ streamInfo.viewerCount+10 }}명 시청 중</span>
+              <span class="viewer-count">{{ streamInfo.viewerCount+1 }}명 시청 중</span>
               <span class="dot"> </span>
               <span class="uptime">{{ formattedUptime }} 스트리밍 중</span>
             </div>
