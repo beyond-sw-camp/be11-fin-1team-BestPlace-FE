@@ -9,6 +9,7 @@ import MemberRouter from './MemberRouter';
 import PostRouter from './PostRouter';
 import VideoRouter from './VideoRouter';
 import StreamingRouter from './streamingRouter';
+import streamerRouter from './streamerRouter';
 
 
 const routes = [
@@ -18,12 +19,14 @@ const routes = [
     { path: '/category', component: CategoryView },
     { path: '/following', component: FollowingView },
     { path: '/my-profile', component: MyProfileView },
+    
     // { path: '/video/vod/:videoId', component: () => import('@/views/VideoDetailView.vue') },
     // { path: '/video/clip/:clipId', component: () => import('@/views/ClipDetailView.vue') },
     ...MemberRouter,
     ...PostRouter,
     ...VideoRouter,
-    ...StreamingRouter
+    ...StreamingRouter,
+    ...streamerRouter
 
 ];
 
