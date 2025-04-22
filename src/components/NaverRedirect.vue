@@ -22,6 +22,8 @@ export default {
       localStorage.setItem("refreshToken", refreshToken);
       setTimeout(() => {
         window.location.href = "/";
+
+
       }, 3000);
     }
   }
