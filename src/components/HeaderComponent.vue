@@ -2,7 +2,7 @@
   <v-app-bar app color="#141517" dark elevation="0" class="header-no-border">
     <div class="logo-container ml-4">
       <router-link to="/" class="d-flex align-center text-decoration-none">
-        <v-img src="@/assets/BEST_PLACE_logo.gif" height="30" width="91" alt="logo" />
+        <v-img src="@/assets/BEST_PLACE_logo.gif" height="30" width="100" alt="logo" />
       </router-link>
     </div>
 
