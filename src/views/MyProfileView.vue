@@ -382,7 +382,7 @@ export default {
 }
 
 .profile-title {
-  font-size: 24px;
+  font-size: 32px;
   font-weight: 500;
   padding: 20px 0 10px 15px;
 }
