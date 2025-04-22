@@ -23,16 +23,16 @@
 
       <!-- 사용내역 탭 섹션 -->
       <v-tabs v-model="activeTab" bg-color="transparent" color="#b084cc">
-        <v-tab value="seoul">사용 내역</v-tab>
-        <v-tab value="gyeonggi">구매 내역</v-tab>
-        <v-tab value="busan">후원 받은 내역</v-tab>
-        <div v-if="activeTab === 'busan'" class="total-donation-badge">
+        <v-tab value="use">사용 내역</v-tab>
+        <v-tab value="buy">구매 내역</v-tab>
+        <v-tab value="donated">후원 받은 내역</v-tab>
+        <div v-if="activeTab === 'donated'" class="total-donation-badge">
           총 후원받은 베리: <span class="total-donation-amount">{{ formatNumber(totalDonatedBerry) }}개</span>
         </div>
       </v-tabs>
       
       <!-- 사용 내역 탭 내용 -->
-      <div v-if="activeTab === 'seoul'">
+      <div v-if="activeTab === 'use'">
         <!-- 사용내역 테이블 헤더 -->
         <div class="berry-history-header">
           <div class="history-cell history-date">사용일시</div>
@@ -84,7 +84,7 @@
       </div>
       
       <!-- 구매 내역 탭 내용 -->
-      <div v-if="activeTab === 'gyeonggi'">
+      <div v-if="activeTab === 'buy'">
         <!-- 구매내역 테이블 헤더 -->
         <div class="berry-history-header">
           <div class="history-cell purchase-date">충전일시</div>
@@ -139,7 +139,7 @@
       </div>
       
       <!-- 후원 받은 내역 탭 내용 -->
-      <div v-if="activeTab === 'busan'">
+      <div v-if="activeTab === 'donated'">
         <!-- 후원받은 내역 헤더 -->
         <div class="berry-history-header">
           <div class="history-cell donation-date">후원일시</div>
@@ -325,7 +325,7 @@ export default {
       paymentApi: process.env.VUE_APP_PAYMENT_API,
       
       // 탭 관련
-      activeTab: 'seoul',
+      activeTab: 'use',
       
       // 사용내역 페이징 관련
       currentPage: 1,
@@ -634,13 +634,13 @@ export default {
   watch: {
     activeTab(newTab) {
       // 탭 전환 시 데이터 로드
-      if (newTab === 'seoul') {
+      if (newTab === 'use') {
         this.currentPage = 1
         this.fetchBerryHistories()
-      } else if (newTab === 'gyeonggi') {
+      } else if (newTab === 'buy') {
         this.paymentPage = 1
         this.fetchBerryPayments()
-      } else if (newTab === 'busan') {
+      } else if (newTab === 'donated') {
         this.donationPage = 1
         this.fetchDonationHistories()
         this.fetchTotalDonatedBerry()
