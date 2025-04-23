@@ -1,6 +1,6 @@
 <template>
     <div>
-        <h1>스트리머 대시보드</h1>
+        <h1>매니저 목록</h1>
     </div>
 </template>
 

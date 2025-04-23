@@ -1,7 +1,7 @@
 <template>
   <v-app>
-    <HeaderComponent @toggle-mini="toggleMini"/>
-    <SidebarComponent :mini="mini"/>
+    <HeaderComponent v-if="!isStreamerRoute" @toggle-mini="toggleMini"/>
+    <SidebarComponent v-if="!isStreamerRoute" :mini="mini" />
     <v-main class="main-content">
       <router-view/>
     <FooterComponent/>
@@ -24,6 +24,11 @@ export default {
     return {
       mini: false,
     };
+  },
+  computed: {
+    isStreamerRoute() {
+      return this.$route.path.startsWith("/streamer");
+    }
   },
   methods: {
     toggleMini() {
