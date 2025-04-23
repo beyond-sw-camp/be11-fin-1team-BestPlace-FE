@@ -726,7 +726,7 @@ const toggleFollow = async () => {
 }
 
 const goToStreamerProfile = (streamerId) => {
-  router.push(`/streamer/${streamerId}`)
+  router.push(`/channel/${streamerId}`)
 }
 
 const goToCategory = (category) => {
@@ -801,7 +801,7 @@ onBeforeUnmount(() => {
 }
 
 .category {
-  color: #00FF84;
+  color: #B084CC;
   font-weight: 800;
   font-size: 15px;
   text-shadow: 0 0 1px rgba(0, 255, 132, 0.3);
@@ -857,7 +857,7 @@ onBeforeUnmount(() => {
 }
 
 .streamer-name:hover {
-  color: #00FF84;
+  color: #B084CC;
 }
 
 .follower-count {
@@ -875,7 +875,7 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   gap: 4px;
-  background: #00FF84;
+  background: #B084CC;
   padding: 2px 4px;
   border-radius: 2px;
   font-size: 11px;
@@ -902,7 +902,7 @@ onBeforeUnmount(() => {
   gap: 6px;
   padding: 8px 16px;
   border-radius: 4px;
-  background: #00FF84;
+  background: #B084CC;
   color: #000;
   border: none;
   font-weight: 600;
@@ -917,7 +917,7 @@ onBeforeUnmount(() => {
 }
 
 .follow-button:hover {
-  background: #00E676;
+  background: #B084CC;
 }
 
 .follow-button.following:hover {
@@ -984,7 +984,7 @@ onBeforeUnmount(() => {
 }
 
 .control-button:hover {
-  color: #00FF84;
+  color: #B084CC;
 }
 
 .control-button svg {
@@ -1027,7 +1027,7 @@ onBeforeUnmount(() => {
   -webkit-appearance: none;
   width: 12px;
   height: 12px;
-  background: #00FF84;
+  background: #B084CC;
   border-radius: 50%;
   cursor: pointer;
 }
@@ -1035,7 +1035,7 @@ onBeforeUnmount(() => {
 .volume-slider input::-moz-range-thumb {
   width: 12px;
   height: 12px;
-  background: #00FF84;
+  background: #B084CC;
   border-radius: 50%;
   cursor: pointer;
   border: none;
@@ -1122,7 +1122,7 @@ video {
 }
 
 .sender {
-  color: #00FF84;
+  color: #B084CC;
   font-weight: 600;
   margin-right: 6px;
 }
@@ -1152,12 +1152,12 @@ video {
 
 .chat-input input:focus {
   outline: none;
-  border-color: #00FF84;
+  border-color: #B084CC;
 }
 
 .chat-input button {
   padding: 8px 16px;
-  background: #00FF84;
+  background: #B084CC;
   color: #000;
   border: none;
   border-radius: 4px;
@@ -1167,7 +1167,7 @@ video {
 }
 
 .chat-input button:hover {
-  background: #00E676;
+  background: #B084CC;
 }
 
 .chat-input button:disabled {
@@ -1224,14 +1224,14 @@ video {
 }
 
 .donation-button.highlight {
-  background: #00FF84;
+  background: #B084CC;
   color: #000;
   border: none;
   font-weight: 600;
 }
 
 .donation-button.highlight:hover {
-  background: #00E676;
+  background: #B084CC;
 }
 
 .donation-icon {

@@ -16,7 +16,10 @@
       <div class="stream-header">
         <h1 class="stream-title">{{ vodInfo.title }}</h1>
         <div class="stream-meta">
-          <span class="category">{{ vodInfo.category }}</span>
+          <span 
+            class="category"
+            @click="goToCategory(vodInfo.category)"
+          >{{ vodInfo.category }}</span>
           <div class="hashtags" v-if="vodInfo.hashTags && vodInfo.hashTags.length > 0">
             <span class="dot"> · </span>
             <span v-for="tag in vodInfo.hashTags" :key="tag" class="hashtag">{{ tag }}</span>
@@ -29,11 +32,17 @@
 
         <div class="streamer-section">
           <div class="streamer-info">
-            <div class="streamer-avatar">
+            <div 
+              class="streamer-avatar"
+              @click="goToStreamerProfile(vodInfo.memberId)"
+            >
               <img v-if="streamerInfo.streamerProfileImageUrl" :src="streamerInfo.streamerProfileImageUrl" alt="스트리머 프로필">
             </div>
             <div class="streamer-details">
-              <span class="streamer-name">{{ streamerInfo.streamerNickName }}</span>
+              <span 
+                class="streamer-name"
+                @click="goToStreamerProfile(vodInfo.memberId)"
+              >{{ streamerInfo.streamerNickName }}</span>
               <span class="follower-count">팔로워 {{ streamerInfo.followerCount }}명</span>
             </div>
           </div>
@@ -61,6 +70,7 @@
                 v-model="newComment" 
                 placeholder="댓글 추가..." 
                 class="comment-textarea"
+                @keydown.enter.prevent="handleCommentEnter"
               ></textarea>
               <div class="edit-buttons" v-if="newComment.trim()">
                 <button class="cancel-button" @click="newComment = ''">취소</button>
@@ -68,7 +78,7 @@
                   class="submit-button" 
                   @click="createComment"
                 >
-                  댓글
+                  작성
                 </button>
               </div>
             </div>
@@ -79,12 +89,12 @@
           <div v-for="comment in comments" :key="comment.commentId" class="comment-item">
             <!-- 메인 댓글 -->
             <div class="comment-main">
-              <div class="comment-avatar">
+              <div class="comment-avatar" @click="goToChannel(comment.authorId)">
                 <img :src="comment.authorProfileUrl" :alt="comment.authorNickName">
               </div>
               <div class="comment-content">
                 <div class="comment-header">
-                  <span class="comment-author">{{ comment.authorNickName }}</span>
+                  <span class="comment-author" @click="goToChannel(comment.authorId)">{{ comment.authorNickName }}</span>
                   <span class="comment-time">{{ formatRelativeTime(comment.createdTime) }}</span>
                   <!-- 댓글 수정/삭제 메뉴 -->
                   <div v-if="comment.isOwner === 'Y' && comment.isDeleted === 'N'" class="comment-menu">
@@ -101,6 +111,7 @@
                     v-model="editingComment.content" 
                     class="edit-textarea"
                     ref="editInput"
+                    @keydown.enter.prevent="handleEditEnter"
                   ></textarea>
                   <div class="edit-buttons">
                     <button class="cancel-button" @click="cancelEdit">취소</button>
@@ -144,6 +155,7 @@
                     v-model="newReply" 
                     placeholder="답글 추가..." 
                     class="comment-textarea"
+                    @keydown.enter="handleReplyEnter"
                   ></textarea>
                   <div class="edit-buttons" v-if="newReply.trim()">
                     <button class="cancel-button" @click="cancelReply">취소</button>
@@ -151,7 +163,7 @@
                       class="submit-button" 
                       @click="createReply(comment.commentId)"
                     >
-                      답글
+                      작성
                     </button>
                   </div>
                 </div>
@@ -162,12 +174,12 @@
             <div v-for="reply in replies.filter(r => r.parentCommentId === comment.commentId)" 
                  :key="reply.commentId" 
                  class="reply-item">
-              <div class="comment-avatar">
+              <div class="comment-avatar" @click="goToChannel(reply.authorId)">
                 <img :src="reply.authorProfileUrl" :alt="reply.authorNickName">
               </div>
               <div class="comment-content">
                 <div class="comment-header">
-                  <span class="comment-author">{{ reply.authorNickName }}</span>
+                  <span class="comment-author" @click="goToChannel(reply.authorId)">{{ reply.authorNickName }}</span>
                   <span class="comment-time">{{ formatRelativeTime(reply.createdTime) }}</span>
                   <!-- 대댓글 수정/삭제 메뉴 -->
                   <div v-if="reply.isOwner === 'Y' && reply.isDeleted === 'N'" class="comment-menu">
@@ -184,6 +196,7 @@
                     v-model="editingComment.content" 
                     class="edit-textarea"
                     ref="editInput"
+                    @keydown.enter.prevent="handleEditEnter"
                   ></textarea>
                   <div class="edit-buttons">
                     <button class="cancel-button" @click="cancelEdit">취소</button>
@@ -199,7 +212,7 @@
                 <p v-else class="comment-text">{{ reply.content }}</p>
                 <div class="comment-footer" v-if="!editingComment || editingComment.commentId !== reply.commentId">
                   <div class="comment-actions">
-                    <button class="reply-button" @click="showReplyInput(reply.commentId)">
+                    <button class="reply-button" @click="showReplyInput(comment.commentId)">
                       답글달기
                     </button>
                   </div>
@@ -256,10 +269,11 @@
 
 <script setup>
 import { ref, onMounted, nextTick } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 
 const route = useRoute()
+const router = useRouter()
 const video = ref(null)
 const vodId = route.params.vodId
 const streamingApi = process.env.VUE_APP_STREAMING_API
@@ -558,10 +572,16 @@ const formatRelativeTime = (dateString) => {
 // 팔로우 토글
 const toggleFollow = async () => {
   try {
-    await axios.post(`${memberApi}/follow/toggle/${vodInfo.value.memberId}`, {
+    await axios.post(`${memberApi}/follow/toggle/${vodInfo.value.memberId}`, null, {
       headers: { Authorization: `Bearer ${token.value}` }
     })
     streamerInfo.value.isFollow = streamerInfo.value.isFollow === 'Y' ? 'N' : 'Y'
+    // 팔로워 수 실시간 업데이트
+    if (streamerInfo.value.isFollow === 'Y') {
+      streamerInfo.value.followerCount++
+    } else {
+      streamerInfo.value.followerCount--
+    }
   } catch (error) {
     console.error('팔로우 토글 실패:', error)
   }
@@ -599,9 +619,27 @@ const createComment = async () => {
   }
 }
 
-// 대댓글 작성
+// 답글 입력 표시
+const showReplyInput = (commentId) => {
+  replyToId.value = commentId
+  // nextTick을 사용하여 DOM 업데이트 후 textarea에 포커스
+  nextTick(() => {
+    const textarea = document.querySelector('.reply-form .comment-textarea')
+    if (textarea) {
+      textarea.focus()
+    }
+  })
+}
+
+// 답글 작성 취소
+const cancelReply = () => {
+  replyToId.value = null
+  newReply.value = ''
+}
+
+// 답글 작성
 const createReply = async (commentId) => {
-  if (!newReply.value.trim()) return
+  if (!newReply.value.trim() || !commentId) return
   
   try {
     await axios.post(`${memberApi}/videoComment/reply`, {
@@ -681,10 +719,6 @@ const toggleLike = async (commentId) => {
 }
 
 // UI 헬퍼 함수들
-const showReplyInput = (commentId) => {
-  replyToId.value = commentId
-}
-
 const toggleMenu = (commentId) => {
   activeMenu.value = activeMenu.value === commentId ? null : commentId
 }
@@ -706,9 +740,41 @@ const cancelEdit = () => {
   editingComment.value = null
 }
 
-const cancelReply = () => {
-  replyToId.value = null
-  newReply.value = ''
+// 엔터 키 핸들러 수정
+const handleCommentEnter = (event) => {
+  if (!event.shiftKey && newComment.value.trim()) {
+    event.preventDefault()
+    createComment()
+  }
+}
+
+const handleReplyEnter = (event) => {
+  if (!event.shiftKey && newReply.value.trim() && replyToId.value) {
+    event.preventDefault()
+    createReply(replyToId.value)
+  }
+}
+
+const handleEditEnter = (event) => {
+  if (!event.shiftKey && editingComment.value?.content.trim()) {
+    event.preventDefault()
+    updateComment(editingComment.value)
+  }
+}
+
+// 프로필 페이지 이동
+const goToStreamerProfile = (streamerId) => {
+  router.push(`/channel/${streamerId}`)
+}
+
+// 카테고리 페이지 이동
+const goToCategory = (category) => {
+  router.push(`/category/${category}`)
+}
+
+// Add in the script section, after goToCategory function
+const goToChannel = (memberId) => {
+  router.push(`/channel/${memberId}`)
 }
 
 onMounted(() => {
@@ -776,6 +842,12 @@ onMounted(() => {
   background: #2D2D2D;
   flex-shrink: 0;
   overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.streamer-avatar:hover {
+  transform: scale(1.05);
 }
 
 .streamer-avatar img {
@@ -794,6 +866,12 @@ onMounted(() => {
   font-size: 20px;
   color: #fff;
   font-weight: 500;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.streamer-name:hover {
+  color: #B084CC;
 }
 
 .follower-count {
@@ -815,7 +893,7 @@ onMounted(() => {
 }
 
 .follow-button:not(.following) {
-  background: #00FF84;
+  background: #B084CC;
   color: #000;
 }
 
@@ -900,7 +978,7 @@ video {
 }
 
 .sender {
-  color: #00FF84;
+  color: #B084CC;
   font-weight: 600;
   margin-right: 6px;
 }
@@ -984,7 +1062,7 @@ video {
 
 .comment-input-wrapper input:focus {
   outline: none;
-  border-bottom-color: #00E693;
+  border-bottom-color: #B084CC;
 }
 
 .edit-buttons {
@@ -1005,7 +1083,7 @@ video {
 
 .submit-button {
   padding: 8px 16px;
-  background: #00E693;
+  background: #B084CC;
   color: #000;
   border: none;
   border-radius: 4px;
@@ -1026,6 +1104,7 @@ video {
   border-radius: 50%;
   overflow: hidden;
   flex-shrink: 0;
+  cursor: pointer;
 }
 
 .comment-avatar img {
@@ -1059,6 +1138,12 @@ video {
 .comment-author {
   font-weight: 500;
   font-size: 16px;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.comment-author:hover {
+  color: #B084CC;
 }
 
 .comment-time {
@@ -1096,7 +1181,7 @@ video {
 }
 
 .like-button.liked {
-  background: #00E693;
+  background: #B084CC;
   color: #000;
 }
 
@@ -1209,14 +1294,20 @@ video {
 }
 
 .modal-button.confirm {
-  background: #00E693;
+  background: #B084CC;
   color: #000;
 }
 
 .category {
-  color: #00E693;
+  color: #B084CC;
   font-weight: 800;
   font-size: 14px;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.category:hover {
+  color: #B084CC;
 }
 
 .reply-item {
@@ -1298,7 +1389,7 @@ video {
 
 .edit-mode input:focus {
   outline: none;
-  border-bottom-color: #00E693;
+  border-bottom-color: #B084CC;
 }
 
 .edit-mode .edit-buttons {
@@ -1318,7 +1409,7 @@ video {
 
 .edit-mode .submit-button {
   padding: 6px 12px;
-  background: #00E693;
+  background: #B084CC;
   color: #000;
   border: none;
   border-radius: 4px;
@@ -1349,7 +1440,7 @@ video {
 .comment-textarea:focus,
 .edit-textarea:focus {
   outline: none;
-  border-color: #00E693;
+  border-color: #B084CC;
 }
 
 .edit-mode {
@@ -1388,7 +1479,7 @@ video {
 
 .submit-button {
   padding: 8px 16px;
-  background: #00E693;
+  background: #B084CC;
   color: #000;
   border: none;
   border-radius: 4px;
@@ -1433,5 +1524,19 @@ video {
 
 .menu-dropdown .delete-button {
   color: #FF4343;
+}
+
+.menu-dropdown button:hover {
+  background: #2D2D2D;
+}
+
+.reply-form {
+  margin-left: 52px;
+  margin-top: 16px;
+}
+
+.reply-form .comment-textarea {
+  min-height: 60px;
+  background: #041517;
 }
 </style>

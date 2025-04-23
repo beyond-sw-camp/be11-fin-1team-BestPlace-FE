@@ -127,7 +127,7 @@ const goToLiveDetail = (streamId) => {
 }
 
 const goToStreamerProfile = (streamerId) => {
-  router.push(`/streamer/${streamerId}`)
+  router.push(`/channel/${streamerId}`)
 }
 
 const goToCategory = (category) => {
@@ -337,7 +337,7 @@ onMounted(async () => {
 }
 
 .category {
-  color: #00E693;
+  color: #B084CC;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
