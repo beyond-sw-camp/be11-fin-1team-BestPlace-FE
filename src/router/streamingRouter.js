@@ -7,8 +7,8 @@ export default [
       component: LiveDetailPage
     },
     {
-      path: '/liveList',
-      name: 'LiveList',
+      path: '/lives',
+      name: 'Lives',
       component: LiveListView
     }
   ];
