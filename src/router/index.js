@@ -1,9 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import HomeView from '@/views/HomeView.vue';
-import LivesView from '@/views/LivesView.vue';
 import ClipsView from '@/views/ClipsView.vue';
 import CategoryView from '@/views/CategoryView.vue';
-import FollowingView from '@/views/FollowingView.vue';
 import MyProfileView from '@/views/MyProfileView.vue';
 import MemberRouter from './MemberRouter';
 import PostRouter from './PostRouter';
@@ -13,11 +10,8 @@ import streamerRouter from './streamerRouter';
 
 
 const routes = [
-    { path: '/', component: HomeView },
-    { path: '/lives', component: LivesView },
     { path: '/clips', component: ClipsView },
     { path: '/category', component: CategoryView },
-    { path: '/following', component: FollowingView },
     { path: '/my-profile', component: MyProfileView },
     
     // { path: '/video/vod/:videoId', component: () => import('@/views/VideoDetailView.vue') },
