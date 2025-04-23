@@ -70,7 +70,10 @@
           <div class="stream-title-section">
             <h1 class="stream-title">{{ streamInfo.title }}</h1>
             <div class="stream-meta">
-              <span class="category">{{ streamInfo.category }}</span>
+              <span 
+                class="category"
+                @click="goToCategory(streamInfo.category)"
+              >{{ streamInfo.category }}</span>
               <div class="hashtags" v-if="streamInfo.hashTag && streamInfo.hashTag.length > 0">
                 <span class="dot"> </span>
                 <span v-for="tag in streamInfo.hashTag" :key="tag" class="hashtag">{{ tag }}</span>
@@ -84,7 +87,10 @@
           
           <div class="streamer-section">
             <div class="streamer-info">
-              <div class="streamer-avatar">
+              <div 
+                class="streamer-avatar"
+                @click="goToStreamerProfile(streamInfo.memberId)"
+              >
                 <img v-if="streamerInfo.streamerProfileImageUrl" :src="streamerInfo.streamerProfileImageUrl" alt="스트리머 프로필">
                 <div v-if="streamerInfo.streamingYn === 'Y'" class="live-badge">
                   <span class="live-dot"></span>
@@ -92,12 +98,19 @@
                 </div>
               </div>
               <div class="streamer-details">
-                <span class="streamer-name">{{ streamerInfo.streamerNickName }}</span>
+                <span 
+                  class="streamer-name"
+                  @click="goToStreamerProfile(streamInfo.memberId)"
+                >{{ streamerInfo.streamerNickName }}</span>
                 <span class="follower-count">팔로워 {{ streamerInfo.followerCount }}명</span>
               </div>
             </div>
             <div class="stream-actions">
-              <button class="follow-button" :class="{ 'following': streamerInfo.isFollow === 'Y' }">
+              <button 
+                class="follow-button" 
+                :class="{ 'following': streamerInfo.isFollow === 'Y' }"
+                @click="toggleFollow"
+              >
                 <span class="plus-icon">+</span>
                 {{ streamerInfo.isFollow === 'Y' ? '팔로잉' : '팔로우' }}
               </button>
@@ -184,7 +197,7 @@
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import Hls from 'hls.js'
 import SockJS from 'sockjs-client'
 import Stomp from 'webstomp-client'
@@ -193,6 +206,7 @@ import ReportModal from '@/components/ReportModal.vue'
 import BlockModal from '@/components/BlockModal.vue'
 
 const route = useRoute()
+const router = useRouter()
 const video = ref(null)
 const streamId = route.params.streamId
 const streamingApi = process.env.VUE_APP_STREAMING_API
@@ -694,6 +708,31 @@ const handleVideoEvents = () => {
   }, 5000) // 5초마다 확인
 }
 
+const toggleFollow = async () => {
+  try {
+    await axios.post(`${memberApi}/follow/toggle/${streamInfo.value.memberId}`, null, {
+      headers: { Authorization: `Bearer ${token.value}` }
+    })
+    streamerInfo.value.isFollow = streamerInfo.value.isFollow === 'Y' ? 'N' : 'Y'
+    // 팔로워 수 업데이트
+    if (streamerInfo.value.isFollow === 'Y') {
+      streamerInfo.value.followerCount++
+    } else {
+      streamerInfo.value.followerCount--
+    }
+  } catch (error) {
+    console.error('팔로우 토글 실패:', error)
+  }
+}
+
+const goToStreamerProfile = (streamerId) => {
+  router.push(`/streamer/${streamerId}`)
+}
+
+const goToCategory = (category) => {
+  router.push(`/category/${category}`)
+}
+
 onMounted(() => {
   initializeStreaming()
   setInterval(calculateUptime, 1000)
@@ -766,6 +805,7 @@ onBeforeUnmount(() => {
   font-weight: 800;
   font-size: 15px;
   text-shadow: 0 0 1px rgba(0, 255, 132, 0.3);
+  cursor: pointer;
 }
 
 .dot {
@@ -794,6 +834,7 @@ onBeforeUnmount(() => {
   background: #2D2D2D;
   position: relative;
   overflow: hidden;
+  cursor: pointer;
 }
 
 .streamer-avatar img {
@@ -812,6 +853,11 @@ onBeforeUnmount(() => {
   font-size: 17px;
   color: #fff;
   font-weight: 600;
+  cursor: pointer;
+}
+
+.streamer-name:hover {
+  color: #00FF84;
 }
 
 .follower-count {
