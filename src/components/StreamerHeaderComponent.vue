@@ -157,7 +157,6 @@
           const token = localStorage.getItem('token');
           if (!token) return;
           
-          // 새로운 API 엔드포인트 사용 - 게이트웨이에서 자동으로 X-User-Id 헤더 추가됨
           const response = await axios.get(`${process.env.VUE_APP_MEMBER_API}/member/my/profile`, {
             headers: {
               'Authorization': `Bearer ${token}`

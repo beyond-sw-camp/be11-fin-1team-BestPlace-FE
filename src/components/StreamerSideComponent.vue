@@ -1,5 +1,5 @@
 <template>
-    <v-navigation-drawer app color="grey-darken-4" dark permanent>
+    <v-navigation-drawer app color="#141517" dark permanent>
       <v-list dense nav>
         <!-- 대시보드 -->
         <v-list-item :to="{ path: '/streamer/dashboard' }">
@@ -64,4 +64,8 @@
   .v-list-item-title {
     font-weight: 500;
   }
+  .v-navigation-drawer {
+  border-right: none !important;
+  }
   </style>
+  
