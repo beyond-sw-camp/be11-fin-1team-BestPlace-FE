@@ -1,10 +1,10 @@
 <template>
   <v-app>
-    <HeaderComponent v-if="!isStreamerRoute" @toggle-mini="toggleMini"/>
-    <SidebarComponent v-if="!isStreamerRoute" :mini="mini" />
+    <HeaderComponent v-if="!isStreamerRoute && !isClipCreateRoute" @toggle-mini="toggleMini"/>
+    <SidebarComponent v-if="!isStreamerRoute && !isClipCreateRoute" :mini="mini" />
     <v-main class="main-content">
       <router-view/>
-    <FooterComponent v-if="!isStreamerRoute"/>
+    <FooterComponent v-if="!isStreamerRoute && !isClipCreateRoute"/>
     </v-main>
   </v-app>
 </template>
@@ -28,6 +28,9 @@ export default {
   computed: {
     isStreamerRoute() {
       return this.$route.path.startsWith("/streamer");
+    },
+    isClipCreateRoute() {
+      return this.$route.path.startsWith("/video/clip/create/");
     }
   },
   methods: {

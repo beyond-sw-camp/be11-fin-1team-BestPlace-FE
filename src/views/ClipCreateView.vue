@@ -64,9 +64,10 @@
           <button 
             class="create-button" 
             @click="createClip"
-            :disabled="!isClipValid"
+            :disabled="!isClipValid || isLoading"
           >
-            클립 만들기
+            <span v-if="!isLoading">클립 만들기</span>
+            <span v-else class="loading-spinner"></span>
           </button>
         </div>
       </div>
@@ -104,6 +105,8 @@ const vodInfo = ref({
   title: '',
   duration: 0
 })
+
+const isLoading = ref(false)
 
 // VOD 정보 가져오기
 const getVodInfo = async () => {
@@ -208,7 +211,10 @@ const isClipValid = computed(() => {
 
 // 클립 생성
 const createClip = async () => {
+  if (isLoading.value) return
+  
   try {
+    isLoading.value = true
     await axios.post(`${memberApi}/video/clip/create`, {
       vodId: vodId,
       title: clipTitle.value.trim(),
@@ -219,10 +225,12 @@ const createClip = async () => {
     })
     
     alert('클립이 생성되었습니다.')
-    router.back()
+    window.close()
   } catch (error) {
     console.error('클립 생성 실패:', error)
     alert('클립 생성에 실패했습니다.')
+  } finally {
+    isLoading.value = false
   }
 }
 
@@ -264,34 +272,40 @@ onMounted(() => {
 
 <style scoped>
 .clip-create-container {
-  width: 800px;
-  height: 800px;
+  width: 90%;
+  min-width: 600px;
+  max-width: 1000px;
+  min-height: 80vh;
   margin: 0 auto;
-  padding: 20px;
+  padding: 2%;
   color: #fff;
   background: #000;
 }
 
 .clip-header {
-  margin-bottom: 24px;
+  margin-bottom: 2%;
 }
 
 .clip-header h1 {
-  font-size: 24px;
+  font-size: 1.5em;
   font-weight: 600;
   margin: 0;
 }
 
 .video-container {
   width: 100%;
+  padding-top: 56.25%; /* 16:9 비율 */
   background: #000;
-  margin-bottom: 24px;
+  margin-bottom: 2%;
   position: relative;
 }
 
 video {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
-  max-height: 400px;
+  height: 100%;
   object-fit: contain;
 }
 
@@ -301,7 +315,7 @@ video {
   left: 0;
   right: 0;
   background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
-  padding: 16px;
+  padding: 2%;
   opacity: 0;
   transition: opacity 0.3s;
 }
@@ -312,11 +326,11 @@ video {
 
 .progress-bar {
   width: 100%;
-  height: 4px;
+  height: 0.3em;
   background: rgba(255, 255, 255, 0.3);
-  border-radius: 2px;
+  border-radius: 0.15em;
   cursor: pointer;
-  margin-bottom: 8px;
+  margin-bottom: 1%;
 }
 
 .progress {
@@ -328,7 +342,7 @@ video {
 .control-buttons {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 2%;
 }
 
 .control-buttons button {
@@ -336,16 +350,17 @@ video {
   border: none;
   color: white;
   cursor: pointer;
-  padding: 4px 8px;
+  padding: 0.5em 1em;
+  font-size: 0.9em;
 }
 
 .time-display {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 1.5%;
   color: #7B7B7B;
-  font-size: 14px;
+  font-size: 0.9em;
 }
 
 .time-start {
@@ -364,17 +379,18 @@ video {
 }
 
 .trim-container {
-  padding: 20px;
+  padding: 2%;
   background: #1A1A1A;
-  border-radius: 8px;
+  border-radius: 0.5em;
+  margin-bottom: 2%;
 }
 
 .trim-track {
   position: relative;
-  height: 4px;
+  height: 0.3em;
   background: #2D2D2D;
-  border-radius: 2px;
-  margin: 20px 0;
+  border-radius: 0.15em;
+  margin: 3% 0;
 }
 
 .trim-selection {
@@ -387,12 +403,12 @@ video {
 .trim-handle {
   position: absolute;
   top: 50%;
-  width: 12px;
-  height: 24px;
+  width: 0.75em;
+  height: 1.5em;
   background: #B084CC;
   transform: translateY(-50%);
   cursor: ew-resize;
-  border-radius: 2px;
+  border-radius: 0.15em;
 }
 
 .trim-handle.left {
@@ -404,31 +420,31 @@ video {
 }
 
 .clip-form {
-  padding: 20px;
+  padding: 2%;
   background: #1A1A1A;
-  border-radius: 8px;
+  border-radius: 0.5em;
 }
 
 .form-group {
   position: relative;
-  margin-bottom: 20px;
+  margin-bottom: 3%;
 }
 
 .form-group label {
   display: block;
-  margin-bottom: 8px;
-  font-size: 14px;
+  margin-bottom: 1%;
+  font-size: 0.9em;
   color: #7B7B7B;
 }
 
 .form-group input {
   width: 100%;
-  padding: 12px;
+  padding: 1em;
   background: #2D2D2D;
   border: 1px solid #3D3D3D;
-  border-radius: 4px;
+  border-radius: 0.3em;
   color: #fff;
-  font-size: 16px;
+  font-size: 1em;
 }
 
 .form-group input:focus {
@@ -438,42 +454,56 @@ video {
 
 .char-count {
   position: absolute;
-  right: 12px;
-  top: 40px;
-  font-size: 12px;
+  right: 1em;
+  top: 2.5em;
+  font-size: 0.8em;
   color: #7B7B7B;
 }
 
 .clip-buttons {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
+  gap: 1em;
 }
 
 .cancel-button {
-  padding: 8px 24px;
+  padding: 0.8em 2em;
   background: #2D2D2D;
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 0.3em;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 0.9em;
 }
 
 .create-button {
-  padding: 8px 24px;
+  position: relative;
+  min-width: 100px;
+  padding: 0.8em 2em;
   background: #B084CC;
   color: black;
   border: none;
-  border-radius: 4px;
+  border-radius: 0.3em;
   cursor: pointer;
+  font-size: 0.9em;
   font-weight: 500;
-  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.create-button:disabled {
-  background: #2D2D2D;
-  color: #7B7B7B;
-  cursor: not-allowed;
+.loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid transparent;
+  border-top-color: #000;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style> 
