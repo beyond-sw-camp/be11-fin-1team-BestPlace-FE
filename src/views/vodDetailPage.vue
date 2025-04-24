@@ -804,7 +804,7 @@ onMounted(() => {
 
 .stream-header {
   padding: 20px 24px;
-  background: #0F0F0F;
+  background: #000000;
 }
 
 .stream-title {
@@ -1031,7 +1031,7 @@ video {
 /* 댓글 섹션 스타일 */
 .comments-section {
   padding: 24px;
-  background: #0F0F0F;
+  background: #000000;
 }
 
 .comment-form {
