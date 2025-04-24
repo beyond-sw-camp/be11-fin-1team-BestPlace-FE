@@ -105,13 +105,15 @@
                 <span class="follower-count">팔로워 {{ streamerInfo.followerCount }}명</span>
               </div>
             </div>
-            <div class="stream-actions">
+            <div 
+              class="stream-actions" 
+              v-if="isLogin && !isOwnProfile"
+            >
               <button 
                 class="follow-button" 
                 :class="{ 'following': streamerInfo.isFollow === 'Y' }"
                 @click="toggleFollow"
               >
-                <span class="plus-icon">+</span>
                 {{ streamerInfo.isFollow === 'Y' ? '팔로잉' : '팔로우' }}
               </button>
             </div>
@@ -196,7 +198,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import Hls from 'hls.js'
 import SockJS from 'sockjs-client'
@@ -720,6 +722,8 @@ const toggleFollow = async () => {
     } else {
       streamerInfo.value.followerCount--
     }
+    console.log(memberId.value)
+    console.log(streamInfo.value.memberId)
   } catch (error) {
     console.error('팔로우 토글 실패:', error)
   }
@@ -732,6 +736,12 @@ const goToStreamerProfile = (streamerId) => {
 const goToCategory = (category) => {
   router.push(`/category/${category}`)
 }
+
+// Add a computed property for better handling
+const isOwnProfile = computed(() => {
+  if (!memberId.value || !streamInfo.value.memberId) return false
+  return String(memberId.value) === String(streamInfo.value.memberId)
+})
 
 onMounted(() => {
   initializeStreaming()
@@ -784,7 +794,7 @@ onBeforeUnmount(() => {
 }
 
 .stream-title {
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 600;
   color: #fff;
   margin: 0;
@@ -803,7 +813,7 @@ onBeforeUnmount(() => {
 .category {
   color: #B084CC;
   font-weight: 800;
-  font-size: 15px;
+  font-size: 16px;
   text-shadow: 0 0 1px rgba(0, 255, 132, 0.3);
   cursor: pointer;
 }
@@ -828,8 +838,8 @@ onBeforeUnmount(() => {
 }
 
 .streamer-avatar {
-  width: 56px;
-  height: 56px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
   background: #2D2D2D;
   position: relative;
@@ -850,7 +860,7 @@ onBeforeUnmount(() => {
 }
 
 .streamer-name {
-  font-size: 17px;
+  font-size: 18px;
   color: #fff;
   font-weight: 600;
   cursor: pointer;
@@ -861,7 +871,7 @@ onBeforeUnmount(() => {
 }
 
 .follower-count {
-  font-size: 15px;
+  font-size: 16px;
   color: #7B7B7B;
   font-weight: 600;
 }
@@ -897,18 +907,14 @@ onBeforeUnmount(() => {
 }
 
 .follow-button {
-  display: flex;
-  align-items: center;
-  gap: 6px;
   padding: 8px 16px;
-  border-radius: 4px;
-  background: #B084CC;
-  color: #000;
-  border: none;
-  font-weight: 600;
-  font-size: 14px;
+  border-radius: 20px;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
+  border: none;
+  background: #B084CC;
+  color: #000;
 }
 
 .follow-button.following {
@@ -922,11 +928,6 @@ onBeforeUnmount(() => {
 
 .follow-button.following:hover {
   background: #3D3D3D;
-}
-
-.plus-icon {
-  font-size: 16px;
-  font-weight: 700;
 }
 
 .live-main {
