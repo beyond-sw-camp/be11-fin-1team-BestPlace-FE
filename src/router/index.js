@@ -7,6 +7,8 @@ import PostRouter from './PostRouter';
 import VideoRouter from './VideoRouter';
 import StreamingRouter from './streamingRouter';
 import streamerRouter from './streamerRouter';
+import axios from 'axios';
+import { jwtDecode } from 'jwt-decode';
 
 
 const routes = [
@@ -31,7 +33,7 @@ const router = createRouter({
 });
 
 // 글로벌 네비게이션 가드 설정 - 인증이 필요한 페이지 접근 제어
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
     // 인증이 필요한 페이지 경로
     const authRequiredPages = [
         '/my-profile',
@@ -48,9 +50,32 @@ router.beforeEach((to, from, next) => {
     if (authRequired && !isLoggedIn) {
         console.log('인증이 필요한 페이지에 접근을 시도했으나 로그인되지 않았습니다.');
         next('/member/login');
-    } else {
-        next();
+    } 
+
+    const token = localStorage.getItem('token');
+    const payload = token ? jwtDecode(token) : null;
+    const memberId = payload?.sub;
+
+    if (to.meta.requiresStreamer && memberId) {
+        try {
+            const response = await axios.get(
+                `${process.env.VUE_APP_STREAMING_API}/manager/check/${memberId}?requester=${memberId}`
+            );
+            const isStreamerOrManager = response.data.result === 'Y';
+
+            if (!isStreamerOrManager) {
+                console.warn('접근 권한 없음: 스트리머 or channel매니저가 아님');
+                return next('/not-authorized');
+            }
+        } catch (e) {
+            console.error('스트리머 권한 확인 중 서버에서 오류 발생생', e);
+            return next('/error');
+        }
     }
+
+    return next();
+    
 });
+    
 
 export default router;

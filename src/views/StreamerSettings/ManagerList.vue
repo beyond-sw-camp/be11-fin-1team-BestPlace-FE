@@ -1,6 +1,6 @@
 <template>
     <div>
-        <h1>방송 설정</h1>
+        <h1>매니저 목록</h1>
     </div>
 </template>
 

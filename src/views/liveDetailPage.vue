@@ -70,7 +70,10 @@
           <div class="stream-title-section">
             <h1 class="stream-title">{{ streamInfo.title }}</h1>
             <div class="stream-meta">
-              <span class="category">{{ streamInfo.category }}</span>
+              <span 
+                class="category"
+                @click="goToCategory(streamInfo.category)"
+              >{{ streamInfo.category }}</span>
               <div class="hashtags" v-if="streamInfo.hashTag && streamInfo.hashTag.length > 0">
                 <span class="dot"> </span>
                 <span v-for="tag in streamInfo.hashTag" :key="tag" class="hashtag">{{ tag }}</span>
@@ -84,7 +87,10 @@
           
           <div class="streamer-section">
             <div class="streamer-info">
-              <div class="streamer-avatar">
+              <div 
+                class="streamer-avatar"
+                @click="goToStreamerProfile(streamInfo.memberId)"
+              >
                 <img v-if="streamerInfo.streamerProfileImageUrl" :src="streamerInfo.streamerProfileImageUrl" alt="스트리머 프로필">
                 <div v-if="streamerInfo.streamingYn === 'Y'" class="live-badge">
                   <span class="live-dot"></span>
@@ -92,13 +98,22 @@
                 </div>
               </div>
               <div class="streamer-details">
-                <span class="streamer-name">{{ streamerInfo.streamerNickName }}</span>
+                <span 
+                  class="streamer-name"
+                  @click="goToStreamerProfile(streamInfo.memberId)"
+                >{{ streamerInfo.streamerNickName }}</span>
                 <span class="follower-count">팔로워 {{ streamerInfo.followerCount }}명</span>
               </div>
             </div>
-            <div class="stream-actions">
-              <button class="follow-button" :class="{ 'following': streamerInfo.isFollow === 'Y' }">
-                <span class="plus-icon">+</span>
+            <div 
+              class="stream-actions" 
+              v-if="isLogin && !isOwnProfile"
+            >
+              <button 
+                class="follow-button" 
+                :class="{ 'following': streamerInfo.isFollow === 'Y' }"
+                @click="toggleFollow"
+              >
                 {{ streamerInfo.isFollow === 'Y' ? '팔로잉' : '팔로우' }}
               </button>
             </div>
@@ -183,8 +198,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import Hls from 'hls.js'
 import SockJS from 'sockjs-client'
 import Stomp from 'webstomp-client'
@@ -193,6 +208,7 @@ import ReportModal from '@/components/ReportModal.vue'
 import BlockModal from '@/components/BlockModal.vue'
 
 const route = useRoute()
+const router = useRouter()
 const video = ref(null)
 const streamId = route.params.streamId
 const streamingApi = process.env.VUE_APP_STREAMING_API
@@ -694,6 +710,39 @@ const handleVideoEvents = () => {
   }, 5000) // 5초마다 확인
 }
 
+const toggleFollow = async () => {
+  try {
+    await axios.post(`${memberApi}/follow/toggle/${streamInfo.value.memberId}`, null, {
+      headers: { Authorization: `Bearer ${token.value}` }
+    })
+    streamerInfo.value.isFollow = streamerInfo.value.isFollow === 'Y' ? 'N' : 'Y'
+    // 팔로워 수 업데이트
+    if (streamerInfo.value.isFollow === 'Y') {
+      streamerInfo.value.followerCount++
+    } else {
+      streamerInfo.value.followerCount--
+    }
+    console.log(memberId.value)
+    console.log(streamInfo.value.memberId)
+  } catch (error) {
+    console.error('팔로우 토글 실패:', error)
+  }
+}
+
+const goToStreamerProfile = (streamerId) => {
+  router.push(`/channel/${streamerId}`)
+}
+
+const goToCategory = (category) => {
+  router.push(`/category/${category}`)
+}
+
+// Add a computed property for better handling
+const isOwnProfile = computed(() => {
+  if (!memberId.value || !streamInfo.value.memberId) return false
+  return String(memberId.value) === String(streamInfo.value.memberId)
+})
+
 onMounted(() => {
   initializeStreaming()
   setInterval(calculateUptime, 1000)
@@ -745,7 +794,7 @@ onBeforeUnmount(() => {
 }
 
 .stream-title {
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 600;
   color: #fff;
   margin: 0;
@@ -762,10 +811,11 @@ onBeforeUnmount(() => {
 }
 
 .category {
-  color: #00FF84;
+  color: #B084CC;
   font-weight: 800;
-  font-size: 15px;
+  font-size: 16px;
   text-shadow: 0 0 1px rgba(0, 255, 132, 0.3);
+  cursor: pointer;
 }
 
 .dot {
@@ -788,12 +838,13 @@ onBeforeUnmount(() => {
 }
 
 .streamer-avatar {
-  width: 56px;
-  height: 56px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
   background: #2D2D2D;
   position: relative;
   overflow: hidden;
+  cursor: pointer;
 }
 
 .streamer-avatar img {
@@ -809,13 +860,18 @@ onBeforeUnmount(() => {
 }
 
 .streamer-name {
-  font-size: 17px;
+  font-size: 18px;
   color: #fff;
   font-weight: 600;
+  cursor: pointer;
+}
+
+.streamer-name:hover {
+  color: #B084CC;
 }
 
 .follower-count {
-  font-size: 15px;
+  font-size: 16px;
   color: #7B7B7B;
   font-weight: 600;
 }
@@ -829,7 +885,7 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   gap: 4px;
-  background: #00FF84;
+  background: #B084CC;
   padding: 2px 4px;
   border-radius: 2px;
   font-size: 11px;
@@ -851,18 +907,14 @@ onBeforeUnmount(() => {
 }
 
 .follow-button {
-  display: flex;
-  align-items: center;
-  gap: 6px;
   padding: 8px 16px;
-  border-radius: 4px;
-  background: #00FF84;
-  color: #000;
-  border: none;
-  font-weight: 600;
-  font-size: 14px;
+  border-radius: 20px;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
+  border: none;
+  background: #B084CC;
+  color: #000;
 }
 
 .follow-button.following {
@@ -871,16 +923,11 @@ onBeforeUnmount(() => {
 }
 
 .follow-button:hover {
-  background: #00E676;
+  background: #B084CC;
 }
 
 .follow-button.following:hover {
   background: #3D3D3D;
-}
-
-.plus-icon {
-  font-size: 16px;
-  font-weight: 700;
 }
 
 .live-main {
@@ -938,7 +985,7 @@ onBeforeUnmount(() => {
 }
 
 .control-button:hover {
-  color: #00FF84;
+  color: #B084CC;
 }
 
 .control-button svg {
@@ -981,7 +1028,7 @@ onBeforeUnmount(() => {
   -webkit-appearance: none;
   width: 12px;
   height: 12px;
-  background: #00FF84;
+  background: #B084CC;
   border-radius: 50%;
   cursor: pointer;
 }
@@ -989,7 +1036,7 @@ onBeforeUnmount(() => {
 .volume-slider input::-moz-range-thumb {
   width: 12px;
   height: 12px;
-  background: #00FF84;
+  background: #B084CC;
   border-radius: 50%;
   cursor: pointer;
   border: none;
@@ -1076,7 +1123,7 @@ video {
 }
 
 .sender {
-  color: #00FF84;
+  color: #B084CC;
   font-weight: 600;
   margin-right: 6px;
 }
@@ -1106,12 +1153,12 @@ video {
 
 .chat-input input:focus {
   outline: none;
-  border-color: #00FF84;
+  border-color: #B084CC;
 }
 
 .chat-input button {
   padding: 8px 16px;
-  background: #00FF84;
+  background: #B084CC;
   color: #000;
   border: none;
   border-radius: 4px;
@@ -1121,7 +1168,7 @@ video {
 }
 
 .chat-input button:hover {
-  background: #00E676;
+  background: #B084CC;
 }
 
 .chat-input button:disabled {
@@ -1178,14 +1225,14 @@ video {
 }
 
 .donation-button.highlight {
-  background: #00FF84;
+  background: #B084CC;
   color: #000;
   border: none;
   font-weight: 600;
 }
 
 .donation-button.highlight:hover {
-  background: #00E676;
+  background: #B084CC;
 }
 
 .donation-icon {
