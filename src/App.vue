@@ -4,7 +4,7 @@
     <SidebarComponent v-if="!isStreamerRoute" :mini="mini" />
     <v-main class="main-content">
       <router-view/>
-    <FooterComponent/>
+    <FooterComponent v-if="!isStreamerRoute"/>
     </v-main>
   </v-app>
 </template>
