@@ -544,7 +544,7 @@ const initializeStreaming = async () => {
       return
     }
 
-    const hlsSrc = `https://hls.bepl.site:8088/hls/${streamInfo.value.streamKey}.m3u8`
+    const hlsSrc = `https://hls.bepl.site/hls/${streamInfo.value.streamKey}.m3u8`
     console.log('HLS 소스:', hlsSrc)
 
     if (Hls.isSupported()) {
