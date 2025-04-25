@@ -18,8 +18,10 @@ export default {
       const response = await axios.post(`${process.env.VUE_APP_MEMBER_API}/member/naver/doLogin`, {code});
       const token = response.data.token;
       const refreshToken = response.data.refreshToken;
+      const userId = response.data.id;
       localStorage.setItem("token", token);
       localStorage.setItem("refreshToken", refreshToken);
+      localStorage.setItem("userId", userId);
       setTimeout(() => {
         window.location.href = "/";
 

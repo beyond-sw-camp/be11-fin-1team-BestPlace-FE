@@ -8,7 +8,7 @@ import StreamerDashboard from "@/views/StreamerSettings/StreamerDashboard.vue";
 
 export default [
     {
-      path: '/streamer',
+      path: '/streamer/:memberId',
       component: StreamerLayout, // 레이아웃 지정
       meta: { requiresStreamer: true }, // 권한 필요
       children: [

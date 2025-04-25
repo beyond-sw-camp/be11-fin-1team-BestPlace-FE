@@ -112,37 +112,32 @@
 </template>
 
 <script>
-import axios from 'axios';
-import { jwtDecode } from 'jwt-decode';
+
 
 export default {
   data() {
     return {
+      streamerId: null,
       blockList: [],
       memberId: null,
       userNickname: ''
     };
   },
-  async created() {
-    const token = localStorage.getItem('token');
-    if (token) {
-      const payload = jwtDecode(token);
-      this.memberId = payload.sub;
-      this.userNickname = payload.nickname;
-    }
-    try {
-      const response = await axios.get(`${process.env.VUE_APP_STREAMING_API}/member/list`);
-      this.memberList = response.data;
-    } catch (e) {
-      console.log(e);
-    }
+  created() {
+    // URL에서 스트리머 ID 가져오기
+    this.streamerId = this.$route.params.memberId;
+    
+    // 이 ID로 스트리머 관련 데이터 로드
+    this.loadStreamerData();
   },
   methods: {
+    async loadStreamerData() {
+    },
     goToOBSWebsite() {
       window.open('https://obsproject.com/', '_blank');
     },
     goBroadcast() {
-      this.$router.push('/streamer/doBroadcast');
+        this.$router.push(`/streamer/${this.$route.params.memberId}/doBroadcast`);
     },
     goToChatSettings() {
       this.$router.push('/chat/setting');
@@ -158,7 +153,7 @@ export default {
 .dashboard-container {
   padding: 12px 0 20px;
   width: 120%; /* 컨테이너 너비 120%로 설정 */
-  margin-left: -10%; /* 왼쪽으로 10% 이동 */
+  margin-left: 7%; /* 왼쪽으로 10% 이동 */
 }
 
 .custom-row {

@@ -54,13 +54,18 @@ router.beforeEach(async (to, from, next) => {
 
     const token = localStorage.getItem('token');
     const payload = token ? jwtDecode(token) : null;
-    const memberId = payload?.sub;
-
-    if (to.meta.requiresStreamer && memberId) {
+    const currentMemberId = payload?.sub;
+    
+    // /streamer/:memberId 경로 패턴 체크
+    if (to.path.includes('/streamer/') && to.meta.requiresStreamer && currentMemberId) {
+        const streamerId = to.params.memberId; // URL에서 스트리머 ID 추출
+        
         try {
+            // 현재 로그인한 사용자가 해당 스트리머의 매니저인지 체크
             const response = await axios.get(
-                `${process.env.VUE_APP_STREAMING_API}/manager/check/${memberId}?requester=${memberId}`
+                `${process.env.VUE_APP_STREAMING_API}/manager/checking/${streamerId}?requester=${currentMemberId}`
             );
+            
             const isStreamerOrManager = response.data.result === 'Y';
 
             if (!isStreamerOrManager) {
@@ -68,7 +73,7 @@ router.beforeEach(async (to, from, next) => {
                 return next('/not-authorized');
             }
         } catch (e) {
-            console.error('스트리머 권한 확인 중 서버에서 오류 발생생', e);
+            console.error('스트리머 권한 확인 중 서버에서 오류 발생', e);
             return next('/error');
         }
     }
