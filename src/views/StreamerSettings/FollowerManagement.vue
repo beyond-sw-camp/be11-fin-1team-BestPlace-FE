@@ -28,7 +28,7 @@ export default {
             this.userNickname = payload.nickname;
         }
         try{
-            const response = await axios.get(`${process.env.VUE_APP_STREAMING_API}/member/list`)
+            const response = await axios.get(`${process.env.VUE_APP_STREAMING_API}/streamer/follower/list`)
             this.memberList = response.data;
         }catch(e){
             console.log(e)

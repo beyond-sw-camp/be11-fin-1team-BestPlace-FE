@@ -15,7 +15,7 @@
         text
         variant="plain"
         class="mr-2 broadcast-btn" 
-        to="/streamer/doBroadcast"
+        :to="`/streamer/${getMemberId()}/doBroadcast`"
       >
       <v-icon size="40">mdi-video</v-icon>
       </v-btn>
@@ -123,6 +123,7 @@
   
   <script>
   import axios from 'axios';
+  import { jwtDecode } from 'jwt-decode';
   
   export default {
     data() {
@@ -187,6 +188,14 @@
       },
       goToLogin() {
         window.location.href = '/member/login';
+      },
+      getMemberId() {
+        const token = localStorage.getItem('token');
+        if (token) {
+          const payload = jwtDecode(token);
+          return payload.sub;
+        }
+        return '';
       }
     },
   };

@@ -129,6 +129,7 @@
 <script>
 import Cookies from 'js-cookie';
 import axios from 'axios';
+import { jwtDecode } from 'jwt-decode';
 
 export default {
   data() {
@@ -179,40 +180,37 @@ export default {
         const token = localStorage.getItem('token');
         if (!token) return;
 
-        // 사용자 ID 먼저 확인 (localStorage에 저장되어 있을 수 있음)
-        let userId = localStorage.getItem('userId');
-
-        if (!userId) {
-          // userId가 없으면 토큰에서 추출하거나 API로 확인해야 함
-          // 여기서는 임시로 1로 설정 (실제 구현에서는 토큰 디코딩 또는 API 호출 필요)
-          userId = 1;
-          localStorage.setItem('userId', userId);
-        }
-
-        // API 호출: /member/detail/{id} 엔드포인트 사용
-        const response = await axios.get(`http://localhost:8080/member-service/member/detail/${userId}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'X-User-Id': userId
-          }
+        // 1. 토큰에서 정보 추출
+        const decodedToken = jwtDecode(token);
+        const userId = decodedToken.sub;
+        
+        // 이미 토큰에서 정보 추출 가능한 경우 설정
+        this.userProfile = {
+          nickname: decodedToken.nickname || '',
+          email: decodedToken.email || '',
+          profileImage: this.defaultAvatar
+        };
+        
+        // 2. 추가 정보 API 호출
+        const response = await axios.get(`${process.env.VUE_APP_MEMBER_API}/member/detail/${userId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
         });
-
-        // 응답에서 사용자 정보 설정
+        
+        // 3. API 응답으로 정보 업데이트
         if (response.data && response.data.result) {
           const userData = response.data.result;
           this.userProfile = {
-            nickname: userData.name || '사용자', // 'name' 필드 사용
-            email: userData.email || '',
-            profileImage: userData.profileImg || this.defaultAvatar // 'profileImg' 필드 사용
+            nickname: userData.nickname || this.userProfile.nickname,
+            email: userData.email || this.userProfile.email,
+            profileImage: userData.profileImage || this.defaultAvatar
           };
-          console.log("사용자 정보 로드됨:", this.userProfile);
         }
       } catch (error) {
-        console.error('사용자 정보를 가져오는 중 오류 발생:', error);
-        // 에러 발생 시 기본 데이터 사용
+        console.error('사용자 정보 로드 실패:', error);
+        // 온전한 오류 처리
         this.userProfile = {
-          nickname: '에러입니다 다시 수정하시길',
-          email: 'fuckingError@Error.com',
+          nickname: '사용자',
+          email: '',
           profileImage: this.defaultAvatar
         };
       }

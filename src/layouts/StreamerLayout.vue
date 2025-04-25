@@ -38,19 +38,38 @@
     data() {
       return {
         showStreamerModal: false,
+        
       };
     },
     mounted() {
-      this.checkStreamerStatus();
+      this.checkStreamerAccess();
     },
     methods: {
-      checkStreamerStatus() {
+      async checkStreamerAccess() {
         const token = localStorage.getItem('token');
-        if (!token) return;
-  
+        if (!token) {
+          this.$router.push('/member/login');
+          return;
+        }
+
         const payload = jwtDecode(token);
-        if (payload.streamer === 'N') {
-          this.showStreamerModal = true;
+        const streamerId = this.$route.params.memberId;
+        
+        // 스트리머 본인이거나 매니저인지 확인
+        try {
+            const response = await axios.get(
+                `${process.env.VUE_APP_STREAMING_API}/manager/checking/${streamerId}`,
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+          
+          if (response.data.result !== 'Y') {
+            this.$router.push('/not-authorized');
+          } else if (payload.streamer === 'N') {
+            this.showStreamerModal = true;
+          }
+        } catch (err) {
+          console.error('스트리머 접근 권한 확인 실패', err);
+          this.$router.push('/error');
         }
       },
       async handleStreamerRegister() {

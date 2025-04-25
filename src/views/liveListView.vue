@@ -107,8 +107,9 @@ const fetchStreams = async (type) => {
     const endpoint = type === 'popular' 
       ? '/streaming/streamListViewer'
       : '/streaming/streamListStartTime'
-    
+      console.log(endpoint)
     const response = await axios.get(`${streamingApi}${endpoint}`)
+    console.log(response.data)
     if (response.data && response.data.result) {
       streams.value = response.data.result.content
     }
