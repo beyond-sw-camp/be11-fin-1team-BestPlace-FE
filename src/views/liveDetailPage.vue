@@ -543,8 +543,10 @@ const initializeStreaming = async () => {
       console.error('스트림키가 없습니다.')
       return
     }
-
-    const hlsSrc = `https://hls.bepl.site/hls/${streamInfo.value.streamKey}.m3u8`
+    // 배포용
+    // const hlsSrc = `https://hls.bepl.site/hls/${streamInfo.value.streamKey}.m3u8`
+    // 로컬용
+    const hlsSrc = `http://localhost:8088/hls/${streamInfo.value.streamKey}.m3u8`
     console.log('HLS 소스:', hlsSrc)
 
     if (Hls.isSupported()) {

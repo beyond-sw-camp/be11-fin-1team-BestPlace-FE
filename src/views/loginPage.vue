@@ -32,7 +32,7 @@ export default {
 
       naverUrl: "https://nid.naver.com/oauth2.0/authorize",
       naverClientId: "Aplw9X7yB984ri9fEMr0",
-      naverRedirectUrl: "https://www.bepl.site/member/naver/redirect",
+      naverRedirectUrl: "http://localhost:3000/member/naver/redirect",
       naverScope: "id email gender birthyear birthday age mobile name"
     }
   },
