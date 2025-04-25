@@ -14,7 +14,15 @@
       </div>
 
       <div class="stream-header">
-        <h1 class="stream-title">{{ vodInfo.title }}</h1>
+        <div class="title-container">
+          <h1 class="stream-title">{{ vodInfo.title }}</h1>
+          <button 
+            class="clip-create-button" 
+            @click="goToClipCreate"
+          >
+            클립 생성
+          </button>
+        </div>
         <div class="stream-meta">
           <span 
             class="category"
@@ -46,7 +54,10 @@
               <span class="follower-count">팔로워 {{ streamerInfo.followerCount }}명</span>
             </div>
           </div>
-          <div class="stream-actions">
+          <div 
+            class="stream-actions" 
+            v-if="isLogin && !isOwnProfile"
+          >
             <button 
               class="follow-button" 
               :class="{ 'following': streamerInfo.isFollow === 'Y' }"
@@ -264,11 +275,58 @@
         </div>
       </div>
     </div>
+
+    <!-- 클립 생성 모달 -->
+    <div v-if="showClipModal" class="modal-overlay">
+      <div class="clip-modal-content">
+        <h2>클립 만들기</h2>
+        <div class="clip-form">
+          <input 
+            v-model="clipTitle" 
+            type="text" 
+            placeholder="클립 제목을 입력하세요"
+            class="clip-title-input"
+            maxlength="100"
+          />
+          <div class="time-control">
+            <div class="time-display">
+              <span>시작: {{ formatTime(clipStartTime) }}</span>
+              <span>종료: {{ formatTime(clipEndTime) }}</span>
+              <span>길이: {{ formatTime(clipEndTime - clipStartTime) }}</span>
+            </div>
+            <div class="trim-container">
+              <div class="trim-track">
+                <div 
+                  class="trim-selection"
+                  :style="{ 
+                    left: (clipStartTime / video?.duration * 100) + '%',
+                    width: ((clipEndTime - clipStartTime) / video?.duration * 100) + '%'
+                  }"
+                >
+                  <div class="trim-handle left" @mousedown="startDrag('start', $event)"></div>
+                  <div class="trim-handle right" @mousedown="startDrag('end', $event)"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="clip-buttons">
+            <button class="cancel-button" @click="closeClipModal">취소</button>
+            <button 
+              class="create-button" 
+              @click="createClip"
+              :disabled="!isClipValid"
+            >
+              클립 만들기
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, onMounted, nextTick, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 
@@ -328,6 +386,15 @@ const userProfileImage = ref('https://bestplace-media.s3.ap-northeast-2.amazonaw
 const showDeleteModal = ref(false)
 const deleteTargetId = ref(null)
 
+// 클립 관련 상태 추가
+const showClipModal = ref(false)
+const clipTitle = ref('')
+const clipStartTime = ref(0)
+const clipEndTime = ref(0)
+
+// Add memberId to the data section if not already present
+const memberId = ref(null)
+
 // 토큰 준비 및 사용자 정보 추출
 const prepareToken = async () => {
   token.value = localStorage.getItem('token')
@@ -335,7 +402,6 @@ const prepareToken = async () => {
   
   if (token.value) {
     try {
-      // JWT 토큰에서 사용자 정보 추출
       const base64Url = token.value.split('.')[1]
       const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
       const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => {
@@ -343,8 +409,7 @@ const prepareToken = async () => {
       }).join(''))
       
       const payload = JSON.parse(jsonPayload)
-      userId.value = payload.sub
-      console.log('사용자 정보:', payload)
+      memberId.value = payload.sub
     } catch (error) {
       console.error('토큰 파싱 실패:', error)
     }
@@ -773,8 +838,35 @@ const goToCategory = (category) => {
 }
 
 // Add in the script section, after goToCategory function
+const goToClipCreate = () => {
+  const width = 800
+  const height = 800
+  const left = (window.screen.width - width) / 2
+  const top = (window.screen.height - height) / 2
+  
+  window.open(
+    `/video/clip/create/${vodId}`,
+    'clipCreate',
+    `width=${width},height=${height},left=${left},top=${top}`
+  )
+}
+
+// Add in the script section, after goToCategory function
 const goToChannel = (memberId) => {
   router.push(`/channel/${memberId}`)
+}
+
+// Add computed property for clip validation
+const isClipValid = computed(() => {
+  return clipTitle.value.trim() !== '' && 
+         clipEndTime.value > clipStartTime.value && 
+         (clipEndTime.value - clipStartTime.value) <= 120 // 최대 5분
+})
+
+const formatTime = (seconds) => {
+  const mins = Math.floor(seconds / 60)
+  const secs = Math.floor(seconds % 60)
+  return `${mins}:${secs.toString().padStart(2, '0')}`
 }
 
 onMounted(() => {
@@ -804,13 +896,38 @@ onMounted(() => {
 
 .stream-header {
   padding: 20px 24px;
-  background: #0F0F0F;
+  background: #000000;
+}
+
+.title-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .stream-title {
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 600;
-  margin-bottom: 12px;
+  margin: 0;
+  flex: 1;
+  font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', '맑은 고딕', 'Noto Sans KR', sans-serif;
+}
+
+.clip-create-button {
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+  background: #2D2D2D;
+  color: #fff;
+  margin-left: 16px;
+  white-space: nowrap;
+}
+
+.clip-create-button:hover {
+  background: #3D3D3D;
 }
 
 .stream-meta {
@@ -836,18 +953,14 @@ onMounted(() => {
 }
 
 .streamer-avatar {
-  width: 64px;
-  height: 64px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
   background: #2D2D2D;
   flex-shrink: 0;
   overflow: hidden;
   cursor: pointer;
   transition: transform 0.2s;
-}
-
-.streamer-avatar:hover {
-  transform: scale(1.05);
 }
 
 .streamer-avatar img {
@@ -863,9 +976,9 @@ onMounted(() => {
 }
 
 .streamer-name {
-  font-size: 20px;
+  font-size: 18px;
   color: #fff;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   transition: color 0.2s;
 }
@@ -875,8 +988,9 @@ onMounted(() => {
 }
 
 .follower-count {
-  color: #7B7B7B;
   font-size: 16px;
+  color: #7B7B7B;
+  font-weight: 600;
 }
 
 .stream-actions {
@@ -884,12 +998,14 @@ onMounted(() => {
   gap: 12px;
 }
 
-.follow-button {
+.follow-button,
+.clip-create-button {
   padding: 8px 16px;
   border-radius: 20px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
+  border: none;
 }
 
 .follow-button:not(.following) {
@@ -900,6 +1016,15 @@ onMounted(() => {
 .follow-button.following {
   background: #2D2D2D;
   color: #fff;
+}
+
+.clip-create-button {
+  background: #2D2D2D;
+  color: #fff;
+}
+
+.clip-create-button:hover {
+  background: #3D3D3D;
 }
 
 .vod-main {
@@ -927,6 +1052,10 @@ video {
   height: 100%;
   object-fit: contain;
   background: #000;
+}
+
+.video-controls {
+  display: none;
 }
 
 .chat-section {
@@ -1031,7 +1160,7 @@ video {
 /* 댓글 섹션 스타일 */
 .comments-section {
   padding: 24px;
-  background: #0F0F0F;
+  background: #000000;
 }
 
 .comment-form {
@@ -1301,13 +1430,9 @@ video {
 .category {
   color: #B084CC;
   font-weight: 800;
-  font-size: 14px;
+  font-size: 16px;
+  text-shadow: 0 0 1px rgba(0, 255, 132, 0.3);
   cursor: pointer;
-  transition: color 0.2s;
-}
-
-.category:hover {
-  color: #B084CC;
 }
 
 .reply-item {
@@ -1538,5 +1663,128 @@ video {
 .reply-form .comment-textarea {
   min-height: 60px;
   background: #041517;
+}
+
+.clip-modal-content {
+  background: #1A1A1A;
+  border-radius: 8px;
+  padding: 24px;
+  width: 500px;
+  color: white;
+}
+
+.clip-modal-content h2 {
+  margin: 0 0 20px 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.clip-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.clip-title-input {
+  width: 100%;
+  padding: 12px;
+  background: #2D2D2D;
+  border: 1px solid #3D3D3D;
+  border-radius: 4px;
+  color: white;
+  font-size: 16px;
+}
+
+.clip-title-input:focus {
+  outline: none;
+  border-color: #B084CC;
+}
+
+.time-control {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.time-display {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  color: #7B7B7B;
+}
+
+.trim-container {
+  position: relative;
+  height: 40px;
+  margin: 20px 0;
+}
+
+.trim-track {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: #2D2D2D;
+  transform: translateY(-50%);
+  border-radius: 2px;
+}
+
+.trim-selection {
+  position: absolute;
+  height: 100%;
+  background: #B084CC;
+  border-radius: 2px;
+}
+
+.trim-handle {
+  position: absolute;
+  top: 50%;
+  width: 12px;
+  height: 24px;
+  background: #B084CC;
+  transform: translateY(-50%);
+  cursor: ew-resize;
+  border-radius: 2px;
+}
+
+.trim-handle.left {
+  left: -6px;
+}
+
+.trim-handle.right {
+  right: -6px;
+}
+
+.clip-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.clip-buttons .cancel-button {
+  padding: 8px 16px;
+  background: #2D2D2D;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.clip-buttons .create-button {
+  padding: 8px 16px;
+  background: #B084CC;
+  color: black;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.clip-buttons .create-button:disabled {
+  background: #2D2D2D;
+  color: #7B7B7B;
+  cursor: not-allowed;
 }
 </style>
