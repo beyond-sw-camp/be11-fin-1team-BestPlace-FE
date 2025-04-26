@@ -13,14 +13,15 @@
     <!-- 탭 메뉴 -->
     <div class="tab-container">
       <div class="tabs">
-        <div 
+        <button 
           v-for="tab in tabs" 
           :key="tab.value" 
-          :class="['tab', { active: activeTab === tab.value }]"
+          :class="['tab-btn', { active: activeTab === tab.value }]"
           @click="setActiveTab(tab.value)"
+          type="button"
         >
           {{ tab.text }}
-        </div>
+        </button>
       </div>
     </div>
 
@@ -36,6 +37,34 @@
         <button 
           :class="['sort-btn', { active: sortOption === 'recent' }]" 
           @click="setSortOption('recent')"
+        >
+          최신순
+        </button>
+      </div>
+    </div>
+
+    <!-- 정렬 옵션 (클립 탭에서만 표시) -->
+    <div class="filter-bar" v-if="activeTab === 'clip'">
+      <div class="filter-left">
+        <button 
+          v-for="period in periods" 
+          :key="period.value"
+          :class="['sort-btn', { active: selectedPeriod === period.value }]" 
+          @click="selectedPeriod = period.value; resetAndLoadClips()"
+        >
+          {{ period.text }}
+        </button>
+      </div>
+      <div class="filter-right">
+        <button 
+          :class="['sort-btn', { active: selectedSort === 'popular' }]" 
+          @click="selectedSort = 'popular'; resetAndLoadClips()"
+        >
+          인기순
+        </button>
+        <button 
+          :class="['sort-btn', { active: selectedSort === 'recent' }]" 
+          @click="selectedSort = 'recent'; resetAndLoadClips()"
         >
           최신순
         </button>
@@ -124,6 +153,61 @@
       </div>
     </div>
 
+    <!-- 클립 목록 (클립 탭에서만 표시) -->
+    <div v-if="activeTab === 'clip'" class="clips-content">      
+      <!-- 클립 그리드 -->
+      <div class="clips-grid" v-if="clips.length > 0">
+        <div 
+          v-for="clip in clips" 
+          :key="clip.id" 
+          class="clip-item"
+          @click="handleClipClick(clip)"
+        >
+          <!-- 썸네일 컨테이너 -->
+          <div class="thumbnail-container">
+            <img 
+              :src="clip.thumbnailUrl" 
+              alt="Clip Thumbnail" 
+              class="thumbnail"
+              :class="{
+                'blur-thumbnail': shouldBlurThumbnail(clip),
+                'hide-thumbnail': shouldHideThumbnail(clip)
+              }"
+            >
+            
+            <!-- 연령 제한 표시 -->
+            <div v-if="clip.isAdult === 'Y'" class="age-restriction-overlay">
+              <div class="age-restriction-content">
+                <div class="age-icon-circle">19</div>
+                <div class="age-text">연령 제한</div>
+              </div>
+            </div>
+            
+            <!-- 텍스트 오버레이 -->
+            <div class="clip-info-overlay">
+              <div class="clip-title">{{ clip.title }}</div>
+              <div class="clip-meta">
+                <span class="streamer-name">{{ clip.streamerNickname }}</span>
+                <span class="view-count">
+                  <v-icon size="x-small" class="mr-1">mdi-eye</v-icon>
+                  {{ formatNumber(clip.views) }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 데이터 없음 표시 -->
+      <v-card v-if="clips.length === 0 && !loading" class="empty-card">
+        <v-card-text class="text-center pa-6">
+          <v-icon size="64" color="#B084CC" class="mb-4">mdi-video-box-off</v-icon>
+          <h3 class="mb-2">클립이 없습니다</h3>
+          <p>이 카테고리에 등록된 클립이 없습니다.</p>
+        </v-card-text>
+      </v-card>
+    </div>
+
     <!-- 로딩 표시 -->
     <div v-if="loading" class="loading-container">
       <v-progress-circular indeterminate color="#B084CC"></v-progress-circular>
@@ -209,8 +293,28 @@ export default {
       ],
       broadcasts: [],
       videos: [],
+      clips: [],
       loading: false,
       sortOption: 'views', // 기본값은 인기순
+      // 클립 탭 관련 데이터
+      selectedPeriod: 'DAYS_7', // 초기값: 주간
+      selectedSort: 'popular',   // 초기값: 인기순
+      periods: [
+        { text: '전체', value: 'ALL' },
+        { text: '한달', value: 'DAYS_30' },
+        { text: '주간', value: 'DAYS_7' },
+        { text: '하루', value: 'HOURS_24' }
+      ],
+      sortOptions: {
+        ALL: [
+          { text: '인기순', value: 'popular' },
+          { text: '최신순', value: 'recent' }
+        ],
+        others: [
+          { text: '인기순', value: 'popular' },
+          { text: '최신순', value: 'recent' }
+        ]
+      },
       page: 0,
       totalPages: 0,
       hasMoreVideos: true,
@@ -220,7 +324,8 @@ export default {
       userIsAdult: false,
       isLoggedIn: false,
       adultAlertModalOpen: false,
-      selectedVideo: null
+      selectedVideo: null,
+      selectedClip: null
     };
   },
   
@@ -228,6 +333,10 @@ export default {
     // 라우터 파라미터에서 카테고리 이름을 가져오는 computed 속성
     categoryName() {
       return this.$route.params.categoryName;
+    },
+    // 현재 선택된 기간에 따라 정렬 옵션 반환
+    sorts() {
+      return this.selectedPeriod === 'ALL' ? this.sortOptions.ALL : this.sortOptions.others;
     }
   },
   
@@ -235,10 +344,22 @@ export default {
     console.log('라우터 파라미터:', this.$route.params);
     console.log('카테고리 이름:', this.categoryName);
     this.checkLoginStatus();
+    
+    // 초기에 현재 활성 탭에 대한 데이터 요청 설정
+    if (this.activeTab === 'clip') {
+      this.initClipDataLoading();
+    }
   },
   
   mounted() {
-    this.fetchCategoryDetail();
+    this.fetchCategoryDetail().then(() => {
+      // 카테고리 세부 정보를 가져온 후 필요한 데이터 로드
+      if (this.activeTab === 'video') {
+        this.fetchVideos();
+      } else if (this.activeTab === 'clip') {
+        this.initClipDataLoading();
+      }
+    });
     this.setupInfiniteScroll();
   },
 
@@ -250,10 +371,14 @@ export default {
   
   watch: {
     activeTab(newTab) {
+      console.log('탭 변경됨:', newTab);
       if (newTab === 'video' && this.videos.length === 0) {
         this.page = 0;
         this.hasMoreVideos = true;
         this.fetchVideos();
+      } else if (newTab === 'clip') {
+        // 클립 탭으로 변경될 때마다 데이터 확인 및 로드
+        this.initClipDataLoading();
       }
     },
     sortOption() {
@@ -261,6 +386,17 @@ export default {
       this.videos = [];
       this.hasMoreVideos = true;
       this.fetchVideos();
+    },
+    selectedPeriod() {
+      // 기간이 변경되면 정렬 옵션도 변경되어야 하므로
+      // 전체 <-> 나머지 간 전환 시 정렬 옵션을 초기값으로 설정
+      if (this.selectedPeriod === 'ALL' && this.selectedSort === 'recent') {
+        this.selectedSort = 'popular';
+      }
+      this.resetAndLoadClips();
+    },
+    selectedSort() {
+      this.resetAndLoadClips();
     }
   },
   
@@ -367,8 +503,12 @@ export default {
       };
       
       this.observer = new IntersectionObserver((entries) => {
-        if (entries[0].isIntersecting && !this.loading && this.activeTab === 'video') {
-          this.fetchVideos();
+        if (entries[0].isIntersecting && !this.loading) {
+          if (this.activeTab === 'video') {
+            this.fetchVideos();
+          } else if (this.activeTab === 'clip') {
+            this.loadClips();
+          }
         }
       }, options);
       
@@ -498,7 +638,120 @@ export default {
       this.closeAdultAlertModal();
       // 로그인 페이지로 이동
       this.$router.push('/member/login');
-    }
+    },
+    
+    // 클립 데이터 초기 로딩 관리
+    initClipDataLoading() {
+      console.log('클립 데이터 초기화 확인. 현재 clips 수:', this.clips.length);
+      // 클립 데이터가 없거나 명시적 새로고침인 경우 로드
+      if (this.clips.length === 0) {
+        console.log('클립 데이터 로드 시작');
+        this.page = 0;
+        this.hasMoreVideos = true;
+        this.retryLoadClips(3); // 최대 3번 재시도
+      }
+    },
+    
+    // 클립 로드 메서드에 재시도 로직 추가
+    async retryLoadClips(maxAttempts) {
+      let attempts = 0;
+      let success = false;
+      
+      while (attempts < maxAttempts && !success) {
+        attempts++;
+        try {
+          console.log(`클립 로드 시도 ${attempts}/${maxAttempts}`);
+          await this.loadClips();
+          if (this.clips.length > 0) {
+            console.log('클립 로드 성공!');
+            success = true;
+          } else {
+            console.log('클립 데이터 없음. 재시도 중...');
+            // 잠시 대기 후 재시도
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
+        } catch (error) {
+          console.error(`클립 로드 시도 ${attempts} 실패:`, error);
+          // 잠시 대기 후 재시도
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      }
+      
+      if (!success) {
+        console.error('클립 로드 최대 시도 횟수 초과');
+      }
+    },
+    
+    async loadClips() {
+      if (this.loading || !this.hasMoreVideos) return;
+      
+      this.loading = true;
+      const apiUrl = process.env.VUE_APP_MEMBER_API;
+      
+      try {
+        let endpoint;
+        let params = {
+          page: this.page,
+          periodType: this.selectedPeriod,
+          category: this.displayName
+        };
+        
+        if (this.selectedSort === 'popular') {
+          endpoint = `${apiUrl}/video/clip/list/category/views`;
+        } else if (this.selectedSort === 'recent') {
+          endpoint = `${apiUrl}/video/clip/list/category/recent`;
+        }
+        
+        console.log('클립 요청 URL:', endpoint);
+        console.log('클립 요청 파라미터:', params);
+        
+        const response = await axios.get(endpoint, { params });
+        console.log('클립 응답 데이터:', response.data);
+        
+        if (response.data && response.data.result) {
+          const result = response.data.result;
+          this.clips = [...this.clips, ...result.content];
+          this.totalPages = result.totalPages;
+          this.hasMoreVideos = this.page < this.totalPages - 1;
+          this.page++;
+          console.log('로드된 클립 수:', this.clips.length);
+        } else {
+          console.warn('클립 응답에 결과 데이터가 없음');
+        }
+      } catch (error) {
+        console.error('클립 로드 중 오류 발생:', error);
+        throw error; // 재시도를 위해 오류 다시 발생
+      } finally {
+        this.loading = false;
+      }
+    },
+    
+    resetAndLoadClips() {
+      this.clips = [];
+      this.page = 0;
+      this.hasMoreVideos = true;
+      this.retryLoadClips(3);
+    },
+    
+    formatNumber(num) {
+      if (num >= 10000) {
+        return (num / 10000).toFixed(1) + '만';
+      } else if (num >= 1000) {
+        return (num / 1000).toFixed(1) + '천';
+      }
+      return num.toString();
+    },
+    
+    handleClipClick(clip) {
+      if (clip.isAdult === 'Y' && (!this.isLoggedIn || !this.userIsAdult)) {
+        // 성인 컨텐츠이고 로그인하지 않았거나 성인이 아닌 경우, 모달 표시
+        this.selectedClip = clip;
+        this.adultAlertModalOpen = true;
+      } else {
+        // 아니면 클립 페이지로 이동
+        this.$router.push(`/clip/${clip.id}`);
+      }
+    },
   }
 };
 </script>
@@ -549,28 +802,37 @@ export default {
   margin: 0 auto;
   padding: 0 15px;
   border-bottom: 1px solid #2a2a2a;
+  position: relative;
+  z-index: 50;
 }
 
 .tabs {
   display: flex;
   gap: 20px;
+  position: relative;
+  z-index: 50;
 }
 
-.tab {
+.tab-btn {
   padding: 15px 5px;
   font-size: 16px;
   font-weight: 500;
   color: #aaaaaa;
-  cursor: pointer;
+  cursor: pointer !important;
   position: relative;
+  z-index: 50;
+  background: none;
+  border: none;
+  outline: none;
+  pointer-events: auto;
 }
 
-.tab.active {
+.tab-btn.active {
   color: white;
   font-weight: 600;
 }
 
-.tab.active::after {
+.tab-btn.active::after {
   content: '';
   position: absolute;
   bottom: 0;
@@ -835,13 +1097,49 @@ export default {
 .video-item {
   cursor: pointer;
   transition: transform 0.2s;
-  background-color: transparent;
   overflow: hidden;
-  border-radius: 0;
+  border-radius: 8px;
+  padding: 10px;
 }
 
 .video-item:hover {
   transform: none;
+}
+
+.videos-grid .thumbnail-container {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.videos-grid .thumbnail {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: opacity 0.3s ease;
+}
+
+.video-preview {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 2;
+}
+
+.duration {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background-color: rgba(0, 0, 0, 0.7);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
 }
 
 .video-info {
@@ -1022,5 +1320,216 @@ export default {
   font-size: 16px;
   font-weight: 500;
   text-transform: none;
+}
+
+.clips-content {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px 15px;
+}
+
+.filter-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-bottom: 30px;
+}
+
+.filter-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.filter-btn {
+  background-color: #222222 !important;
+  color: #aaaaaa !important;
+  min-width: 60px;
+  font-size: 14px;
+  letter-spacing: 0;
+  text-transform: none;
+  border-radius: 20px !important;
+  box-shadow: none !important;
+}
+
+.filter-btn.active {
+  background-color: #B084CC !important;
+  color: white !important;
+  font-weight: 500;
+}
+
+.clip-card {
+  background-color: #0F0F0F !important;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: none !important;
+  height: 100%;
+  margin-bottom: 24px;
+  box-shadow: none !important;
+}
+
+.clip-card:hover {
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.clips-content .thumbnail-container {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  width: 100%;
+  aspect-ratio: 9 / 16;
+  background-color: #000;
+}
+
+.clips-content .thumbnail {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center center;
+  background-color: #000;
+}
+
+.clip-info-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  padding: 16px;
+  background-color: rgba(0, 0, 0, 0.7);
+  z-index: 2;
+  pointer-events: none;
+}
+
+.clip-title {
+  color: #ffffff;
+  font-weight: 500;
+  font-size: 16px;
+  margin-bottom: 8px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.4;
+  text-shadow: none;
+}
+
+.clip-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.view-count {
+  white-space: nowrap;
+  color: #ffffff;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  text-shadow: none;
+}
+
+/* 추가 스타일 - Vuetify 카드 효과 무효화 */
+.v-card--hover {
+  box-shadow: none !important;
+}
+
+.v-card {
+  box-shadow: none !important;
+}
+
+.v-card:hover {
+  box-shadow: none !important;
+}
+
+.v-card::before,
+.v-card::after {
+  display: none !important;
+}
+
+/* 툴팁 비활성화 */
+.v-tooltip {
+  display: none !important;
+}
+
+.clips-content .sort-container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 15px;
+}
+
+.clips-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 15px;
+}
+
+.clip-item {
+  cursor: pointer;
+  background-color: #18191c;
+  border-radius: 8px;
+  overflow: hidden;
+  padding: 0;
+}
+
+.sort-options-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.left-options {
+  display: flex;
+  gap: 8px;
+}
+
+.right-options {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.filter-bar {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.filter-left {
+  display: flex;
+  gap: 15px;
+}
+
+.filter-right {
+  display: flex;
+  gap: 15px;
+}
+
+.filter-btn {
+  background: none;
+  border: none;
+  color: #aaaaaa;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 5px 10px;
+  border-radius: 4px;
+}
+
+.filter-btn.active {
+  background-color: #2a2a2a;
+  color: white;
 }
 </style>
