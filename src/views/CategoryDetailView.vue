@@ -6,7 +6,7 @@
         <img :src="categoryImage" alt="Category Image" v-if="categoryImage">
       </div>
       <div class="category-info">
-        <h1 class="category-name">{{ categoryName }}</h1>
+        <h1 class="category-name">{{ displayName }}</h1>
       </div>
     </div>
 
@@ -199,7 +199,7 @@ export default {
   name: 'CategoryDetailView',
   data() {
     return {
-      categoryName: '',
+      displayName: '',
       categoryImage: '',
       activeTab: 'live',
       tabs: [
@@ -225,15 +225,15 @@ export default {
   },
   
   computed: {
-    // 라우터 파라미터에서 직접 ID를 가져오는 computed 속성
-    categoryId() {
-      return this.$route.params.id;
+    // 라우터 파라미터에서 카테고리 이름을 가져오는 computed 속성
+    categoryName() {
+      return this.$route.params.categoryName;
     }
   },
   
   created() {
     console.log('라우터 파라미터:', this.$route.params);
-    console.log('카테고리 ID:', this.categoryId);
+    console.log('카테고리 이름:', this.categoryName);
     this.checkLoginStatus();
   },
   
@@ -285,8 +285,8 @@ export default {
     },
 
     async fetchCategoryDetail() {
-      if (!this.categoryId) {
-        console.error('유효하지 않은 카테고리 ID:', this.categoryId);
+      if (!this.categoryName) {
+        console.error('유효하지 않은 카테고리 이름:', this.categoryName);
         return;
       }
       
@@ -294,7 +294,7 @@ export default {
       
       try {
         const apiUrl = process.env.VUE_APP_STREAMING_API;
-        const url = `${apiUrl}/category/detail/${this.categoryId}`;
+        const url = `${apiUrl}/category/detail/${this.categoryName}`;
         console.log('요청 URL:', url);
         
         const response = await axios.get(url);
@@ -302,7 +302,7 @@ export default {
         
         if (response.data && response.data.result) {
           const categoryData = response.data.result;
-          this.categoryName = categoryData.name;
+          this.displayName = categoryData.name;
           this.categoryImage = categoryData.image;
         }
       } catch (error) {
@@ -325,7 +325,7 @@ export default {
         const response = await axios.get(url, {
           params: {
             page: this.page,
-            category: this.categoryName
+            category: this.displayName
           }
         });
         

@@ -9,7 +9,7 @@
           v-for="category in categories"
           :key="category.id"
           class="category-item"
-          @click="goToCategoryDetail(category.id)"
+          @click="goToCategoryDetail(category)"
         >
           <div class="category-thumbnail">
             <img :src="category.image" :alt="category.name" class="thumbnail-image">
@@ -112,8 +112,8 @@ export default {
       }
     },
     
-    goToCategoryDetail(categoryId) {
-      this.$router.push(`/category/${categoryId}`);
+    goToCategoryDetail(category) {
+      this.$router.push(`/category/${category.name}`);
     }
   }
 };
