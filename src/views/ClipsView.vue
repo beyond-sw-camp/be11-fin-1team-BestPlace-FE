@@ -364,7 +364,7 @@ export default {
 .clips-title {
   font-size: 32px;
   font-weight: 700;
-  margin-bottom: 20px;
+  margin-bottom: 1px;
 }
 
 .purple-text {
