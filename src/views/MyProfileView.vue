@@ -378,7 +378,6 @@ export default {
   max-width: 1920px;
   margin: 0 auto;
   padding: 24px;
-  padding-bottom: 50vh; /* 푸터를 아래로 밀기 위한 추가 공간 */
 }
 
 .profile-title {
