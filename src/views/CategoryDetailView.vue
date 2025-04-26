@@ -767,10 +767,11 @@ export default {
 .category-header {
   max-width: 1920px;
   margin: 0 auto;
-  padding: 10px 24px 0 24px;
+  padding: 0 24px;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 20px;
+  margin-top: -15px;
 }
 
 .category-info {
@@ -780,7 +781,7 @@ export default {
 .category-name {
   font-size: 28px;
   font-weight: 700;
-  margin: 0;
+  margin-top: 15px;
   color: #ffffff;
 }
 
@@ -789,6 +790,7 @@ export default {
   height: 240px;
   overflow: hidden;
   border-radius: 8px;
+  margin-top: 15px;
 }
 
 .category-image img {
