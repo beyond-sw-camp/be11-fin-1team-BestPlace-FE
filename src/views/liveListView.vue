@@ -145,7 +145,7 @@ onMounted(async () => {
   max-width: 1920px;
   margin: 0 auto;
   padding: 24px;
-  background: #0F0F0F;
+  background: #141517;
   min-height: 100vh;
 }
 
@@ -235,7 +235,7 @@ onMounted(async () => {
 }
 
 .stream-card {
-  background: #1A1A1A;
+  background: #141517;
   border-radius: 8px;
   overflow: hidden;
 }

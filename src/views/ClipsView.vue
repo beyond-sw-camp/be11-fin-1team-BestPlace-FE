@@ -352,14 +352,13 @@ export default {
   width: 100%;
   background-color: #141517;
   color: white;
-  min-height: calc(100vh - 60px); /* 헤더 높이를 뺀 전체 화면 높이 */
+  min-height: 100vh;
 }
 
 .clips-content {
-  width: 100%;
-  max-width: 1200px;
+  max-width: 1920px;
   margin: 0 auto;
-  padding: 20px 15px;
+  padding: 24px;
 }
 
 .clips-title {
@@ -374,8 +373,8 @@ export default {
 
 .filter-bar {
   width: 100%;
-  max-width: 1200px;
-  margin: 12px auto;
+  max-width: 1920px;
+  margin: 0 auto;
   padding: 15px;
   display: flex;
   justify-content: space-between;
@@ -410,10 +409,10 @@ export default {
 
 .clips-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 20px;
   width: 100%;
-  max-width: 1200px;
+  max-width: 1920px;
   margin: 0 auto;
   padding: 15px;
 }
@@ -442,7 +441,7 @@ export default {
 .thumbnail-container {
   position: relative;
   overflow: hidden;
-  border-radius: 12px;
+  border-radius: 8px;
   width: 100%;
   aspect-ratio: 9 / 16;
   background-color: #000;
@@ -486,8 +485,8 @@ export default {
 }
 
 .age-icon-circle {
-  width: 48px;
-  height: 48px;
+  width: 36px;
+  height: 36px;
   background-color: rgba(255, 255, 255, 0.9);
   color: black;
   border-radius: 50%;
@@ -495,13 +494,13 @@ export default {
   align-items: center;
   justify-content: center;
   font-weight: bold;
-  font-size: 20px;
-  margin-bottom: 10px;
+  font-size: 16px;
+  margin-bottom: 8px;
 }
 
 .age-text {
   color: white;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 500;
 }
 
@@ -510,7 +509,7 @@ export default {
   bottom: 0;
   left: 0;
   width: 100%;
-  padding: 16px;
+  padding: 12px;
   background-color: rgba(0, 0, 0, 0.7);
   z-index: 2;
 }
@@ -518,13 +517,13 @@ export default {
 .clip-title {
   color: #ffffff;
   font-weight: 500;
-  font-size: 16px;
-  margin-bottom: 8px;
+  font-size: 14px;
+  margin-bottom: 6px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  line-height: 1.4;
+  line-height: 1.3;
   text-shadow: none;
 }
 
@@ -536,7 +535,7 @@ export default {
 
 .streamer-name, .view-count {
   color: #ffffff;
-  font-size: 13px;
+  font-size: 11px;
   display: flex;
   align-items: center;
   text-shadow: none;

@@ -763,7 +763,7 @@ onBeforeUnmount(() => {
   width: 100%;
   max-width: 1920px;
   margin: 0 auto;
-  background: #000;
+  background: #141517;
   color: #fff;
   position: relative;
   display: flex;
@@ -780,7 +780,7 @@ onBeforeUnmount(() => {
 .stream-header {
   padding: 20px 24px;
   width: 95%;
-  background: #000;
+  background: #141517;
 }
 
 .stream-info {

@@ -761,16 +761,15 @@ export default {
   width: 100%;
   background-color: #141517;
   color: white;
-  min-height: calc(100vh - 60px); /* 헤더 높이를 뺀 전체 화면 높이 */
+  min-height: 100vh;
 }
 
 .category-header {
-  display: flex;
-  align-items: flex-start;
-  width: 100%;
-  max-width: 1200px;
+  max-width: 1920px;
   margin: 0 auto;
-  padding: 30px 15px;
+  padding: 10px 24px 0 24px;
+  display: flex;
+  align-items: center;
   gap: 20px;
 }
 
@@ -779,8 +778,10 @@ export default {
 }
 
 .category-name {
-  font-size: 32px;
+  font-size: 28px;
   font-weight: 700;
+  margin: 0;
+  color: #ffffff;
 }
 
 .category-image {
@@ -797,10 +798,9 @@ export default {
 }
 
 .tab-container {
-  width: 100%;
-  max-width: 1200px;
+  max-width: 1920px;
   margin: 0 auto;
-  padding: 0 15px;
+  padding: 0 24px;
   border-bottom: 1px solid #2a2a2a;
   position: relative;
   z-index: 50;
@@ -843,10 +843,9 @@ export default {
 }
 
 .sort-container {
-  width: 100%;
-  max-width: 1200px;
+  max-width: 1920px;
   margin: 0 auto;
-  padding: 15px;
+  padding: 10px 24px 0 24px;
 }
 
 .sort-options {
@@ -872,13 +871,10 @@ export default {
 }
 
 .broadcasts-grid, .videos-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
-  width: 100%;
-  max-width: 1200px;
+  max-width: 1920px;
   margin: 0 auto;
-  padding: 15px;
+  padding: 24px;
+  gap: 24px;
 }
 
 .broadcast-item, .video-item {
@@ -1086,24 +1082,18 @@ export default {
 
 .videos-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 20px;
-  width: 100%;
-  max-width: 1200px;
+  max-width: 1920px;
   margin: 0 auto;
-  padding: 15px;
+  padding: 10px 24px 24px 24px;
 }
 
 .video-item {
-  cursor: pointer;
-  transition: transform 0.2s;
-  overflow: hidden;
+  background-color: #141517;
   border-radius: 8px;
-  padding: 10px;
-}
-
-.video-item:hover {
-  transform: none;
+  padding: 8px;
+  overflow: hidden;
 }
 
 .videos-grid .thumbnail-container {
@@ -1111,7 +1101,7 @@ export default {
   width: 100%;
   aspect-ratio: 16 / 9;
   overflow: hidden;
-  border-radius: 8px;
+  border-radius: 6px;
 }
 
 .videos-grid .thumbnail {
@@ -1121,35 +1111,10 @@ export default {
   transition: opacity 0.3s ease;
 }
 
-.video-preview {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  z-index: 2;
-}
-
-.duration {
-  position: absolute;
-  bottom: 8px;
-  right: 8px;
-  background-color: rgba(0, 0, 0, 0.7);
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.video-info {
-  padding: 10px 0;
-}
-
 .video-title {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 500;
-  margin-bottom: 8px;
+  margin: 6px 0;
   color: #ffffff;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1158,53 +1123,30 @@ export default {
   -webkit-box-orient: vertical;
 }
 
-.streamer-info {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 5px;
-}
-
-.streamer-profile {
-  flex-shrink: 0;
-}
-
 .profile-img {
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   object-fit: cover;
 }
 
-.streamer-detail {
-  display: flex;
-  flex-direction: column;
-}
-
 .streamer-name {
-  font-size: 13px;
+  font-size: 12px;
   color: #adb5bd;
   font-weight: 500;
 }
 
 .video-time {
-  font-size: 12px;
+  font-size: 11px;
   color: #6c757d;
 }
 
-.hashtags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-  margin-top: 8px;
-}
-
 .hashtag {
-  font-size: 11px;
+  font-size: 10px;
   color: #aaaaaa;
   background-color: transparent;
-  padding: 1px 4px;
-  border-radius: 4px;
+  padding: 1px 3px;
+  border-radius: 3px;
   display: inline-block;
   border: 1px solid #aaaaaa;
 }
@@ -1323,10 +1265,9 @@ export default {
 }
 
 .clips-content {
-  width: 100%;
-  max-width: 1200px;
+  max-width: 1920px;
   margin: 0 auto;
-  padding: 20px 15px;
+  padding: 0 24px;
 }
 
 .filter-section {
@@ -1378,7 +1319,7 @@ export default {
 .clips-content .thumbnail-container {
   position: relative;
   overflow: hidden;
-  border-radius: 12px;
+  border-radius: 8px;
   width: 100%;
   aspect-ratio: 9 / 16;
   background-color: #000;
@@ -1397,7 +1338,7 @@ export default {
   bottom: 0;
   left: 0;
   width: 100%;
-  padding: 16px;
+  padding: 12px;
   background-color: rgba(0, 0, 0, 0.7);
   z-index: 2;
   pointer-events: none;
@@ -1406,13 +1347,13 @@ export default {
 .clip-title {
   color: #ffffff;
   font-weight: 500;
-  font-size: 16px;
-  margin-bottom: 8px;
+  font-size: 14px;
+  margin-bottom: 6px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  line-height: 1.4;
+  line-height: 1.3;
   text-shadow: none;
 }
 
@@ -1422,13 +1363,32 @@ export default {
   align-items: center;
 }
 
-.view-count {
-  white-space: nowrap;
+.clip-meta .streamer-name, .view-count {
   color: #ffffff;
-  font-size: 13px;
+  font-size: 11px;
   display: flex;
   align-items: center;
   text-shadow: none;
+}
+
+.age-icon-circle {
+  width: 36px;
+  height: 36px;
+  background-color: rgba(255, 255, 255, 0.9);
+  color: black;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+
+.age-text {
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
 }
 
 /* 추가 스타일 - Vuetify 카드 효과 무효화 */
@@ -1463,12 +1423,12 @@ export default {
 
 .clips-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 20px;
   width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 15px;
+  max-width: 1920px;
+  margin: 10px auto 0 auto;
+  padding: 0;
 }
 
 .clip-item {
@@ -1499,9 +1459,9 @@ export default {
 
 .filter-bar {
   width: 100%;
-  max-width: 1200px;
+  max-width: 1920px;
   margin: 0 auto;
-  padding: 15px;
+  padding: 10px 24px 0 24px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1517,7 +1477,7 @@ export default {
   gap: 15px;
 }
 
-.filter-btn {
+.sort-btn {
   background: none;
   border: none;
   color: #aaaaaa;
@@ -1528,7 +1488,7 @@ export default {
   border-radius: 4px;
 }
 
-.filter-btn.active {
+.sort-btn.active {
   background-color: #2a2a2a;
   color: white;
 }
