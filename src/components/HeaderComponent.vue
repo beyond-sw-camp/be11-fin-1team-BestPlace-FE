@@ -8,20 +8,42 @@
 
     <v-spacer />
 
-    <!-- 검색창 추가 -->
-    <v-text-field
-        v-model="searchQuery"
-        placeholder="스트리머 검색"
-        prepend-inner-icon="mdi-magnify"
-        variant="outlined"
-        hide-details
-        density="compact"
-        bg-color="#141517"
-        class="search-bar mx-4 chzzk-search"
-        @keyup.enter="search"
-        rounded
-        clearable
-    ></v-text-field>
+    <!-- 검색창 -->
+    <div class="search-container mx-4">
+      <v-combobox
+          v-model="searchQuery"
+          :items="autocompleteItems"
+          v-model:search-input="searchInput"
+          placeholder="스트리머 검색"
+          prepend-inner-icon="mdi-magnify"
+          variant="solo"
+          hide-details
+          density="compact"
+          bg-color="#1e2029"
+          class="search-bar chzzk-search"
+          @update:search="handleSearchInput"
+          @keyup.enter="search"
+          item-title="text"
+          item-value="text"
+          no-filter
+          return-object
+          rounded
+          clearable
+          :menu-props="{ maxHeight: '200px' }"
+          ref="searchCombobox"
+          @keydown.down="onKeyDown"
+          @keydown.up="onKeyUp"
+          autocomplete="off"
+      >
+        <template v-slot:item="{ item, props }">
+          <v-list-item 
+            v-bind="props" 
+            :title="item.raw.text" 
+            @click="selectItem(item.raw)"
+          ></v-list-item>
+        </template>
+      </v-combobox>
+    </div>
 
     <v-spacer />
 
@@ -135,14 +157,19 @@ export default {
   data() {
     return {
       isLogin: false,
-      searchQuery: '',
+      searchQuery: null,
+      searchInput: '',
+      autocompleteItems: [],
       profileMenuOpen: false,
       defaultAvatar: require('@/assets/default-avatar.png'),
       userProfile: {
         nickname: '',
         email: '',
         profileImage: ''
-      }
+      },
+      searchTimeout: null,
+      currentIndex: -1,
+      selectedItem: null
     };
   },
   mounted() {
@@ -166,14 +193,140 @@ export default {
       this.profileMenuOpen = false;
       this.$router.push('/');
     },
-    search() {
-      if (this.searchQuery.trim()) {
-        this.$router.push({
-          path: '/search',
-          query: { q: this.searchQuery }
-        });
+    
+    // 방향키 아래로 이동
+    onKeyDown() {
+      if (this.autocompleteItems.length === 0) return;
+      
+      // 방향키 이벤트 캡처하고 기본 동작 실행
+      this.$nextTick(() => {
+        // 한 틱 후에 선택된 항목 확인
+        const menu = this.$refs.searchCombobox.$el.querySelector('.v-list');
+        if (menu) {
+          // 선택된 항목 찾기
+          const selectedItem = menu.querySelector('.v-list-item--active');
+          if (selectedItem) {
+            // 텍스트 추출 및 설정
+            const itemText = selectedItem.textContent.trim();
+            // searchInput 업데이트 (이것이 사용자에게 보이는 텍스트임)
+            this.searchInput = itemText;
+            
+            // 일치하는 항목 찾기
+            const matchingItem = this.autocompleteItems.find(item => item.text === itemText);
+            if (matchingItem) {
+              this.selectedItem = matchingItem;
+            }
+          }
+        }
+      });
+    },
+    
+    // 방향키 위로 이동
+    onKeyUp() {
+      if (this.autocompleteItems.length === 0) return;
+      
+      // 기본 동작 실행 후 다음 틱에 확인
+      this.$nextTick(() => {
+        const menu = this.$refs.searchCombobox.$el.querySelector('.v-list');
+        if (menu) {
+          const selectedItem = menu.querySelector('.v-list-item--active');
+          if (selectedItem) {
+            const itemText = selectedItem.textContent.trim();
+            this.searchInput = itemText;
+            
+            const matchingItem = this.autocompleteItems.find(item => item.text === itemText);
+            if (matchingItem) {
+              this.selectedItem = matchingItem;
+            }
+          }
+        }
+      });
+    },
+    
+    selectItem(item) {
+      if (item && item.text) {
+        this.searchInput = item.text;
+        this.searchQuery = item;
+        this.selectedItem = item;
+        this.search();
       }
     },
+    
+    handleSearchInput(keyword) {
+      // 검색 입력 값을 searchInput에 직접 설정
+      this.searchInput = keyword;
+      
+      // 디바운싱 처리: 이전 타이머 취소
+      clearTimeout(this.searchTimeout);
+      
+      // 입력이 없거나 너무 짧으면 자동완성 목록 초기화
+      if (!keyword || keyword.length < 2) {
+        this.autocompleteItems = [];
+        return;
+      }
+      
+      // 300ms 후에 API 요청 (사용자가 타이핑을 멈춘 후)
+      this.searchTimeout = setTimeout(() => {
+        this.getAutocompleteResults(keyword);
+      }, 300);
+    },
+    
+    search() {
+      let query = '';
+      
+      // 선택된 항목이 있는 경우
+      if (this.selectedItem && this.selectedItem.text) {
+        query = this.selectedItem.text;
+      } 
+      // searchQuery가 객체인지 문자열인지 확인 후 적절하게 처리
+      else if (this.searchQuery && typeof this.searchQuery === 'object') {
+        query = this.searchQuery.text;
+      }
+      // 직접 입력한 검색어가 있는 경우
+      else if (this.searchInput && this.searchInput.trim() !== '') {
+        query = this.searchInput.trim();
+      } 
+      // searchQuery가 문자열인 경우
+      else if (this.searchQuery) {
+        query = this.searchQuery;
+      } else {
+        return;
+      }
+      
+      this.$router.push({
+        path: '/search',
+        query: { q: query }
+      });
+    },
+    
+    async getAutocompleteResults(keyword) {
+      if (!keyword || keyword.trim() === '') {
+        this.autocompleteItems = [];
+        return;
+      }
+      
+      try {
+        // API 요청 중 오류 방지를 위한 기본 URL 설정
+        const baseUrl = process.env.VUE_APP_MEMBER_API || '';
+        const apiUrl = `${baseUrl}/member/autocomplete`;
+        
+        const response = await axios.get(apiUrl, {
+          params: { keyword }
+        });
+        
+        if (response.data && response.data.result && response.data.result.length > 0) {
+          this.autocompleteItems = response.data.result.map(item => ({
+            text: item
+          }));
+        } else {
+          this.autocompleteItems = [];
+        }
+      } catch (error) {
+        console.error('자동완성 결과 로드 실패:', error);
+        this.autocompleteItems = [];
+      }
+    },
+    
     async fetchUserProfile() {
       try {
         // 백엔드 API URL을 실제 서비스에 맞게 변경하세요
@@ -224,6 +377,12 @@ export default {
   max-width: 400px;
 }
 
+.search-container {
+  position: relative;
+  width: 100%;
+  max-width: 400px;
+}
+
 .logo-container {
   margin-left: 16px;
   padding-left: 5px;
@@ -240,12 +399,20 @@ export default {
 }
 
 .chzzk-search :deep(.v-field__input) {
-  color: #ffffff;
+  color: white !important;
+  caret-color: white !important;
+  padding: 8px 5px;
+}
+
+.chzzk-search :deep(.v-field__input input) {
+  color: white !important;
+  opacity: 1 !important;
+  font-weight: normal;
 }
 
 .chzzk-search :deep(.v-field) {
   border-radius: 20px;
-  background-color: #000000;
+  background-color: #1e2029 !important;
   border: 1px solid rgba(255, 255, 255, 0.3);
   transition: all 0.3s ease;
 }
@@ -269,8 +436,27 @@ export default {
   transition: opacity 0.3s ease;
 }
 
-.chzzk-search :deep(.v-field--focused .v-field__prepend-inner) {
-  opacity: 1;
+.chzzk-search :deep(.v-autocomplete__selection) {
+  color: white !important;
+}
+
+.chzzk-search :deep(.v-list-item) {
+  color: #ffffff;
+  min-height: 32px !important; /* 드롭다운 항목 높이 줄이기 */
+  padding: 0 12px; /* 패딩 줄이기 */
+}
+
+.chzzk-search :deep(.v-list) {
+  background-color: #1e2029;
+  padding: 4px 0 !important; /* 목록 패딩 줄이기 */
+}
+
+.chzzk-search :deep(.v-list-item__content) {
+  padding: 4px 0 !important; /* 내부 컨텐츠 패딩 줄이기 */
+}
+
+.chzzk-search :deep(.v-list-item--active) {
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 /* 모바일 화면에서 검색창 반응형 처리 */
