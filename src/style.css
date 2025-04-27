@@ -3,19 +3,11 @@
 
 
 :root {
-    font-family: 'Pretendard Variable', sans-serif;
-    font-size: 16px;
-    line-height: 1.5;
-    font-weight: 400;
+    --global-font: 'GmarketSans', sans-serif;
+}
 
-    color-scheme: dark;
-    color: #c4bab4;
-    background-color: #15161b;
-
-    font-synthesis: none;
-    text-rendering: optimizeLegibility;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+* {
+    font-family: var(--global-font) !important;
 }
 
 * {

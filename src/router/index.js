@@ -14,7 +14,6 @@ import { jwtDecode } from 'jwt-decode';
 const routes = [
     { path: '/clips', component: ClipsView },
     { path: '/category', component: CategoryView },
-    { path: '/category/:id', component: () => import('@/views/CategoryDetailView.vue') },
     { path: '/my-profile', component: MyProfileView },
     
     // { path: '/video/vod/:videoId', component: () => import('@/views/VideoDetailView.vue') },

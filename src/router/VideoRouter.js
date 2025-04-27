@@ -9,7 +9,7 @@ export default [
     component: VodDetailPage
   },
   {
-    path: '/category/:categoryId',
+    path: '/category/:categoryName',
     name: 'Category',
     component: CategoryDetailView
   },

@@ -371,20 +371,19 @@ export default {
   width: 100%;
   background-color: #141517;
   color: white;
-  min-height: calc(100vh - 60px); /* 헤더 높이를 뺀 전체 화면 높이 */
+  min-height: 100vh;
 }
 
 .profile-content {
-  width: 100%;
-  max-width: 1200px;
+  max-width: 1920px;
   margin: 0 auto;
-  padding-bottom: 50vh; /* 푸터를 아래로 밀기 위한 추가 공간 */
+  padding: 24px;
 }
 
 .profile-title {
   font-size: 32px;
   font-weight: 700;
-  padding: 20px 0 10px 15px;
+  padding: 0 0 10px 0;
 }
 
 .purple-text {

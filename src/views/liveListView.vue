@@ -6,14 +6,13 @@
         <div class="content-tabs">
           <button 
             :class="{ active: currentContentType === 'live' }" 
-            @click="currentContentType = 'live'"
+            @click="changeContentType('live')"
           >
             라이브
           </button>
           <button 
             :class="{ active: currentContentType === 'video' }" 
-            @click="currentContentType = 'video'"
-            disabled
+            @click="changeContentType('video')"
           >
             동영상
           </button>
@@ -35,7 +34,8 @@
       </div>
     </div>
 
-    <div class="streams-grid">
+    <!-- 라이브 스트림 그리드 -->
+    <div v-if="currentContentType === 'live'" class="streams-grid">
       <div 
         v-for="stream in streams" 
         :key="stream.streamId"
@@ -87,29 +87,103 @@
         </div>
       </div>
     </div>
+
+    <!-- 동영상 그리드 -->
+    <div v-if="currentContentType === 'video'" class="videos-grid">
+      <div 
+        v-for="(video, index) in videos" 
+        :key="video.id"
+        class="video-item"
+        @mouseenter="startPreviewTimer(index)"
+        @mouseleave="stopPreview(index)"
+        @click="goToVideoDetail(video.id)"
+      >
+        <div class="thumbnail-container">
+          <img 
+            :src="video.thumbnailUrl" 
+            alt="Video Thumbnail" 
+            class="thumbnail"
+            :class="{
+              'blur-thumbnail': shouldBlurThumbnail(video),
+              'hide-thumbnail': shouldHideThumbnail(video)
+            }"
+          >
+          <video 
+            v-if="video.showPreview && video.url && !shouldHideThumbnail(video) && video.isAdult !== 'Y'" 
+            :src="video.url" 
+            class="video-preview" 
+            autoplay 
+            muted 
+            loop
+          ></video>
+          <div class="duration">{{ video.duration }}</div>
+          
+          <!-- 연령 제한 표시 -->
+          <div v-if="isAdultContent(video)" class="age-restriction-overlay">
+            <div class="age-restriction-content">
+              <div class="age-icon-circle">19</div>
+              <div class="age-text">연령 제한</div>
+            </div>
+          </div>
+        </div>
+        <div class="video-info">
+          <div class="video-title">{{ video.title }}</div>
+          <div class="streamer-info">
+            <div class="streamer-profile">
+              <img :src="video.streamerProfileImageUrl || defaultProfileImage" alt="Streamer Profile" class="profile-img">
+            </div>
+            <div class="streamer-detail">
+              <div class="streamer-name">{{ video.streamerNickname }}</div>
+              <div class="video-time">{{ formatTime(video.createdTime) }}</div>
+            </div>
+          </div>
+          <div v-if="video.hashtags && video.hashtags.length > 0" class="hashtags video-hashtags">
+            <span v-for="(tag, i) in formatHashtags(video.hashtags)" :key="i" class="hashtag">{{ tag }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 로딩 표시 -->
+    <div v-if="loading" class="loading-container">
+      <v-progress-circular indeterminate color="#B084CC"></v-progress-circular>
+    </div>
+
+    <!-- 무한 스크롤 감지용 요소 -->
+    <div ref="infiniteScrollTrigger" class="infinite-scroll-trigger"></div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import axios from 'axios'
 import { useRouter } from 'vue-router'
+import { jwtDecode } from 'jwt-decode'
 
 const router = useRouter()
 const streamingApi = process.env.VUE_APP_STREAMING_API
+const memberApi = process.env.VUE_APP_MEMBER_API
 const streams = ref([])
+const videos = ref([])
 const currentTab = ref('popular')
 const currentContentType = ref('live')
 const isHovered = ref(null)
+const loading = ref(false)
+const observer = ref(null)
+const userIsAdult = ref(false)
+const isLoggedIn = ref(false)
+const defaultProfileImage = 'https://bestplace-media.s3.ap-northeast-2.amazonaws.com/bestplace-basic-profile-image.png'
+
+// 동영상 로드 관련 상태
+const videoPage = ref(0)
+const hasMoreVideos = ref(true)
 
 const fetchStreams = async (type) => {
   try {
     const endpoint = type === 'popular' 
       ? '/streaming/streamListViewer'
       : '/streaming/streamListStartTime'
-      console.log(endpoint)
     const response = await axios.get(`${streamingApi}${endpoint}`)
-    console.log(response.data)
     if (response.data && response.data.result) {
       streams.value = response.data.result.content
     }
@@ -118,13 +192,70 @@ const fetchStreams = async (type) => {
   }
 }
 
+const fetchVideos = async () => {
+  if (loading.value || !hasMoreVideos.value) return;
+  
+  loading.value = true;
+  
+  try {
+    const sortEndpoint = currentTab.value === 'popular' ? 'views' : 'recent';
+    const url = `${memberApi}/video/vod/list/${sortEndpoint}`;
+    
+    const response = await axios.get(url, {
+      params: {
+        page: videoPage.value
+      }
+    });
+    
+    if (response.data && response.data.result) {
+      const result = response.data.result;
+      const newVideos = result.content.map(video => ({
+        ...video,
+        showPreview: false,
+        hoverTimer: null
+      }));
+      videos.value = [...videos.value, ...newVideos];
+      hasMoreVideos.value = videoPage.value < result.totalPages - 1;
+      videoPage.value++;
+    }
+  } catch (error) {
+    console.error('동영상 목록을 불러오는 중 오류 발생:', error);
+  } finally {
+    loading.value = false;
+  }
+}
+
 const changeTab = async (tab) => {
   currentTab.value = tab
-  await fetchStreams(tab)
+  if (currentContentType.value === 'live') {
+    await fetchStreams(tab)
+  } else {
+    // 동영상 탭에서는 목록 초기화 후 다시 로드
+    videos.value = []
+    videoPage.value = 0
+    hasMoreVideos.value = true
+    await fetchVideos()
+  }
+}
+
+const changeContentType = async (type) => {
+  currentContentType.value = type
+  if (type === 'live') {
+    await fetchStreams(currentTab.value)
+  } else {
+    // 동영상 탭으로 전환하면 동영상 로드
+    if (videos.value.length === 0) {
+      await fetchVideos()
+    }
+  }
 }
 
 const goToLiveDetail = (streamId) => {
   router.push(`/live/${streamId}`)
+}
+
+const goToVideoDetail = (videoId) => {
+  router.push(`/video/${videoId}`)
 }
 
 const goToStreamerProfile = (streamerId) => {
@@ -135,9 +266,160 @@ const goToCategory = (category) => {
   router.push(`/category/${category}`)
 }
 
+// 무한 스크롤 설정
+const setupInfiniteScroll = () => {
+  const options = {
+    root: null,
+    rootMargin: '0px',
+    threshold: 0.1
+  };
+  
+  observer.value = new IntersectionObserver((entries) => {
+    if (entries[0].isIntersecting && !loading.value) {
+      if (currentContentType.value === 'video') {
+        fetchVideos();
+      }
+    }
+  }, options);
+  
+  if (document.querySelector('.infinite-scroll-trigger')) {
+    observer.value.observe(document.querySelector('.infinite-scroll-trigger'));
+  }
+}
+
+// 로그인 상태 및 성인 여부 확인
+const checkLoginStatus = () => {
+  const token = localStorage.getItem('token');
+  isLoggedIn.value = !!token;
+  
+  if (isLoggedIn.value) {
+    try {
+      const decoded = jwtDecode(token);
+      userIsAdult.value = decoded.isAdult === 'Y';
+    } catch (error) {
+      console.error('토큰 디코딩 중 오류 발생:', error);
+      userIsAdult.value = false;
+    }
+  }
+}
+
+// 성인 컨텐츠 관련 함수
+const isAdultContent = (video) => {
+  return video.isAdult === 'Y';
+}
+
+const shouldBlurThumbnail = (video) => {
+  return isAdultContent(video) && isLoggedIn.value && userIsAdult.value;
+}
+
+const shouldHideThumbnail = (video) => {
+  return isAdultContent(video) && (!isLoggedIn.value || !userIsAdult.value);
+}
+
+// 시간 포맷팅
+const formatTime = (timestamp) => {
+  if (!timestamp) return '';
+  
+  const now = new Date();
+  const date = new Date(timestamp);
+  const diffInSeconds = Math.floor((now - date) / 1000);
+  
+  if (diffInSeconds < 60) {
+    return `${diffInSeconds}초 전`;
+  } else if (diffInSeconds < 3600) {
+    return `${Math.floor(diffInSeconds / 60)}분 전`;
+  } else if (diffInSeconds < 86400) {
+    return `${Math.floor(diffInSeconds / 3600)}시간 전`;
+  } else if (diffInSeconds < 604800) {
+    return `${Math.floor(diffInSeconds / 86400)}일 전`;
+  } else if (diffInSeconds < 2592000) {
+    return `${Math.floor(diffInSeconds / 604800)}주 전`;
+  } else if (diffInSeconds < 31536000) {
+    return `${Math.floor(diffInSeconds / 2592000)}개월 전`;
+  } else {
+    return `${Math.floor(diffInSeconds / 31536000)}년 전`;
+  }
+}
+
+// 썸네일 미리보기 관련 메서드
+const startPreviewTimer = (index) => {
+  const video = videos.value[index];
+  if (!video || !video.url) return;
+  
+  // 성인 컨텐츠인 경우 미리보기 시작하지 않음
+  if (video.isAdult === 'Y') return;
+  
+  // 기존 타이머가 있으면 클리어
+  if (video.hoverTimer) {
+    clearTimeout(video.hoverTimer);
+  }
+  
+  // 0.5초 후에 미리보기 표시
+  video.hoverTimer = setTimeout(() => {
+    video.showPreview = true;
+  }, 500);
+}
+
+const stopPreview = (index) => {
+  const video = videos.value[index];
+  if (!video) return;
+  
+  // 타이머가 있으면 클리어
+  if (video.hoverTimer) {
+    clearTimeout(video.hoverTimer);
+    video.hoverTimer = null;
+  }
+  
+  // 미리보기 숨김
+  video.showPreview = false;
+}
+
 onMounted(async () => {
-  await fetchStreams('popular')
+  checkLoginStatus();
+  await fetchStreams('popular');
+  setupInfiniteScroll();
 })
+
+// 컴포넌트 언마운트 시 observer 해제
+onUnmounted(() => {
+  cleanupObserver();
+})
+
+const cleanupObserver = () => {
+  if (observer.value) {
+    observer.value.disconnect();
+  }
+}
+
+// 해시태그 포맷팅
+const formatHashtags = (hashtags) => {
+  // 빈 값인 경우 처리
+  if (!hashtags) return [];
+  
+  // 문자열인 경우 처리
+  if (typeof hashtags === 'string') {
+    // ['클립', '테스트'] 형태인지 확인
+    if (hashtags.startsWith('[') && hashtags.endsWith(']')) {
+      try {
+        // JSON 파싱 시도
+        return JSON.parse(hashtags.replace(/'/g, '"'));
+      } catch (e) {
+        // 파싱 실패시 기본 형태로 분리
+        const clean = hashtags.replace(/^\[|\]$/g, '').replace(/'/g, '').replace(/"/g, '');
+        return clean.split(',').map(tag => tag.trim());
+      }
+    }
+    // 일반 문자열이면 그대로 반환
+    return [hashtags];
+  }
+  
+  // 배열인 경우 그대로 반환
+  if (Array.isArray(hashtags)) {
+    return hashtags;
+  }
+  
+  return [];
+}
 </script>
 
 <style scoped>
@@ -145,7 +427,7 @@ onMounted(async () => {
   max-width: 1920px;
   margin: 0 auto;
   padding: 24px;
-  background: #0F0F0F;
+  background: #141517;
   min-height: 100vh;
 }
 
@@ -228,6 +510,7 @@ onMounted(async () => {
   cursor: not-allowed;
 }
 
+/* 라이브 스트림 그리드 */
 .streams-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -235,7 +518,7 @@ onMounted(async () => {
 }
 
 .stream-card {
-  background: #1A1A1A;
+  background: #141517;
   border-radius: 8px;
   overflow: hidden;
 }
@@ -353,5 +636,184 @@ onMounted(async () => {
 .hashtag {
   color: #7B7B7B;
   font-size: 14px;
+}
+
+/* 동영상 그리드 스타일 */
+.videos-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 20px;
+  width: 100%;
+  max-width: 1920px;
+  margin: 0 auto;
+  padding: 10px 0 24px 0;
+}
+
+.video-item {
+  cursor: pointer;
+  background-color: #141517;
+  border-radius: 8px;
+  padding: 8px;
+  overflow: hidden;
+}
+
+.videos-grid .thumbnail-container {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: 6px;
+  padding-top: 0;
+}
+
+.videos-grid .thumbnail {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: opacity 0.3s ease;
+}
+
+.blur-thumbnail {
+  filter: blur(3px);
+  opacity: 0.9;
+}
+
+.hide-thumbnail {
+  opacity: 0;
+}
+
+.video-preview {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 2;
+}
+
+.duration {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background-color: rgba(0, 0, 0, 0.7);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: white;
+}
+
+.age-restriction-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+}
+
+.age-restriction-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.age-icon-circle {
+  width: 36px;
+  height: 36px;
+  background-color: rgba(255, 255, 255, 0.9);
+  color: black;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+
+.age-text {
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.video-info {
+  padding: 10px 0;
+}
+
+.video-title {
+  font-size: 14px;
+  font-weight: 500;
+  margin: 6px 0;
+  color: #ffffff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+}
+
+.streamer-profile {
+  flex-shrink: 0;
+}
+
+.profile-img {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.streamer-detail {
+  display: flex;
+  flex-direction: column;
+}
+
+.video-info .streamer-name {
+  font-size: 12px;
+  color: #adb5bd;
+  font-weight: 500;
+}
+
+.video-time {
+  font-size: 11px;
+  color: #6c757d;
+}
+
+.video-hashtags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 8px;
+}
+
+.video-hashtags .hashtag {
+  font-size: 10px;
+  color: #aaaaaa;
+  background-color: transparent;
+  padding: 1px 3px;
+  border-radius: 3px;
+  display: inline-block;
+  border: 1px solid #aaaaaa;
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  margin: 40px 0;
+}
+
+.infinite-scroll-trigger {
+  height: 20px;
+  width: 100%;
+  margin-top: 20px;
 }
 </style>

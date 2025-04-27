@@ -17,8 +17,8 @@
           </div>
         </router-link>
 
-        <router-link to="/category" custom v-slot="{ isExactActive, navigate }">
-          <div @click="navigate" :class="['menu-item', { 'is-active': isExactActive }]">
+        <router-link to="/category" custom v-slot="{ isActive, navigate }">
+          <div @click="navigate" :class="['menu-item', { 'is-active': isActive || $route.path.startsWith('/category/') }]">
             <v-icon class="menu-icon">mdi-tag-multiple</v-icon>
             <span class="menu-title">카테고리</span>
           </div>
