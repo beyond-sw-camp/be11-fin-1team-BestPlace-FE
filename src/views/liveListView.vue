@@ -127,18 +127,42 @@
           </div>
         </div>
         <div class="video-info">
-          <div class="video-title">{{ video.title }}</div>
-          <div class="streamer-info">
+          <div class="profile-row">
             <div class="streamer-profile">
               <img :src="video.streamerProfileImageUrl || defaultProfileImage" alt="Streamer Profile" class="profile-img">
             </div>
-            <div class="streamer-detail">
-              <div class="streamer-name">{{ video.streamerNickname }}</div>
-              <div class="video-time">{{ formatTime(video.createdTime) }}</div>
+            <div class="video-details">
+              <div class="video-title">{{ video.title }}</div>
+              <div 
+                class="streamer-nickname"
+                @click.stop="goToStreamerProfile(video.streamerId)"
+              >{{ video.streamerNickname }}</div>
+              <div class="video-meta">
+                <span class="view-count">조회수 {{ video.viewCount || 0 }}회</span>
+                <span class="dot-separator">·</span>
+                <span class="video-time">{{ formatTime(video.createdTime) }}</span>
+              </div>
+              <!-- 태그 컨테이너 -->
+              <div class="tags-container">
+                <!-- 카테고리 태그 -->
+                <span 
+                  v-if="video.category" 
+                  class="category-tag"
+                  @click.stop="goToCategory(video.category)"
+                >
+                  {{ video.category }}
+                </span>
+                
+                <!-- 해시태그 목록 -->
+                <span 
+                  v-for="(tag, i) in formatHashtags(video.hashtags)" 
+                  :key="i" 
+                  class="hashtag"
+                >
+                  {{ tag }}
+                </span>
+              </div>
             </div>
-          </div>
-          <div v-if="video.hashtags && video.hashtags.length > 0" class="hashtags video-hashtags">
-            <span v-for="(tag, i) in formatHashtags(video.hashtags)" :key="i" class="hashtag">{{ tag }}</span>
           </div>
         </div>
       </div>
@@ -577,7 +601,8 @@ const formatHashtags = (hashtags) => {
 .streamer-info {
   display: flex;
   gap: 16px;
-  margin-bottom: 8px;
+  align-items: center;
+  margin-top: 8px;
 }
 
 .streamer-avatar {
@@ -641,7 +666,7 @@ const formatHashtags = (hashtags) => {
 /* 동영상 그리드 스타일 */
 .videos-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 20px;
   width: 100%;
   max-width: 1920px;
@@ -746,19 +771,24 @@ const formatHashtags = (hashtags) => {
 }
 
 .video-info {
-  padding: 10px 0;
+  padding: 10px;
 }
 
 .video-title {
-  font-size: 14px;
-  font-weight: 500;
-  margin: 6px 0;
+  font-size: 16px;
+  font-weight: 600;
   color: #ffffff;
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
-  -webkit-line-clamp: 1;
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+  margin-bottom: 6px;
+}
+
+.profile-row {
+  display: flex;
+  gap: 12px;
 }
 
 .streamer-profile {
@@ -766,40 +796,65 @@ const formatHashtags = (hashtags) => {
 }
 
 .profile-img {
-  width: 20px;
-  height: 20px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   object-fit: cover;
 }
 
-.streamer-detail {
-  display: flex;
-  flex-direction: column;
+.video-details {
+  flex: 1;
+  padding-top: 2px;
 }
 
-.video-info .streamer-name {
-  font-size: 12px;
+.streamer-nickname {
+  font-size: 14px;
   color: #adb5bd;
-  font-weight: 500;
+  margin-bottom: 4px;
+  cursor: pointer;
 }
 
-.video-time {
-  font-size: 11px;
-  color: #6c757d;
+.streamer-nickname:hover {
+  text-decoration: underline;
+  color: #B084CC;
 }
 
-.video-hashtags {
+.video-meta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: #adb5bd;
+  margin-bottom: 6px;
+}
+
+.dot-separator {
+  color: #adb5bd;
+}
+
+.tags-container {
   display: flex;
   flex-wrap: wrap;
   gap: 5px;
-  margin-top: 8px;
+  margin-top: 6px;
 }
 
-.video-hashtags .hashtag {
-  font-size: 10px;
+.category-tag {
+  font-size: 12px;
+  background-color: #B084CC;
+  color: black;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.hashtag {
+  font-size: 12px;
   color: #aaaaaa;
   background-color: transparent;
-  padding: 1px 3px;
+  padding: 1px 6px;
   border-radius: 3px;
   display: inline-block;
   border: 1px solid #aaaaaa;
