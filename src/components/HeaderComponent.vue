@@ -47,6 +47,17 @@
 
     <v-spacer />
 
+    <!-- 스튜디오 버튼 추가 -->
+    <v-btn
+      class="studio-btn mr-2"
+      @click="goToStudio"
+    >
+      <span class="d-flex align-center">
+        <v-icon class="studio-icon mr-1">mdi-video-box</v-icon>
+        <span>스튜디오</span>
+      </span>
+    </v-btn>
+
     <!-- 로그인 안 된 상태 -->
     <v-btn text v-if="!isLogin" to="/member/login">로그인</v-btn>
 
@@ -146,6 +157,45 @@
       </v-menu>
     </div>
   </v-app-bar>
+
+  <!-- 로그인 필요 모달 -->
+  <v-dialog v-model="loginRequiredDialog" max-width="400" content-class="custom-modal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <div class="modal-title">알림</div>
+        <v-btn icon @click="loginRequiredDialog = false" class="close-btn">
+          <v-icon>mdi-close</v-icon>
+        </v-btn>
+      </div>
+      <div class="modal-content">
+        <div class="message-container">
+          <v-icon icon="mdi-account-alert" color="#B084CC" size="x-large" class="message-icon"></v-icon>
+          <div class="message-text">
+            로그인이 필요한 서비스입니다.<br> 
+            로그인 하시겠습니까?
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <div class="button-group">
+          <v-btn
+            variant="outlined"
+            class="cancel-btn"
+            @click="loginRequiredDialog = false"
+          >
+            아니오
+          </v-btn>
+          <v-btn
+            color="#b084cc"
+            class="confirm-btn"
+            @click="goToLogin"
+          >
+            예
+          </v-btn>
+        </div>
+      </div>
+    </div>
+  </v-dialog>
 </template>
 
 <script>
@@ -165,11 +215,14 @@ export default {
       userProfile: {
         nickname: '',
         email: '',
-        profileImage: ''
+        profileImage: '',
+        id: ''
       },
       searchTimeout: null,
       currentIndex: -1,
-      selectedItem: null
+      selectedItem: null,
+      // 로그인 필요 모달
+      loginRequiredDialog: false
     };
   },
   mounted() {
@@ -192,6 +245,24 @@ export default {
       this.isLogin = false;
       this.profileMenuOpen = false;
       this.$router.push('/');
+    },
+    
+    // 스튜디오 이동 메소드
+    goToStudio() {
+      if (this.isLogin) {
+        // 로그인된 경우 스트리밍 대시보드로 이동
+        const memberId = this.userProfile.id || '';
+        this.$router.push(`/streamer/${memberId}/dashboard`);
+      } else {
+        // 로그인되지 않은 경우 모달 표시
+        this.loginRequiredDialog = true;
+      }
+    },
+    
+    // 로그인 페이지로 이동
+    goToLogin() {
+      this.loginRequiredDialog = false;
+      this.$router.push('/member/login');
     },
     
     // 방향키 아래로 이동
@@ -337,8 +408,12 @@ export default {
         const decodedToken = jwtDecode(token);
         const userId = decodedToken.sub;
         
+        // 사용자 ID 저장
+        this.userProfile.id = userId;
+        
         // 이미 토큰에서 정보 추출 가능한 경우 설정
         this.userProfile = {
+          id: userId,
           nickname: decodedToken.nickname || '',
           email: decodedToken.email || '',
           profileImage: this.defaultAvatar
@@ -353,6 +428,7 @@ export default {
         if (response.data && response.data.result) {
           const userData = response.data.result;
           this.userProfile = {
+            id: userId,
             nickname: userData.nickname || this.userProfile.nickname,
             email: userData.email || this.userProfile.email,
             profileImage: userData.profileImage || this.defaultAvatar
@@ -487,5 +563,109 @@ export default {
 .header-no-border :deep(.v-toolbar__content) {
   box-shadow: none !important;
   border-bottom: none !important;
+}
+
+.studio-btn {
+  background-color: rgba(40, 40, 52, 0.95);
+  color: white;
+  border-radius: 8px;
+  height: 36px;
+  font-weight: 500;
+  font-size: 14px;
+  box-shadow: none;
+  transition: all 0.2s ease;
+  padding: 0 12px;
+  margin-right: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.studio-btn:hover {
+  background-color: rgba(60, 60, 72, 0.95);
+}
+
+.studio-icon {
+  font-size: 18px;
+  margin-right: 4px;
+}
+
+/* 모달 스타일 */
+.custom-modal {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.modal-container {
+  background-color: #1a1a1a;
+  border-radius: 12px;
+  overflow: hidden;
+  color: white;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid #333;
+}
+
+.modal-title {
+  font-size: 18px;
+  font-weight: 500;
+  color: white;
+}
+
+.close-btn {
+  color: #aaa;
+}
+
+.modal-content {
+  padding: 20px;
+}
+
+.message-container {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  background-color: rgba(176, 132, 204, 0.1);
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
+.message-icon {
+  margin-right: 16px;
+}
+
+.message-text {
+  font-size: 16px;
+  line-height: 1.5;
+  color: #fff;
+}
+
+.modal-footer {
+  padding: 16px;
+  border-top: 1px solid #333;
+}
+
+.button-group {
+  display: flex;
+  width: 100%;
+  gap: 10px;
+}
+
+.cancel-btn {
+  flex: 1;
+  border-color: #555 !important;
+  color: white !important;
+  height: 44px;
+}
+
+.confirm-btn {
+  flex: 2;
+  height: 44px;
+  font-size: 16px;
+  font-weight: 500;
 }
 </style>
