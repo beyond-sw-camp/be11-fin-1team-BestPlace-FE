@@ -39,6 +39,8 @@
             <v-select
               v-model="category"
               :items="categories"
+              item-title="name"
+              item-value="id"
               placeholder="카테고리 선택"
               variant="outlined"
               bg-color="#1e2029"
@@ -84,15 +86,15 @@
           </div>
           
           <div class="button-group">
-            <v-btn 
-              color="primary" 
-              size="large" 
-              block 
-              @click="startStream"
+            <v-btn
+              color="primary"
+              size="large"
+              block
+              @click="updateStream"
               :loading="isStarting"
               :disabled="!title || !category"
             >
-              방송 시작하기
+              방송 정보 수정
             </v-btn>
           </div>
         </div>
@@ -138,48 +140,46 @@ import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
 import SockJS from 'sockjs-client';
 import Stomp from 'webstomp-client';
+import Hls from 'hls.js'
 
 export default {
   data() {
     return {
-      // 스트리밍 상태
       isStreaming: false,
       isStarting: false,
       streamKey: '',
       streamId: null,
       roomId: null,
       
-      // 스트리밍 정보
       title: '',
-      category: null,
+      category: null, // id 저장
       tags: [],
       thumbnailFile: null,
       thumbnailPreview: null,
       
-      // 채팅 관련
       messages: [],
       newMessage: '',
       stompClient: null,
       isConnected: false,
       
-      // 사용자 정보
       memberId: null,
       userNickname: '',
       
-      // 카테고리 목록
-      categories: [
-        '게임', '토크', '음악', '스포츠', '요리', '여행', '교육', '라이프스타일'
-      ]
+      categories: [] // { id, name } 목록 저장
     };
   },
   async created() {
-    // 사용자 정보 가져오기
     const token = localStorage.getItem('token');
     if (token) {
       const payload = jwtDecode(token);
       this.memberId = payload.sub;
       this.userNickname = payload.nickname;
     }
+
+    await Promise.all([
+      this.fetchCategories(),
+      this.fetchStreamingInfo()
+    ]);
   },
   methods: {
     // 파일 업로드 함수
@@ -207,6 +207,7 @@ export default {
     },
     
     // 방송 시작 함수
+    
     async startStream() {
       if (!this.title || !this.category) {
         alert('방송 제목과 카테고리는 필수입니다.');
@@ -267,29 +268,24 @@ export default {
     },
     
     // 웹소켓 연결 함수
-    connectWebsocket() {
-      if (!this.roomId) return;
-      
+    async connectWebsocket() {
+      if (!this.roomId) {
+        console.error('룸 ID가 없습니다.');
+        return;
+      }
+
       const sockJs = new SockJS(`${process.env.VUE_APP_STREAMING_API}/connect`);
       this.stompClient = Stomp.over(sockJs);
       this.stompClient.debug = () => {};
-      
+
       this.stompClient.connect({}, () => {
         console.log('WebSocket 연결 성공');
         this.isConnected = true;
-        
+
         this.stompClient.subscribe(`/topic/${this.roomId}`, (message) => {
           try {
             const parsed = JSON.parse(message.body);
-            this.messages.push({
-              messageId: parsed.messageId,
-              roomId: parsed.roomId,
-              memberId: parsed.memberId,
-              message: parsed.message,
-              sender: parsed.sender,
-              type: parsed.type,
-              createdTime: parsed.createdTime
-            });
+            this.messages.push(parsed);
             this.scrollToBottom();
           } catch (err) {
             console.error('메시지 파싱 실패:', err);
@@ -330,7 +326,136 @@ export default {
           chatContainer.scrollTop = chatContainer.scrollHeight;
         }
       });
-    }
+    },
+    async fetchCategories() {
+      try {
+        const response = await axios.get(`${process.env.VUE_APP_STREAMING_API}/category/list`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+
+        this.categories = response.data.result.content;
+      } catch (error) {
+        console.error('카테고리 불러오기 실패', error);
+        alert('카테고리를 불러오는 데 실패했습니다.');
+      }
+    },
+    async fetchStreamingInfo() {
+      try {
+        const response = await axios.get(
+          `${process.env.VUE_APP_STREAMING_API}/streaming/getStreaming/${this.memberId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('token')}`
+            }
+          }
+        );
+
+        const result = response.data.result;
+        console.log('[fetchStreamingInfo] 방송 정보', result); 
+        this.title = result.title;
+        this.category = result.categoryId;
+        this.tags = result.hashTags;
+        this.thumbnailPreview = result.thumbnail;
+        this.streamKey = result.streamKey; 
+        this.roomId = result.roomId;       
+        if (this.streamKey && this.roomId) {
+          this.isStreaming = true;
+        } else {
+          this.isStreaming = false;
+        }
+
+        this.initializeStreamingVideo();   // streamKey 설정 후 video 초기화
+        await this.connectWebsocket();      // roomId로 채팅 연결
+      } catch (error) {
+        console.error('방송 정보 불러오기 실패', error);
+        alert('방송 정보를 불러오는 데 실패했습니다.');
+      }
+    },
+    initializeStreamingVideo() {
+      const el = this.$refs.video;
+      if (!el) {
+        console.error('[initializeStreamingVideo] video 엘리먼트 못 찾음'); // ✅ 이거 추가
+        return;
+      }
+      if (!this.streamKey) {
+        console.error('스트림키가 없습니다.');
+        return;
+      }
+
+      const hlsSrc = process.env.NODE_ENV === 'production'
+        ? `https://hls.배포주소/hls/${this.streamKey}.m3u8`
+        : `http://localhost:8088/hls/${this.streamKey}.m3u8`;
+
+        console.log('[initializeStreamingVideo] 최종 HLS URL:', hlsSrc); // ✅ 여기에 추가
+
+
+      if (Hls.isSupported()) {
+        const hls = new Hls();
+        hls.loadSource(hlsSrc);
+        hls.attachMedia(el);
+
+        console.log('[initializeStreamingVideo] Hls.js로 attach 성공'); // ✅ 여기에 추가
+
+      } else if (el.canPlayType('application/vnd.apple.mpegurl')) {
+        el.src = hlsSrc;
+        console.log('[initializeStreamingVideo] m3u8 직접 attach 성공'); // ✅ 여기에 추가
+
+      }
+    },
+    async initializeStreaming() {
+      await this.fetchStreamingInfo();
+    },
+    async updateStream() {
+      if (!this.title || !this.category) {
+        alert('방송 제목과 카테고리는 필수입니다.');
+        return;
+      }
+
+      this.isStarting = true;
+
+      try {
+        const formData = new FormData();
+        formData.append('title', this.title);
+        formData.append('categoryId', this.category); // id 보내기
+        formData.append('clipYN', 'Y');
+        formData.append('adultYN', 'N');
+        formData.append('minDonation', 1000);
+
+        if (this.tags.length > 0) {
+          this.tags.forEach(tag => {
+            formData.append('hashtags', tag);
+          });
+        }
+
+        if (this.thumbnailFile) {
+          formData.append('thumbnail', this.thumbnailFile);
+        }
+
+        await axios.post(
+          `${process.env.VUE_APP_STREAMING_API}/streaming/update-Streaming`,
+          formData,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('token')}`,
+              'Content-Type': 'multipart/form-data'
+            }
+          }
+        );
+
+        alert('방송 정보가 성공적으로 수정되었습니다.');
+        window.location.reload();
+
+      } catch (error) {
+        console.error('방송 정보 수정 실패:', error);
+        alert('방송 수정 실패: ' + (error.response?.data?.message || error.message));
+      } finally {
+        this.isStarting = false;
+      }
+    },
+  },onMounted() {
+    this.initializeStreaming();
   },
   beforeUnmount() {
     // 컴포넌트 언마운트 시 연결 해제

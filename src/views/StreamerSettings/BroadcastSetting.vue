@@ -1,43 +1,303 @@
 <template>
-    <div>
-        <h1>방송 설정</h1>
+    <div class="broadcast-setting">
+        <h1>스트림 설정</h1>
+        
+        <div class="stream-setting-container">
+            <div class="setting-section">
+
+                <div class="input-group">
+                    <div class="label">스트림 URL</div>
+                    <div class="input-container">
+                        <input type="text" v-model="streamUrl" readonly />
+                        <button class="copy-btn" @click="copyToClipboard(streamUrl)">복사</button>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <div class="label">스트림 키</div>
+                    <div class="input-container">
+                        <input 
+                        :type="showStreamKey ? 'text' : 'password'" 
+                        v-model="streamKey" 
+                        readonly 
+                        />
+                        <button class="copy-btn" @click="copyToClipboard(streamKey)">복사</button>
+                        <button class="reissue-btn" @click="reissueStreamKey">재발급</button>
+                        <button class="eye-btn" @click="toggleStreamKeyVisibility">
+                        {{ showStreamKey ? '🙈' : '👁️' }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+    <!-- --------------------------------------------------------------------------------------------------------- -->
+    <div class="broadcast-setting">
+        <h1>채팅창 url</h1>
+        
+        <div class="stream-setting-container">
+            <div class="setting-section">
+
+                <div class="input-group">
+                    <div class="label">스트림 URL</div>
+                    <div class="input-container">
+                        <input type="text" v-model="streamUrl" readonly />
+                        <button class="copy-btn" @click="copyToClipboard(streamUrl)">복사</button>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <div class="label">스트림 키</div>
+                    <div class="input-container">
+                        <input 
+                        :type="showStreamKey ? 'text' : 'password'" 
+                        v-model="streamKey" 
+                        readonly 
+                        />
+                        <button class="copy-btn" @click="copyToClipboard(streamKey)">복사</button>
+                        <button class="reissue-btn" @click="reissueStreamKey">재발급</button>
+                        <button class="eye-btn" @click="toggleStreamKeyVisibility">
+                        {{ showStreamKey ? '🙈' : '👁️' }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
     </div>
 </template>
 
 <script>
 import axios from 'axios';
-import { jwtDecode } from 'jwt-decode';
-
 export default {
     data() {
-        return{
-            blockList: [],
+        return {
+            streamUrl: 'rtmp://rtmp.bepl.site:1935/live',
+            streamKey: '••••••••••••••••••••••••••',
+            actualStreamKey: '',
+            showStreamKey: false,
         }
     },
     computed:{
-        
           
-    }
-    ,
-    async created(){
-        
-        const token = localStorage.getItem('token');
-        if (token) {
-            const payload = jwtDecode(token);
-            this.memberId = payload.sub;
-            this.userNickname = payload.nickname;
-        }
-        try{
-            const response = await axios.get(`${process.env.VUE_APP_STREAMING_API}/member/list`)
-            this.memberList = response.data;
-        }catch(e){
-            console.log(e)
-        }
     },
-    methods : {
+    async created(){
+        await this.getStreamKey();
+    },
+    methods: {
+        async getStreamKey() {
+            try {
+                const response = await axios.get(
+                    `${process.env.VUE_APP_STREAMING_API}/streaming/getStreamKey/${this.$route.params.memberId}`, 
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                        }
+                    }
+                );
+                this.actualStreamKey = response.data.result;
+                this.streamKey = this.actualStreamKey; // 화면 표시용
+            } catch (error) {
+                console.error('스트림 키 가져오는 중 오류 발생:', error);
+            }
+        },
+        async reissueStreamKey() {
+            try {
+                const response = await axios.post(
+                    `${process.env.VUE_APP_STREAMING_API}/streaming/update/StreamKey/${this.$route.params.memberId}`, 
+                    null,
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                        }
+                    }
+                );
+                this.actualStreamKey = response.data.result;
+                this.streamKey = this.actualStreamKey;
+                alert('스트림 키가 재발급되었습니다.');
+            } catch (error) {
+                console.error('스트림 키 재발급 중 오류 발생:', error);
+            }
+        },        
+        copyToClipboard(text) {
+            const textToCopy = text === this.streamKey ? this.actualStreamKey : text;
+            navigator.clipboard.writeText(textToCopy)
+                .then(() => {
+                    alert('클립보드에 복사되었습니다.');
+                })
+                .catch(err => {
+                    console.error('클립보드 복사 실패:', err);
+                });
+        },
+        toggleStreamKeyVisibility() {
+            this.showStreamKey = !this.showStreamKey;
+        }
         
     }
-
 }
 </script>
+
+<style scoped>
+.broadcast-setting {
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+h1 {
+    font-size: 24px;
+    margin-bottom: 20px;
+}
+
+h2 {
+    font-size: 18px;
+    margin-bottom: 16px;
+}
+
+.stream-setting-container {
+    background-color: #1e1e1e; /* 살짝 밝은 짙은 회색 */
+    border-radius: 8px;
+    padding: 18px;
+}
+
+.setting-section {
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #eee;
+}
+
+.setting-section:last-child {
+    border-bottom: none;
+}
+
+.input-group {
+    margin-bottom: 16px;
+}
+
+.label {
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 8px;
+}
+
+.input-container {
+    display: flex;
+    gap: 8px;
+}
+
+input[type="text"], 
+input[type="password"] {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.copy-btn, .reissue-btn, .save-btn {
+    padding: 10px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.copy-btn {
+    background-color: #3a3a3a; /* 조금 더 어두운 회색 */
+    color: white;
+}
+
+.reissue-btn {
+    background-color: #7c4dff; /* 예쁜 보라색 (Violet) */
+    color: white;
+}
+
+.save-btn {
+    background-color: #5a5cff;
+    color: white;
+    padding: 12px 24px;
+    font-weight: 500;
+}
+
+.radio-group, .checkbox-group {
+    margin-bottom: 16px;
+}
+
+.radio-option, .checkbox-option {
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+}
+
+.toggle-group {
+    margin-top: 16px;
+}
+
+.toggle-option {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 30px;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 34px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 22px;
+    width: 22px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked + .slider {
+    background-color: #5a5cff;
+}
+
+input:checked + .slider:before {
+    transform: translateX(30px);
+}
+
+textarea {
+    width: 100%;
+    height: 120px;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    margin-bottom: 16px;
+    resize: vertical;
+}
+
+.button-group {
+    display: flex;
+    justify-content: flex-end;
+}
+</style>
   
