@@ -39,7 +39,7 @@
           <v-btn
             color="primary"
             :disabled="!canSubmit"
-            @click="$emit('confirm')"
+            @click="registerStreamer"
           >
             스튜디오 가입
           </v-btn>
@@ -69,6 +69,17 @@
         this.agreeTerms = value;
         this.agreeGuide = value;
       },
+      async registerStreamer() {
+        try {
+          // 완료 처리 (예를 들면 다이얼로그 닫기)
+          this.dialog = false;
+          this.$emit('confirm');
+        } catch (error) {
+          console.error('스트리머 등록 실패:', error);
+          // 에러 알림 추가 가능
+        }
+      },
+  
     },
   };
   </script>
