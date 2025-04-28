@@ -255,7 +255,7 @@ const goToLiveDetail = (streamId) => {
 }
 
 const goToVideoDetail = (videoId) => {
-  router.push(`/video/${videoId}`)
+  router.push(`/vod/${videoId}`)
 }
 
 const goToStreamerProfile = (streamerId) => {
