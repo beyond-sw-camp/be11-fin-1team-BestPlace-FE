@@ -60,8 +60,6 @@ html, body {
 }
 
 .main-content {
-  height: 100vh;
-  overflow-y: auto;
   overflow-x: hidden;
   scrollbar-width: none; /* Firefox에서 스크롤바 숨기기 */
   -ms-overflow-style: none; /* IE와 Edge에서 스크롤바 숨기기 */

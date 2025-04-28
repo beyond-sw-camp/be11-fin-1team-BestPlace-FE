@@ -1,9 +1,4 @@
 <template>
-  
-  
-  
-  
-  
   <div class="search-page">
     <h1 class="text-white search-title">채널</h1>
     
@@ -241,7 +236,7 @@
 
 <script>
 import axios from 'axios';
-import jwtDecode from 'jwt-decode';
+import { jwtDecode } from 'jwt-decode';
 
 export default {
   data() {
