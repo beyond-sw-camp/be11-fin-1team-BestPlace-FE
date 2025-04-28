@@ -477,8 +477,6 @@ export default {
     
     closeSuccessModal() {
       this.successDialog = false;
-      // 페이지 새로고침
-      this.fetchMyClips();
     },
     
     formatDuration(durationStr) {
@@ -529,14 +527,13 @@ export default {
   width: 100%;
   background-color: #141517;
   color: white;
-  min-height: calc(100vh - 60px); /* 헤더 높이를 뺀 전체 화면 높이 */
+  min-height: 100vh;
 }
 
 .myclip-content {
-  width: 100%;
-  max-width: 1200px;
+  max-width: 1920px;
   margin: 0 auto;
-  padding: 20px 15px;
+  padding: 24px;
 }
 
 .myclip-title {

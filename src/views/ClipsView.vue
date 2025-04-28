@@ -3,90 +3,72 @@
     <div class="clips-content">
       <h1 class="clips-title">인기 <span class="purple-text">클립</span></h1>
       
-      <!-- 필터 섹션 -->
-      <div class="filter-section">
-        <div class="period-filters">
-          <div class="filter-buttons">
-            <v-btn
-              v-for="period in periods"
-              :key="period.value"
-              :class="['filter-btn', { active: selectedPeriod === period.value }]"
-              @click="selectedPeriod = period.value"
-              variant="text"
-              density="comfortable"
-              rounded
-            >
-              {{ period.text }}
-            </v-btn>
-          </div>
+      <!-- 필터링 버튼 -->
+      <div class="filter-bar">
+        <div class="filter-left">
+          <button 
+            v-for="period in periods" 
+            :key="period.value"
+            :class="['sort-btn', { active: selectedPeriod === period.value }]" 
+            @click="selectedPeriod = period.value; resetAndLoad()"
+          >
+            {{ period.text }}
+          </button>
         </div>
-        <div class="sort-filters">
-          <div class="filter-buttons">
-            <v-btn
-              v-for="sort in sorts"
-              :key="sort.value"
-              :class="['filter-btn', { active: selectedSort === sort.value }]"
-              @click="selectedSort = sort.value"
-              variant="text"
-              density="comfortable"
-              rounded
-            >
-              {{ sort.text }}
-            </v-btn>
-          </div>
+        <div class="filter-right">
+          <button 
+            v-for="sort in sorts" 
+            :key="sort.value"
+            :class="['sort-btn', { active: selectedSort === sort.value }]" 
+            @click="selectedSort = sort.value; resetAndLoad()"
+          >
+            {{ sort.text }}
+          </button>
         </div>
       </div>
       
       <!-- 클립 그리드 -->
-      <v-row v-if="clips.length > 0">
-        <v-col v-for="clip in clips" :key="clip.id" cols="12" sm="6" md="3" lg="3">
-          <v-card
-            @click="handleClipClick(clip)"
-            class="clip-card"
-            :class="{'adult-content': isAdultContent(clip)}"
-            elevation="0"
-            height="100%"
-          >
-            <!-- 썸네일 컨테이너 -->
-            <div class="thumbnail-container">
-              <v-img
-                :src="clip.thumbnailUrl"
-                class="thumbnail"
-                :class="{
-                  'blur-thumbnail': shouldBlurThumbnail(clip),
-                  'hide-thumbnail': shouldHideThumbnail(clip)
-                }"
-              >
-                <template v-slot:placeholder>
-                  <v-row class="fill-height ma-0" align="center" justify="center">
-                    <v-progress-circular indeterminate color="#B084CC"></v-progress-circular>
-                  </v-row>
-                </template>
-              </v-img>
-              
-              <!-- 연령 제한 표시 -->
-              <div v-if="clip.isAdult === 'Y'" class="age-restriction-overlay">
-                <div class="age-restriction-content">
-                  <div class="age-icon-circle">19</div>
-                  <div class="age-text">연령 제한</div>
-                </div>
-              </div>
-              
-              <!-- 텍스트 오버레이 -->
-              <div class="clip-info-overlay">
-                <div class="clip-title">{{ clip.title }}</div>
-                <div class="clip-meta">
-                  <span class="streamer-name">{{ clip.streamerNickname }}</span>
-                  <span class="view-count">
-                    <v-icon size="x-small" class="mr-1">mdi-eye</v-icon>
-                    {{ formatNumber(clip.views) }}
-                  </span>
-                </div>
+      <div class="clips-grid" v-if="clips.length > 0">
+        <div 
+          v-for="clip in clips" 
+          :key="clip.id" 
+          class="clip-item"
+          @click="handleClipClick(clip)"
+        >
+          <!-- 썸네일 컨테이너 -->
+          <div class="thumbnail-container">
+            <img 
+              :src="clip.thumbnailUrl" 
+              alt="Clip Thumbnail" 
+              class="thumbnail"
+              :class="{
+                'blur-thumbnail': shouldBlurThumbnail(clip),
+                'hide-thumbnail': shouldHideThumbnail(clip)
+              }"
+            >
+            
+            <!-- 연령 제한 표시 -->
+            <div v-if="clip.isAdult === 'Y'" class="age-restriction-overlay">
+              <div class="age-restriction-content">
+                <div class="age-icon-circle">19</div>
+                <div class="age-text">연령 제한</div>
               </div>
             </div>
-          </v-card>
-        </v-col>
-      </v-row>
+            
+            <!-- 텍스트 오버레이 -->
+            <div class="clip-info-overlay">
+              <div class="clip-title">{{ clip.title }}</div>
+              <div class="clip-meta">
+                <span class="streamer-name">{{ clip.streamerNickname }}</span>
+                <span class="view-count">
+                  <v-icon size="x-small" class="mr-1">mdi-eye</v-icon>
+                  {{ formatNumber(clip.views) }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
       
       <!-- 로딩 표시 -->
       <div v-if="loading" class="text-center my-4">
@@ -370,55 +352,77 @@ export default {
   width: 100%;
   background-color: #141517;
   color: white;
-  min-height: calc(100vh - 60px); /* 헤더 높이를 뺀 전체 화면 높이 */
+  min-height: 100vh;
 }
 
 .clips-content {
-  width: 100%;
-  max-width: 1200px;
+  max-width: 1920px;
   margin: 0 auto;
-  padding: 20px 15px;
+  padding: 24px;
 }
 
 .clips-title {
   font-size: 32px;
   font-weight: 700;
-  margin-bottom: 20px;
+  margin-bottom: 1px;
 }
 
 .purple-text {
   color: #B084CC;
 }
 
-.filter-section {
+.filter-bar {
+  width: 100%;
+  max-width: 1920px;
+  margin: 0 auto;
+  padding: 15px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 15px;
-  margin-bottom: 30px;
 }
 
-.filter-buttons {
+.filter-left {
   display: flex;
-  gap: 8px;
+  gap: 15px;
 }
 
-.filter-btn {
-  background-color: #222222 !important;
-  color: #aaaaaa !important;
-  min-width: 60px;
+.filter-right {
+  display: flex;
+  gap: 15px;
+}
+
+.sort-btn {
+  background: none;
+  border: none;
+  color: #aaaaaa;
   font-size: 14px;
-  letter-spacing: 0;
-  text-transform: none;
-  border-radius: 20px !important;
-  box-shadow: none !important;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 5px 10px;
+  border-radius: 4px;
 }
 
-.filter-btn.active {
-  background-color: #B084CC !important;
-  color: white !important;
-  font-weight: 500;
+.sort-btn.active {
+  background-color: #2a2a2a;
+  color: white;
+}
+
+.clips-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 20px;
+  width: 100%;
+  max-width: 1920px;
+  margin: 0 auto;
+  padding: 15px;
+}
+
+.clip-item {
+  cursor: pointer;
+  background-color: #18191c;
+  border-radius: 8px;
+  overflow: hidden;
+  padding: 0;
 }
 
 .clip-card {
@@ -437,7 +441,7 @@ export default {
 .thumbnail-container {
   position: relative;
   overflow: hidden;
-  border-radius: 12px;
+  border-radius: 8px;
   width: 100%;
   aspect-ratio: 9 / 16;
   background-color: #000;
@@ -481,8 +485,8 @@ export default {
 }
 
 .age-icon-circle {
-  width: 48px;
-  height: 48px;
+  width: 36px;
+  height: 36px;
   background-color: rgba(255, 255, 255, 0.9);
   color: black;
   border-radius: 50%;
@@ -490,13 +494,13 @@ export default {
   align-items: center;
   justify-content: center;
   font-weight: bold;
-  font-size: 20px;
-  margin-bottom: 10px;
+  font-size: 16px;
+  margin-bottom: 8px;
 }
 
 .age-text {
   color: white;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 500;
 }
 
@@ -505,7 +509,7 @@ export default {
   bottom: 0;
   left: 0;
   width: 100%;
-  padding: 16px;
+  padding: 12px;
   background-color: rgba(0, 0, 0, 0.7);
   z-index: 2;
 }
@@ -513,13 +517,13 @@ export default {
 .clip-title {
   color: #ffffff;
   font-weight: 500;
-  font-size: 16px;
-  margin-bottom: 8px;
+  font-size: 14px;
+  margin-bottom: 6px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  line-height: 1.4;
+  line-height: 1.3;
   text-shadow: none;
 }
 
@@ -531,7 +535,7 @@ export default {
 
 .streamer-name, .view-count {
   color: #ffffff;
-  font-size: 13px;
+  font-size: 11px;
   display: flex;
   align-items: center;
   text-shadow: none;
