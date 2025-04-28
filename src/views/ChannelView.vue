@@ -461,10 +461,10 @@ export default {
   display: flex;
   align-items: center;
   gap: 8px;
-  background-color: #6E4FA0;
+  background-color: #1A1A1A;
   color: white;
   border: none;
-  border-radius: 5px;
+  border-radius: 20px;
   padding: 8px 15px;
   cursor: pointer;
   font-size: 14px;
@@ -473,7 +473,7 @@ export default {
 }
 
 .manage-button:hover {
-  background-color: #543C87;
+  background-color: #333333;
 }
 
 .fas.fa-cog {
