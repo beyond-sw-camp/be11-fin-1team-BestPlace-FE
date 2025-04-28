@@ -109,14 +109,14 @@
 
           <!-- 메뉴 항목들 -->
           <v-list density="compact">
-            <v-list-item to="/streamer-profile">
+            <v-list-item :to="`/channel/${userProfile.id}`">
               <template v-slot:prepend>
                 <v-icon>mdi-account</v-icon>
               </template>
               <v-list-item-title>내 채널</v-list-item-title>
             </v-list-item>
 
-            <v-list-item to="/my-clips">
+            <v-list-item to="/member/my/clip">
               <template v-slot:prepend>
                 <v-icon>mdi-video-box</v-icon>
               </template>
@@ -128,20 +128,6 @@
                 <v-icon>mdi-star</v-icon>
               </template>
               <v-list-item-title>팔로잉 채널</v-list-item-title>
-            </v-list-item>
-
-            <v-list-item to="/my-purchases">
-              <template v-slot:prepend>
-                <v-icon>mdi-shopping</v-icon>
-              </template>
-              <v-list-item-title>내 구독</v-list-item-title>
-            </v-list-item>
-
-            <v-list-item to="/settings">
-              <template v-slot:prepend>
-                <v-icon>mdi-cog</v-icon>
-              </template>
-              <v-list-item-title>설정</v-list-item-title>
             </v-list-item>
 
             <v-divider></v-divider>
