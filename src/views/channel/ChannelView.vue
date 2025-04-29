@@ -14,8 +14,10 @@
         :streamerId="streamerId"
         :defaultProfileImage="defaultProfileImage"
         :toggleFollow="toggleFollow"
+        :streamingId="streamingId"
         @go-to-manage="goToChannelManage"
         @go-to-dashboard="goToStreamerDashboard"
+        @go-to-live="goToLiveStream"
       />
       <ChannelNavigation
         :activeTab="activeTab"
@@ -83,6 +85,7 @@ const isChannelManager = ref(false)
 const activeTab = ref('home')
 const userIsAdult = ref(false)
 const defaultProfileImage = ref('/path/to/default-profile.png')
+const streamingId = ref(null)
 
 // 성인 컨텐츠 모달 관련
 const clipAdultAlertModalOpen = ref(false)
@@ -108,6 +111,13 @@ const goToLogin = () => {
   router.push('/member/login')
 }
 
+// 라이브 스트림으로 이동
+const goToLiveStream = () => {
+  if (streamingId.value) {
+    router.push(`/live/${streamingId.value}`)
+  }
+}
+
 // 팔로우 토글
 const toggleFollow = async () => {
   if (!isLoggedIn.value) {
@@ -122,7 +132,6 @@ const toggleFollow = async () => {
     
     // 팔로우 토글 API 호출
     const response = await axios.post(`${baseUrl}/follow/toggle/${streamerId.value}`, null, {
-      headers: { Authorization: `Bearer ${token}` }
     })
     
     // 상태 업데이트
@@ -182,6 +191,26 @@ const checkAdultStatus = () => {
     userIsAdult.value = isAdult === 'Y'
   }
 }
+
+// 스트리밍 ID 가져오기
+const fetchStreamingId = async () => {
+  try {
+    if (!streamerId.value) return;
+    
+    const streamingApiUrl = process.env.VUE_APP_STREAMING_API;
+    const response = await axios.get(`${streamingApiUrl}/streaming/find/streamId/${streamerId.value}`);
+    
+    console.log('스트리밍 ID 확인 응답:', response);
+    
+    if (response.status === 200 && response.data && response.data.result) {
+      streamingId.value = response.data.result;
+      console.log('스트리밍 ID 가져옴:', streamingId.value);
+    }
+  } catch (error) {
+    console.error('스트리밍 ID 가져오기 실패:', error);
+    streamingId.value = null;
+  }
+};
 
 // 채널 정보 로드
 const loadChannelInfo = async () => {
@@ -253,6 +282,9 @@ onMounted(async () => {
   getCurrentUserId()
   checkAdultStatus()
   await loadChannelInfo()
+  
+  // 스트리밍 ID 가져오기
+  await fetchStreamingId()
   
   // 로그인한 경우에만 채널 관리자 확인
   if (isLoggedIn.value) {
