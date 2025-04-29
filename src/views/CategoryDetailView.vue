@@ -857,19 +857,19 @@ export default {
 }
 
 .sort-btn {
-  background: none;
+  padding: 8px 16px;
   border: none;
-  color: #aaaaaa;
+  border-radius: 20px;
+  background: #2c2c2c;
+  color: #7B7B7B;
   font-size: 14px;
-  font-weight: 500;
   cursor: pointer;
-  padding: 5px 10px;
-  border-radius: 4px;
+  transition: all 0.2s;
 }
 
 .sort-btn.active {
-  background-color: #2a2a2a;
-  color: white;
+  background: #B084CC;
+  color: #fff;
 }
 
 .broadcasts-grid, .videos-grid {
@@ -1480,18 +1480,18 @@ export default {
 }
 
 .sort-btn {
-  background: none;
+  padding: 8px 16px;
   border: none;
-  color: #aaaaaa;
+  border-radius: 20px;
+  background: #2c2c2c;
+  color: #7B7B7B;
   font-size: 14px;
-  font-weight: 500;
   cursor: pointer;
-  padding: 5px 10px;
-  border-radius: 4px;
+  transition: all 0.2s;
 }
 
 .sort-btn.active {
-  background-color: #2a2a2a;
-  color: white;
+  background: #B084CC;
+  color: #fff;
 }
 </style>
