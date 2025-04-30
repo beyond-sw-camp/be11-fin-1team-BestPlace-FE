@@ -1015,9 +1015,11 @@ onBeforeUnmount(() => {
 .hashtags {
   display: flex;
   align-items: center;
-  gap: 4px;
-  flex-wrap: wrap;
+  gap: 6px;
+  flex-wrap: nowrap;
   margin-top: 2px;
+  width: auto;
+  max-width: 100%;
 }
 
 .hashtag {
@@ -1029,8 +1031,9 @@ onBeforeUnmount(() => {
   border-radius: 4px;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
   border: 1px solid #bfc2c7;
-  margin-right: 4px;
-  margin-bottom: 4px;
+  display: inline-flex;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .vod-section {
