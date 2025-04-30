@@ -172,6 +172,119 @@
         </button>
       </div>
     </div>
+
+    <!-- 클립 섹션 추가 -->
+    <div class="clips-section">
+      <div class="section-header">
+        <div class="title-container">
+          <h2 class="section-title">클립</h2>
+          <span class="view-all" @click="goToClipsTab">더보기</span>
+        </div>
+      </div>
+
+      <!-- 필터 버튼 -->
+      <div class="clips-filter-bar">
+        <div class="filter-left">
+          <button 
+            :class="['clip-filter-btn', { active: selectedClipPeriod === 'ALL' }]"
+            @click="changeClipFilter('ALL')"
+          >
+            전체
+          </button>
+          <button 
+            :class="['clip-filter-btn', { active: selectedClipPeriod === 'DAYS_30' }]"
+            @click="changeClipFilter('DAYS_30')"
+          >
+            한달
+          </button>
+          <button 
+            :class="['clip-filter-btn', { active: selectedClipPeriod === 'DAYS_7' }]"
+            @click="changeClipFilter('DAYS_7')"
+          >
+            주간
+          </button>
+          <button 
+            :class="['clip-filter-btn', { active: selectedClipPeriod === 'HOURS_24' }]"
+            @click="changeClipFilter('HOURS_24')"
+          >
+            하루
+          </button>
+        </div>
+        <div class="filter-right">
+          <button 
+            :class="['clip-filter-btn', { active: selectedClipSort === 'views' }]"
+            @click="changeClipSort('views')"
+          >
+            인기순
+          </button>
+          <button 
+            :class="['clip-filter-btn', { active: selectedClipSort === 'recent' }]"
+            @click="changeClipSort('recent')"
+          >
+            최신순
+          </button>
+        </div>
+      </div>
+
+      <div class="clips-container" 
+           @mouseenter="showClipNavButtons = true" 
+           @mouseleave="showClipNavButtons = false">
+        <button 
+          v-if="showClipNavButtons && clipCurrentPage > 0" 
+          class="nav-button prev-button" 
+          @click="slideClipPrev">
+          <v-icon>mdi-chevron-left</v-icon>
+        </button>
+
+        <div class="clips-slider" ref="clipsSlider">
+          <div
+            v-for="clip in visibleClips"
+            :key="clip.id || clip.clipId"
+            class="clip-item"
+            @click="goToClipDetail(clip.id || clip.clipId)"
+          >
+            <div class="thumbnail-container">
+              <div class="clip-badge">클립</div>
+              <img
+                :src="clip.thumbnailUrl"
+                alt="Clip Thumbnail"
+                class="thumbnail"
+                :class="{
+                  'blur-thumbnail': isAdultContent(clip) && userIsAdult,
+                  'hide-thumbnail': isAdultContent(clip) && !userIsAdult
+                }"
+              >
+              
+              <!-- 연령 제한 표시 -->
+              <div v-if="isAdultContent(clip)" class="age-restriction-overlay">
+                <div class="age-restriction-content">
+                  <div class="age-icon-circle">19</div>
+                  <div class="age-text">연령 제한</div>
+                </div>
+              </div>
+              
+              <!-- 텍스트 오버레이 -->
+              <div class="clip-info-overlay">
+                <div class="clip-meta">
+                  <div class="clip-title">{{ clip.title }}</div>
+                  <span class="view-count">
+                    <v-icon size="x-small" class="mr-1">mdi-eye</v-icon>
+                    {{ formatNumber(clip.views) }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <button 
+          v-if="showClipNavButtons && clipCurrentPage < Math.ceil(clips.length / clipsPerPage) - 1" 
+          class="nav-button next-button" 
+          @click="slideClipNext">
+          <v-icon>mdi-chevron-right</v-icon>
+        </button>
+      </div>
+    </div>
     </div>
   </template>
   
@@ -218,6 +331,19 @@ const visibleVideos = computed(() => {
 });
 const videosSlider = ref(null);
 const userIsAdult = computed(() => props.streamerInfo?.adultYn === 'Y');
+
+// 클립 관련 변수 추가
+const clips = ref([]);
+const selectedClipPeriod = ref('ALL');
+const selectedClipSort = ref('views');
+const clipCurrentPage = ref(0);
+const clipsPerPage = 5;
+const showClipNavButtons = ref(false);
+const visibleClips = computed(() => {
+  const startIdx = clipCurrentPage.value * clipsPerPage;
+  return clips.value.slice(startIdx, startIdx + clipsPerPage);
+});
+const clipsSlider = ref(null);
 
 // 스트리밍 정보 가져오기
 const fetchStreamingInfo = async () => {
@@ -527,8 +653,8 @@ const stopPreview = (index) => {
 };
 
 // 성인 컨텐츠 관련 함수
-const isAdultContent = (video) => {
-  return video.isAdult === 'Y';
+const isAdultContent = (content) => {
+  return content && content.isAdult === 'Y';
 };
 
 // 동영상 상세 페이지로 이동
@@ -592,6 +718,77 @@ const goToVideosTab = () => {
   document.dispatchEvent(event);
 };
 
+// 클립 탭으로 이동
+const goToClipsTab = () => {
+  // 부모 컴포넌트로 이벤트 발생: 탭 변경 요청
+  const event = new CustomEvent('tabChange', { 
+    detail: { tab: 'clips' },
+    bubbles: true 
+  });
+  document.dispatchEvent(event);
+};
+
+// 클립 상세 페이지로 이동
+const goToClipDetail = (clipId) => {
+  router.push(`/clip/${clipId}`);
+};
+
+// 클립 필터 변경
+const changeClipFilter = (period) => {
+  selectedClipPeriod.value = period;
+  fetchClips();
+};
+
+// 클립 정렬 변경
+const changeClipSort = (sort) => {
+  selectedClipSort.value = sort;
+  fetchClips();
+};
+
+// 클립 목록 불러오기
+const fetchClips = async () => {
+  try {
+    const memberApi = process.env.VUE_APP_MEMBER_API;
+    // 정렬 방식에 따라 엔드포인트 결정
+    const endpoint = selectedClipSort.value === 'views' 
+      ? '/video/clip/list/streamer/views' 
+      : '/video/clip/list/streamer/recent';
+    
+    const response = await axios.get(`${memberApi}${endpoint}`, {
+      params: {
+        streamerId: route.params.memberId,
+        page: 0, // 고정된 0페이지만 요청
+        periodType: selectedClipPeriod.value
+      }
+    });
+    
+    if (response.data && response.data.result) {
+      const result = response.data.result;
+      clips.value = (result.content || []).map(clip => ({
+        ...clip,
+        views: clip.views || 0
+      }));
+      clipCurrentPage.value = 0; // 페이지 리셋
+    }
+  } catch (error) {
+    console.error('클립 목록을 불러오는 중 오류 발생:', error);
+  }
+};
+
+// 클립 슬라이드 네비게이션
+const slideClipNext = () => {
+  const maxPage = Math.ceil(clips.value.length / clipsPerPage) - 1;
+  if (clipCurrentPage.value < maxPage) {
+    clipCurrentPage.value++;
+  }
+};
+
+const slideClipPrev = () => {
+  if (clipCurrentPage.value > 0) {
+    clipCurrentPage.value--;
+  }
+};
+
 onMounted(async () => {
   await fetchStreamingInfo();
   
@@ -604,6 +801,9 @@ onMounted(async () => {
   
   // 동영상 정보 가져오기
   await fetchVideos();
+  
+  // 클립 정보 가져오기
+  await fetchClips();
   
   isLoading.value = false;
 });
@@ -1047,7 +1247,7 @@ onBeforeUnmount(() => {
 }
 
 .video-item:hover {
-  transform: translateY(-4px);
+  transform: none;
 }
 
 .thumbnail-container {
@@ -1205,5 +1405,137 @@ onBeforeUnmount(() => {
   font-size: 10px;
   padding: 2px 6px;
   border-radius: 3px;
+}
+
+/* 클립 섹션 스타일 */
+.clips-section {
+  margin-top: 36px;
+  margin-bottom: 24px;
+}
+
+.clips-filter-bar {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding-left: 0;
+  margin-left: 0;
+}
+
+.filter-left {
+  display: flex;
+  gap: 8px;
+}
+
+.filter-right {
+  display: flex;
+  gap: 8px;
+}
+
+.clip-filter-btn {
+  padding: 6px 14px;
+  border: none;
+  border-radius: 20px;
+  background: #2c2c2c;
+  color: #7B7B7B;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.clip-filter-btn.active {
+  background: #B084CC;
+  color: #fff;
+}
+
+.clips-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.clips-slider {
+  display: flex;
+  gap: 16px;
+  overflow-x: hidden;
+  width: 100%;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding-left: 0;
+  margin-left: 0;
+}
+
+.clips-slider::-webkit-scrollbar {
+  display: none;
+}
+
+.clip-item {
+  flex: 0 0 calc(20% - 13px);
+  cursor: pointer;
+  overflow: hidden;
+  background-color: #18191c;
+  border-radius: 8px;
+  position: relative;
+}
+
+.clip-item .thumbnail-container {
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+  width: 100%;
+  aspect-ratio: 9 / 16;
+  background-color: #000;
+}
+
+.clip-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: #E05C8C;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 3px;
+  z-index: 2;
+}
+
+.thumbnail {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center center;
+  background-color: #000;
+}
+
+.clip-info-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  padding: 12px;
+  background-color: rgba(0, 0, 0, 0.7);
+  z-index: 2;
+}
+
+.clip-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.clip-title {
+  color: #ffffff;
+  font-weight: 500;
+  font-size: 14px;
+  flex: 1;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+  text-shadow: none;
+  margin-right: 8px;
 }
   </style>
