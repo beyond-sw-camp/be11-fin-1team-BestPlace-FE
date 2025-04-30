@@ -448,6 +448,8 @@
   flex-wrap: wrap;
   gap: 6px;
   margin-top: 8px;
+  max-height: 24px; /* 첫 번째 줄 높이만큼만 설정 */
+  overflow: hidden; /* 넘치는 부분(두 번째 줄부터) 숨김 */
 }
 
 .category-tag {

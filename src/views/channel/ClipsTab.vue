@@ -269,7 +269,7 @@ const handleClipClick = (clip) => {
   }
   
   // 클립 상세 페이지로 이동
-  router.push(`/clips/${clip.id || clip.clipId}`);
+  router.push(`/clip/${clip.id || clip.clipId}`);
 };
 
 const closeClipAdultAlertModal = () => {

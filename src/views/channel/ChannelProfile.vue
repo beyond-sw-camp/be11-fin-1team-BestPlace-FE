@@ -4,6 +4,7 @@
       <div 
         class="profile-image-wrapper" 
         :class="{ 'streaming-active': streamerInfo?.streamingYn === 'Y' }"
+        @click="handleProfileClick"
       >
         <img 
           :src="streamerInfo?.streamerProfileImageUrl || defaultProfileImage" 
@@ -58,7 +59,7 @@
   <script setup>
   import { defineProps, defineEmits } from 'vue'
   
-  const emit = defineEmits(['go-to-dashboard', 'go-to-manage'])
+  const emit = defineEmits(['go-to-dashboard', 'go-to-manage', 'go-to-live'])
   
   const props = defineProps({
     streamerInfo: {
@@ -74,6 +75,7 @@
     isChannelManager: Boolean,
     streamerId: [String, Number],
     toggleFollow: Function,
+    streamingId: [String, Number],
   })
   
   function formatNumber(num) {
@@ -86,6 +88,13 @@
   
   function isSameUser(userId, streamerId) {
     return String(userId) === String(streamerId)
+  }
+  
+  function handleProfileClick() {
+    // 스트리밍 중이고 스트리밍 ID가 있는 경우에만 라이브 페이지로 이동
+    if (props.streamerInfo?.streamingYn === 'Y' && props.streamingId) {
+      emit('go-to-live')
+    }
   }
   </script>
   
@@ -104,6 +113,7 @@
     border-radius: 50%;
     overflow: hidden;
     border: 4px solid transparent;
+    cursor: pointer;
   }
   .streaming-active {
     border-color: #ff3b3b;
