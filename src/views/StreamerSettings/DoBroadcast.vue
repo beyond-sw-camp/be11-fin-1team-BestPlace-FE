@@ -63,6 +63,17 @@
               color="primary"
             ></v-combobox>
           </div>
+
+          <div class="form-group">
+            <label>성인 방송 여부</label>
+            <v-switch
+              v-model="adultYN"
+              :label="adultYN === 'Y' ? '성인 방송' : '일반 방송'"
+              color="red"
+              true-value="Y"
+              false-value="N"
+            ></v-switch>
+          </div>
           
           <div class="form-group">
             <label>미리보기 이미지</label>
@@ -156,6 +167,7 @@ export default {
       tags: [],
       thumbnailFile: null,
       thumbnailPreview: null,
+      adultYN: 'N',
       
       messages: [],
       newMessage: '',
@@ -221,6 +233,7 @@ export default {
         const formData = new FormData();
         formData.append('title', this.title);
         formData.append('category', this.category);
+        formData.append('adultYN', this.adultYN);
         
         if (this.tags.length > 0) {
           this.tags.forEach(tag => {
@@ -357,6 +370,7 @@ export default {
         this.title = result.title;
         this.category = result.categoryId;
         this.tags = result.hashTags;
+        this.adultYN = result.adultYN || 'N';
         this.thumbnailPreview = result.thumbnail;
         this.streamKey = result.streamKey; 
         this.roomId = result.roomId;       
@@ -388,19 +402,14 @@ export default {
         ? `https://hls.배포주소/hls/${this.streamKey}.m3u8`
         : `http://localhost:8088/hls/${this.streamKey}.m3u8`;
 
-        console.log('[initializeStreamingVideo] 최종 HLS URL:', hlsSrc); // ✅ 여기에 추가
-
 
       if (Hls.isSupported()) {
         const hls = new Hls();
         hls.loadSource(hlsSrc);
         hls.attachMedia(el);
 
-        console.log('[initializeStreamingVideo] Hls.js로 attach 성공'); // ✅ 여기에 추가
-
       } else if (el.canPlayType('application/vnd.apple.mpegurl')) {
         el.src = hlsSrc;
-        console.log('[initializeStreamingVideo] m3u8 직접 attach 성공'); // ✅ 여기에 추가
 
       }
     },
