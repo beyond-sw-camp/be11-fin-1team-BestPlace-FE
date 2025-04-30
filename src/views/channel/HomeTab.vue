@@ -80,6 +80,98 @@
         </div>
       </div>
     </div>
+
+    <!-- 동영상 섹션 추가 -->
+    <div class="recent-videos-section">
+      <div class="section-header">
+        <div class="title-container">
+          <h2 class="section-title">동영상</h2>
+          <span class="view-all" @click="goToVideosTab">더보기</span>
+        </div>
+        <div class="video-filters">
+          <button
+            :class="{ active: videoSortType === 'views' }"
+            @click="changeVideoSort('views')"
+          >
+            인기순
+          </button>
+          <button
+            :class="{ active: videoSortType === 'recent' }"
+            @click="changeVideoSort('recent')"
+          >
+            최신순
+          </button>
+        </div>
+      </div>
+
+      <div class="videos-container" 
+           @mouseenter="showNavButtons = true" 
+           @mouseleave="showNavButtons = false">
+        <button 
+          v-if="showNavButtons && currentPage > 0" 
+          class="nav-button prev-button" 
+          @click="slidePrev">
+          <v-icon>mdi-chevron-left</v-icon>
+        </button>
+
+        <div class="videos-slider" ref="videosSlider">
+          <div
+            v-for="(video, index) in visibleVideos"
+            :key="video.id"
+            class="video-item"
+            @mouseenter="startPreviewTimer(index)"
+            @mouseleave="stopPreview(index)"
+            @click="goToVideoDetail(video.id)"
+          >
+            <div class="thumbnail-container">
+              <div class="vod-badge">다시보기</div>
+              <img
+                :src="video.thumbnailUrl"
+                alt="Video Thumbnail"
+                class="thumbnail"
+                :class="{
+                  'blur-thumbnail': isAdultContent(video) && userIsAdult,
+                  'hide-thumbnail': isAdultContent(video) && !userIsAdult
+                }"
+              >
+              <video
+                v-if="video.showPreview && video.url && !isAdultContent(video)"
+                :src="video.url"
+                class="video-preview"
+                autoplay
+                muted
+                loop
+              ></video>
+              <div class="duration">{{ video.duration }}</div>
+
+              <!-- 연령 제한 표시 -->
+              <div v-if="isAdultContent(video)" class="age-restriction-overlay">
+                <div class="age-restriction-content">
+                  <div class="age-icon-circle">19</div>
+                  <div class="age-text">연령 제한</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="video-info">
+              <div class="video-title">{{ video.title }}</div>
+              <div class="video-meta">
+                <span class="view-count">조회수 {{ formatNumber(video.views || 0) }}회</span>
+                <span class="dot-separator">·</span>
+                <span class="video-time">{{ formatTime(video.createdTime) }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <button 
+          v-if="showNavButtons && currentPage < Math.ceil(videos.length / videosPerPage) - 1" 
+          class="nav-button next-button" 
+          @click="slideNext">
+          <v-icon>mdi-chevron-right</v-icon>
+        </button>
+      </div>
+    </div>
     </div>
   </template>
   
@@ -113,6 +205,19 @@ const banners = ref(null);
 
 // 라이브 여부는 streamerInfo.streamingYn으로 판단
 const isLive = computed(() => props.streamerInfo?.streamingYn === 'Y');
+
+// 동영상 관련 변수와 메서드 추가
+const videos = ref([]);
+const videoSortType = ref('views');
+const currentPage = ref(0);
+const videosPerPage = 5;
+const showNavButtons = ref(false);
+const visibleVideos = computed(() => {
+  const startIdx = currentPage.value * videosPerPage;
+  return videos.value.slice(startIdx, startIdx + videosPerPage);
+});
+const videosSlider = ref(null);
+const userIsAdult = computed(() => props.streamerInfo?.adultYn === 'Y');
 
 // 스트리밍 정보 가져오기
 const fetchStreamingInfo = async () => {
@@ -340,6 +445,133 @@ function formatRelativeTime(dateString) {
   return dateString.split('T')[0];
 }
 
+// 동영상 목록 불러오기
+const fetchVideos = async () => {
+  try {
+    const memberApi = process.env.VUE_APP_MEMBER_API;
+    const url = `${memberApi}/video/vod/list/streamer/${videoSortType.value}`;
+    
+    const response = await axios.get(url, {
+      params: {
+        streamerId: route.params.memberId,
+        page: 0 // 고정된 0페이지만 요청
+      }
+    });
+    
+    if (response.data && response.data.result) {
+      const result = response.data.result;
+      videos.value = (result.content || []).map(video => ({
+        ...video,
+        showPreview: false,
+        hoverTimer: null,
+        views: video.views || 0
+      }));
+      currentPage.value = 0; // 페이지 리셋
+    }
+  } catch (error) {
+    console.error('동영상 목록을 불러오는 중 오류 발생:', error);
+  }
+};
+
+// 정렬 방식 변경
+const changeVideoSort = (sortType) => {
+  videoSortType.value = sortType;
+  fetchVideos();
+};
+
+// 슬라이드 네비게이션
+const slideNext = () => {
+  const maxPage = Math.ceil(videos.value.length / videosPerPage) - 1;
+  if (currentPage.value < maxPage) {
+    currentPage.value++;
+  }
+};
+
+const slidePrev = () => {
+  if (currentPage.value > 0) {
+    currentPage.value--;
+  }
+};
+
+// 썸네일 미리보기 관련 메서드
+const startPreviewTimer = (index) => {
+  const video = visibleVideos.value[index];
+  if (!video || !video.url) return;
+  
+  // 성인 컨텐츠인 경우 미리보기 시작하지 않음
+  if (video.isAdult === 'Y') return;
+  
+  // 기존 타이머가 있으면 클리어
+  if (video.hoverTimer) {
+    clearTimeout(video.hoverTimer);
+  }
+  
+  // 0.5초 후에 미리보기 표시
+  video.hoverTimer = setTimeout(() => {
+    video.showPreview = true;
+  }, 500);
+};
+
+const stopPreview = (index) => {
+  const video = visibleVideos.value[index];
+  if (!video) return;
+  
+  // 타이머가 있으면 클리어
+  if (video.hoverTimer) {
+    clearTimeout(video.hoverTimer);
+    video.hoverTimer = null;
+  }
+  
+  // 미리보기 숨김
+  video.showPreview = false;
+};
+
+// 성인 컨텐츠 관련 함수
+const isAdultContent = (video) => {
+  return video.isAdult === 'Y';
+};
+
+// 동영상 상세 페이지로 이동
+const goToVideoDetail = (videoId) => {
+  router.push(`/vod/${videoId}`);
+};
+
+// 숫자 포맷팅 (1000 -> 1,000)
+const formatNumber = (num) => {
+  if (num === undefined || num === null) return '0';
+  
+  if (num >= 10000) {
+    return (num / 10000).toFixed(1) + '만';
+  }
+  
+  return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+};
+
+// 시간 포맷팅
+const formatTime = (timestamp) => {
+  if (!timestamp) return '';
+  
+  const now = new Date();
+  const date = new Date(timestamp);
+  const diffInSeconds = Math.floor((now - date) / 1000);
+  
+  if (diffInSeconds < 60) {
+    return `${diffInSeconds}초 전`;
+  } else if (diffInSeconds < 3600) {
+    return `${Math.floor(diffInSeconds / 60)}분 전`;
+  } else if (diffInSeconds < 86400) {
+    return `${Math.floor(diffInSeconds / 3600)}시간 전`;
+  } else if (diffInSeconds < 604800) {
+    return `${Math.floor(diffInSeconds / 86400)}일 전`;
+  } else if (diffInSeconds < 2592000) {
+    return `${Math.floor(diffInSeconds / 604800)}주 전`;
+  } else if (diffInSeconds < 31536000) {
+    return `${Math.floor(diffInSeconds / 2592000)}개월 전`;
+  } else {
+    return `${Math.floor(diffInSeconds / 31536000)}년 전`;
+  }
+};
+
 // streamInfo 변경 시 비디오 플레이어 재초기화
 watch(() => streamInfo.value, (newVal) => {
   if (newVal && newVal.streamKey) {
@@ -349,6 +581,16 @@ watch(() => streamInfo.value, (newVal) => {
     }, 500);
   }
 });
+
+// 동영상 탭으로 이동
+const goToVideosTab = () => {
+  // 부모 컴포넌트로 이벤트 발생: 탭 변경 요청
+  const event = new CustomEvent('tabChange', { 
+    detail: { tab: 'videos' },
+    bubbles: true 
+  });
+  document.dispatchEvent(event);
+};
 
 onMounted(async () => {
   await fetchStreamingInfo();
@@ -360,11 +602,21 @@ onMounted(async () => {
   // 배너 정보 가져오기
   await fetchBanners();
   
+  // 동영상 정보 가져오기
+  await fetchVideos();
+  
   isLoading.value = false;
 });
 
 onBeforeUnmount(() => {
   destroyVideoPlayer();
+  
+  // 동영상 관련 타이머 정리
+  videos.value.forEach(video => {
+    if (video.hoverTimer) {
+      clearTimeout(video.hoverTimer);
+    }
+  });
 });
   </script>
   
@@ -582,17 +834,15 @@ onBeforeUnmount(() => {
 
 .vod-badge {
   position: absolute;
-  top: 12px;
-  left: 12px;
+  top: 8px;
+  left: 8px;
   background: #4b53e1;
   color: #fff;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 700;
-  padding: 3px 12px;
-  border-radius: 6px;
+  padding: 3px 10px;
+  border-radius: 4px;
   z-index: 2;
-  letter-spacing: -1px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
 }
 
 .vod-info {
@@ -600,7 +850,7 @@ onBeforeUnmount(() => {
   flex-direction: column;
   justify-content: flex-start;
   align-items: flex-start;
-  padding: 12px 24px;
+  padding: 16px 24px;
   min-width: 0;
   width: 100%;
   height: 100%;
@@ -608,10 +858,7 @@ onBeforeUnmount(() => {
 }
 
 .vod-meta-top {
-  position: absolute;
-  top: 12px;
-  left: 24px;
-  margin: 0;
+  margin-bottom: 16px;
 }
 
 .vod-recommend {
@@ -630,7 +877,7 @@ onBeforeUnmount(() => {
   font-size: 24px;
   font-weight: 800;
   color: #fff;
-  margin-top: 48px;
+  margin-top: 0;
   margin-bottom: 12px;
   line-height: 1.3;
   word-break: keep-all;
@@ -656,6 +903,8 @@ onBeforeUnmount(() => {
 .banner-section {
   margin-top: 36px;
   margin-bottom: 24px;
+  padding-left: 0;
+  margin-left: 0;
 }
 
 .banner-container {
@@ -663,6 +912,8 @@ onBeforeUnmount(() => {
   flex-wrap: wrap;
   gap: 16px;
   justify-content: flex-start;
+  padding: 0;
+  margin-left: 0;
 }
 
 .banner-item {
@@ -706,5 +957,253 @@ onBeforeUnmount(() => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* 동영상 섹션 스타일 */
+.recent-videos-section {
+  margin-top: 36px;
+  margin-bottom: 24px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.title-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.section-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.view-all {
+  color: #B084CC;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.view-all:hover {
+  text-decoration: underline;
+}
+
+.video-filters {
+  display: flex;
+  gap: 8px;
+}
+
+.video-filters button {
+  padding: 6px 14px;
+  border: none;
+  border-radius: 20px;
+  background: #2c2c2c;
+  color: #7B7B7B;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.video-filters button.active {
+  background: #B084CC;
+  color: #fff;
+}
+
+.videos-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.videos-slider {
+  display: flex;
+  gap: 16px;
+  overflow-x: hidden;
+  width: 100%;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding-left: 0;
+  margin-left: 0;
+}
+
+.videos-slider::-webkit-scrollbar {
+  display: none;
+}
+
+.video-item {
+  flex: 0 0 calc(20% - 13px);
+  cursor: pointer;
+  overflow: hidden;
+  background-color: #141517;
+  border-radius: 8px;
+  transition: transform 0.2s;
+}
+
+.video-item:hover {
+  transform: translateY(-4px);
+}
+
+.thumbnail-container {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: 8px 8px 0 0;
+}
+
+.thumbnail {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.video-preview {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.duration {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.video-info {
+  padding: 8px 0 10px 0;
+}
+
+.video-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #ffffff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-height: 1.1;
+  margin: 0;
+  max-height: 30px;
+}
+
+.video-meta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #adb5bd;
+  margin-top: 3px;
+}
+
+.dot-separator {
+  color: #adb5bd;
+}
+
+.nav-button {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 5;
+}
+
+.prev-button {
+  left: -20px;
+}
+
+.next-button {
+  right: -20px;
+}
+
+/* 성인 컨텐츠 스타일 */
+.blur-thumbnail {
+  filter: blur(10px);
+}
+
+.hide-thumbnail {
+  filter: blur(15px);
+}
+
+.age-restriction-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+}
+
+.age-restriction-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.age-icon-circle {
+  width: 36px;
+  height: 36px;
+  background-color: rgba(255, 255, 255, 0.9);
+  color: black;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+
+.age-text {
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.video-duration-box {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  z-index: 2;
+}
+
+/* 배너 아래 동영상 섹션의 다시보기 박스만 크기 축소 */
+.videos-slider .vod-badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 3px;
 }
   </style>

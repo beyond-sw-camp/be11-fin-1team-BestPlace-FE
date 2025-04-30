@@ -58,7 +58,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 import { jwtDecode } from 'jwt-decode'
@@ -298,6 +298,18 @@ onMounted(async () => {
       activeTab.value = hash
     }
   }
+  
+  // 탭 변경 이벤트 리스너 추가
+  document.addEventListener('tabChange', (e) => {
+    if (e.detail && e.detail.tab) {
+      activeTab.value = e.detail.tab;
+    }
+  });
+})
+
+// 컴포넌트 언마운트 시 이벤트 리스너 제거
+onBeforeUnmount(() => {
+  document.removeEventListener('tabChange', () => {});
 })
 </script>
 
