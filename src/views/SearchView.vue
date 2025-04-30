@@ -3,7 +3,7 @@
     <h1 class="text-white search-title">채널</h1>
     
     <div v-if="loading" class="text-center my-5">
-      <v-progress-circular indeterminate color="#00DC64"></v-progress-circular>
+      <v-progress-circular indeterminate color="#B084CC"></v-progress-circular>
       <p class="mt-3 text-white">검색 중...</p>
     </div>
     
@@ -131,7 +131,7 @@
         
         <!-- 비디오 로딩 -->
         <div v-if="loadingVideos" class="text-center my-5">
-          <v-progress-circular indeterminate color="#00DC64"></v-progress-circular>
+          <v-progress-circular indeterminate color="#B084CC"></v-progress-circular>
           <p class="mt-3 text-white">동영상 불러오는 중...</p>
         </div>
       </div>
