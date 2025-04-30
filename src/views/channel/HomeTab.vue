@@ -77,7 +77,6 @@
           <div class="banner-image-wrapper">
             <img :src="banner.imageUrl" :alt="banner.title" class="banner-image" />
           </div>
-          <div class="banner-title">{{ banner.title }}</div>
         </div>
       </div>
     </div>
@@ -682,7 +681,7 @@ onBeforeUnmount(() => {
 .banner-image-wrapper {
   width: 80px;
   height: 80px;
-  border-radius: 50%;
+  border-radius: 8px;
   overflow: hidden;
   background: #18191c;
   display: flex;
