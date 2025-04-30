@@ -117,7 +117,7 @@
                   
                   <!-- 해시태그 목록 -->
                   <span 
-                    v-for="(tag, i) in video.hashtags" 
+                    v-for="(tag, i) in video.hashtags.length > 0 ? limitHashtags(video.hashtags) : []" 
                     :key="i" 
                     class="hashtag"
                   >
@@ -257,9 +257,9 @@ export default {
   },
   
   computed: {
-    // 최대 3개로 제한된 비디오 목록
+    // 최대 2개로 제한된 비디오 목록
     limitedVideos() {
-      return this.videos.slice(0, 3);
+      return this.videos.slice(0, 2);
     },
     
     // 첫 번째 스트리머를 제외한 나머지 스트리머 목록
@@ -606,6 +606,16 @@ export default {
       
       console.log('스트리머 채널로 이동:', streamerId);
       this.$router.push(`/channel/${streamerId}`);
+    },
+    
+    // 화면에 맞는 해시태그만 표시하는 함수
+    limitHashtags(hashtags) {
+      if (!hashtags || !Array.isArray(hashtags)) return [];
+      
+      // 길이가 짧은 태그 우선 표시 (최대 3개)
+      return hashtags
+        .slice(0, 3)
+        .filter(tag => tag && tag.length < 15); // 너무 긴 태그는 제외
     }
   }
 };
@@ -671,7 +681,7 @@ export default {
 }
 
 .streaming-active {
-  border: 2px solid #00DC64;
+  border: 2px solid #ff3b3b;
 }
 
 .live-badge {
@@ -753,12 +763,13 @@ export default {
 }
 
 .video-item {
-  flex: 0 0 32%;
+  flex: 0 0 48%;
   cursor: pointer;
   background-color: #141517;
   border-radius: 8px;
   overflow: hidden;
   transition: all 0.2s;
+  margin-bottom: 10px;
 }
 
 .video-item:hover {
@@ -769,6 +780,7 @@ export default {
 .video-item-inner {
   display: flex;
   height: 100%;
+  min-height: 120px;
 }
 
 .thumbnail-wrapper {
@@ -820,9 +832,11 @@ export default {
 
 .video-info {
   flex: 1;
-  padding: 8px;
+  padding: 8px 8px 12px 8px;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  width: 100%;
 }
 
 .video-title {
@@ -852,9 +866,13 @@ export default {
 /* 태그 스타일 */
 .tags-container {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 4px;
-  margin-top: 4px;
+  margin-top: 6px;
+  max-height: 24px;
+  overflow: hidden;
+  width: 100%;
+  max-width: 90%;
 }
 
 .category-tag {
@@ -866,6 +884,10 @@ export default {
   font-weight: 500;
   cursor: pointer;
   transition: opacity 0.2s;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  flex-shrink: 0; /* 태그 너비 축소 방지 */
+  display: inline-block;
 }
 
 .category-tag:hover {
@@ -880,6 +902,10 @@ export default {
   padding: 1px 5px;
   border-radius: 3px;
   border: 1px solid #aaaaaa;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  flex-shrink: 0; /* 태그 너비 축소 방지 */
+  display: inline-block;
 }
 
 .age-restriction-overlay {
