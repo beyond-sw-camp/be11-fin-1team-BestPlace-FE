@@ -201,13 +201,13 @@ export default {
 }
 
 .menu-icon {
-  color: #5D5F61 !important;
+  color: #FFFFFF !important;
   margin-right: 8px !important;
   font-size: 20px !important;
 }
 
 .menu-title {
-  color: #A0A0A0;
+  color: #FFFFFF;
   font-size: 14px;
   font-weight: 500;
 }
@@ -244,13 +244,13 @@ export default {
 }
 
 .channel-avatar {
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid FFFFFF;
   margin-right: 8px;
   flex-shrink: 0;
 }
 
 .channel-name {
-  color: #A0A0A0;
+  color: #FFFFFF;
   font-size: 12px;
   font-weight: 500;
   margin-left: 4px;
@@ -289,7 +289,7 @@ export default {
 /* 기타 스타일 */
 .empty-follow-text {
   font-size: 11px;
-  color: #444;
+  color: #FFFFFF;
 }
 
 .text-truncate {
@@ -300,8 +300,13 @@ export default {
 }
 
 .divider-style {
-  border-color: rgba(255, 255, 255, 0.1) !important;
+  border-color: #FFFFFF !important;
+  border-width: 1px !important;
   margin-left: 8px;
   margin-right: 8px;
+}
+
+.caption.text-grey.font-weight-medium {
+  color: #FFFFFF !important;
 }
 </style>

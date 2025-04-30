@@ -9,6 +9,7 @@ import {aliases, mdi} from 'vuetify/iconsets/mdi';
 import '@mdi/font/css/materialdesignicons.css';
 import './style.css';
 import axios from 'axios';
+import './assets/styles/global.css'
 
 axios.interceptors.request.use(
     config => {

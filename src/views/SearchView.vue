@@ -746,8 +746,8 @@ export default {
 /* 동영상 가로 스크롤 */
 .videos-row {
   display: flex;
-  justify-content: space-between;
-  gap: 0;
+  justify-content: flex-start;
+  gap: 20px;
   padding-bottom: 10px;
   overflow-x: hidden;
 }
@@ -804,12 +804,12 @@ export default {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 10px;
+  font-size: 12px;
   color: #adb5bd;
 }
 
 .dot-separator {
-  font-size: 10px;
+  font-size: 12px;
   color: #adb5bd;
 }
 
@@ -826,15 +826,15 @@ export default {
 }
 
 .video-title {
-  font-size: 12px;
-  font-weight: 500;
-  margin-bottom: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 5px;
   color: white;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  line-height: 1.2;
+  line-height: 1.3;
 }
 
 .video-meta {
@@ -845,7 +845,7 @@ export default {
 }
 
 .video-time {
-  font-size: 10px;
+  font-size: 12px;
   color: #adb5bd;
 }
 
@@ -858,11 +858,11 @@ export default {
 }
 
 .category-tag {
-  font-size: 9px;
+  font-size: 11px;
   background-color: #B084CC;
   color: black;
-  padding: 1px 4px;
-  border-radius: 2px;
+  padding: 2px 5px;
+  border-radius: 3px;
   font-weight: 500;
   cursor: pointer;
   transition: opacity 0.2s;
@@ -874,11 +874,11 @@ export default {
 }
 
 .hashtag {
-  font-size: 9px;
+  font-size: 11px;
   color: #aaaaaa;
   background-color: transparent;
-  padding: 0px 4px;
-  border-radius: 2px;
+  padding: 1px 5px;
+  border-radius: 3px;
   border: 1px solid #aaaaaa;
 }
 
