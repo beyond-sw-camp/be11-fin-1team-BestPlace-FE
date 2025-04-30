@@ -94,6 +94,8 @@ const selectedClip = ref(null)
 // 탭 변경 처리
 const handleTabChange = (tab) => {
   activeTab.value = tab
+  // 탭 변경 시 스크롤을 상단으로 이동
+  window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
 // 성인 컨텐츠 모달 관련 메서드
@@ -303,6 +305,8 @@ onMounted(async () => {
   document.addEventListener('tabChange', (e) => {
     if (e.detail && e.detail.tab) {
       activeTab.value = e.detail.tab;
+      // 스크롤을 상단으로 이동
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   });
 })
