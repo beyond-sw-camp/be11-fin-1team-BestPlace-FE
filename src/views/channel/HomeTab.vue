@@ -302,12 +302,20 @@ const props = defineProps({
   streamerInfo: {
     type: Object,
     default: () => ({})
+  },
+  streamingId: {
+    type: [String, Number],
+    default: null
+  },
+  userIsAdult: {
+    type: Boolean,
+    default: false
   }
 });
 
 // 상태
 const isLoading = ref(true);
-const streamingId = ref(null);
+const streamingId = ref(props.streamingId);
 const streamInfo = ref({});
 const videoPlayer = ref(null);
 const hlsInstance = ref(null);
@@ -316,8 +324,25 @@ const MAX_HLS_RETRIES = 3;
 const vodInfo = ref(null);
 const banners = ref(null);
 
-// 라이브 여부는 streamerInfo.streamingYn으로 판단
-const isLive = computed(() => props.streamerInfo?.streamingYn === 'Y');
+// 라이브 여부는 ref로 정의하고 props에서 가져옵니다
+const isLive = ref(props.streamerInfo?.streamingYn === 'Y');
+
+// props.streamerInfo가 변경될 때 isLive 값도 업데이트
+watch(() => props.streamerInfo?.streamingYn, (newValue) => {
+  isLive.value = newValue === 'Y';
+}, { immediate: true });
+
+// props.streamingId가 변경될 때 내부 상태도 업데이트
+watch(() => props.streamingId, (newValue) => {
+  if (newValue !== streamingId.value) {
+    streamingId.value = newValue;
+    
+    // streamingId가 유효하고 라이브 상태인 경우 스트리밍 정보 다시 로드
+    if (newValue && isLive.value) {
+      fetchStreamingInfo();
+    }
+  }
+}, { immediate: true });
 
 // 동영상 관련 변수와 메서드 추가
 const videos = ref([]);
@@ -330,7 +355,6 @@ const visibleVideos = computed(() => {
   return videos.value.slice(startIdx, startIdx + videosPerPage);
 });
 const videosSlider = ref(null);
-const userIsAdult = computed(() => props.streamerInfo?.adultYn === 'Y');
 
 // 클립 관련 변수 추가
 const clips = ref([]);
@@ -790,22 +814,40 @@ const slideClipPrev = () => {
 };
 
 onMounted(async () => {
-  await fetchStreamingInfo();
+  isLoading.value = true;
   
-  if (!isLive.value) {
+  try {
+    // 라이브 상태 확인 및 콘텐츠 로드
+    if (isLive.value) {
+      // 부모에서 전달받은 streamingId가 있는 경우 사용
+      if (props.streamingId) {
+        streamingId.value = props.streamingId;
+        await fetchStreamingInfo();
+      } else {
+        // streamingId가 없는 경우 새로 요청
+        await fetchStreamingInfo();
+      }
+    } else {
+      // 라이브가 아닌 경우 VOD 정보 로드
+      await fetchVodInfo();
+    }
+    
+    // 배너 정보 가져오기
+    await fetchBanners();
+    
+    // 동영상 정보 가져오기
+    await fetchVideos();
+    
+    // 클립 정보 가져오기
+    await fetchClips();
+  } catch (error) {
+    console.error('홈탭 초기화 중 오류 발생:', error);
+    // 에러 발생 시 VOD로 폴백
+    isLive.value = false;
     await fetchVodInfo();
+  } finally {
+    isLoading.value = false;
   }
-  
-  // 배너 정보 가져오기
-  await fetchBanners();
-  
-  // 동영상 정보 가져오기
-  await fetchVideos();
-  
-  // 클립 정보 가져오기
-  await fetchClips();
-  
-  isLoading.value = false;
 });
 
 onBeforeUnmount(() => {

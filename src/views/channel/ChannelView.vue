@@ -25,7 +25,12 @@
       />
 
       <div class="channel-content">
-        <HomeTab v-if="activeTab === 'home'" />
+        <HomeTab 
+          v-if="activeTab === 'home'" 
+          :streamerInfo="streamerInfo"
+          :streamingId="streamingId" 
+          :userIsAdult="userIsAdult"
+        />
         <VideosTab 
           v-else-if="activeTab === 'videos'" 
           :streamerId="streamerId"

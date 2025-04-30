@@ -1014,6 +1014,8 @@ export default {
   flex-wrap: wrap;
   gap: 5px;
   margin-top: 8px;
+  max-height: 24px; /* 첫 번째 줄 높이만큼만 설정 */
+  overflow: hidden; /* 넘치는 부분(두 번째 줄부터) 숨김 */
 }
 
 .hashtag {
@@ -1143,14 +1145,13 @@ export default {
   color: #6c757d;
 }
 
-.hashtag {
-  font-size: 10px;
-  color: #aaaaaa;
-  background-color: transparent;
-  padding: 1px 3px;
-  border-radius: 3px;
-  display: inline-block;
-  border: 1px solid #aaaaaa;
+
+.hashtags {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: 2px;
 }
 
 .age-restriction-overlay {
