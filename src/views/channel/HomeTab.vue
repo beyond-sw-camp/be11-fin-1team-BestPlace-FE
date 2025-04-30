@@ -1026,6 +1026,10 @@ onBeforeUnmount(() => {
   padding: 2px 10px;
   background: rgba(0, 0, 0, 0.6);
   border-radius: 4px;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+  border: 1px solid #bfc2c7;
+  margin-right: 4px;
+  margin-bottom: 4px;
 }
 
 .vod-section {
