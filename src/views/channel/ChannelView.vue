@@ -271,7 +271,7 @@ const checkIsChannelManager = async () => {
       const token = localStorage.getItem('token')
       
       const response = await axios.get(
-        `${streamingApiUrl}/manager/checking/${streamerId.value}?requester=${currentUserId.value}`,
+        `${streamingApiUrl}/checking/channel/${streamerId.value}?requester=${currentUserId.value}`,
         { headers: { Authorization: `Bearer ${token}` }}
       )
       
