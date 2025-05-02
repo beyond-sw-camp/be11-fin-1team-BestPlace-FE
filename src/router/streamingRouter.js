@@ -2,6 +2,7 @@ import LiveDetailPage from "@/views/liveDetailPage.vue";
 import LiveListView from "@/views/liveListView.vue";
 import SearchView from "@/views/SearchView.vue";
 import ChannelView from "@/views/channel/ChannelView.vue";
+import ChannelSettingView from "@/views/ChannelSetting.vue";
 export default [
     {
       path: '/live/:streamId',
@@ -23,4 +24,9 @@ export default [
       name: 'Channel',
       component: ChannelView
     },
+    {
+      path: '/channel/setting/:memberId',
+      name: 'ChannelSetting',
+      component: ChannelSettingView
+    }
   ];
