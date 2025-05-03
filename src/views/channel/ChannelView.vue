@@ -44,7 +44,10 @@
           :userIsAdult="userIsAdult"
           @showAdultAlert="handleShowAdultAlert"
         />
-        <CommunityTab v-else-if="activeTab === 'community'" />
+        <CommunityTab 
+          v-else-if="activeTab === 'community'" 
+          :isChannelManager="isChannelManager"
+        />
         <InfoTab v-else-if="activeTab === 'info'" />
       </div>
     </div>
@@ -271,7 +274,7 @@ const checkIsChannelManager = async () => {
       const token = localStorage.getItem('token')
       
       const response = await axios.get(
-        `${streamingApiUrl}/checking/channel/${streamerId.value}?requester=${currentUserId.value}`,
+        `${streamingApiUrl}/manager/checking/channel/${streamerId.value}?requester=${currentUserId.value}`,
         { headers: { Authorization: `Bearer ${token}` }}
       )
       
