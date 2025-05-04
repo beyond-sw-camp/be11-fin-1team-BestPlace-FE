@@ -218,7 +218,14 @@ export default {
     async fetchProfileData() {
       try {
         const response = await axios.get(`${this.memberApi}/member/my/profile`)
-        this.profileData = response.data.result
+        const profileData = response.data.result
+
+        if (profileData.profileImageUrl) {
+          profileData.profileImageUrl += `?v=${Date.now()}`
+        }
+
+        this.profileData = profileData
+
         console.log('프로필 데이터:', this.profileData) // 디버깅용 로그 추가
       } catch (error) {
         console.error('프로필 정보를 가져오는 중 오류가 발생했습니다:', error)

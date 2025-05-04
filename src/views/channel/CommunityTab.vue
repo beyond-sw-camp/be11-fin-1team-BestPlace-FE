@@ -578,7 +578,7 @@ const editPost = async (postId) => {
 
 // 게시글 상세 페이지로 이동
 const goToPostDetail = (postId) => {
-  router.push(`/community/detail/${postId}`);
+  router.push(`/channel/${channelOwnerId.value}/community/detail/${postId}`);
 };
 
 // 내용 길이 제한 (7줄 이상이면 잘라내기)
