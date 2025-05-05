@@ -100,50 +100,51 @@
         
         <div class="comments-list" ref="commentListRef" v-if="comments.length > 0">
           <div v-for="comment in comments" :key="comment.commentId" class="comment-item" :class="{ 'deleted': comment.isDeleted === 'Y' }">
-            <template v-if="comment.isDeleted === 'Y'">
-              <div class="deleted-comment">
-                <span>삭제된 댓글입니다.</span>
-              </div>
-            </template>
-            <template v-else>
-              <div class="comment-user-info">
-                <img :src="comment.authorProfileUrl || defaultProfileImage" alt="프로필 이미지" class="profile-image">
-                <div class="comment-author-info">
-                  <div class="author-name-time">
-                    <span class="comment-author">{{ comment.authorNickName }}</span>
-                    <span class="comment-time">{{ formatRelativeTime(comment.createdTime) }}</span>
-                  </div>
-                  <div class="comment-options" v-if="comment.isOwner === 'Y' || comment.authorId === currentUserId">
-                    <v-menu>
-                      <template v-slot:activator="{ props }">
-                        <v-btn icon size="x-small" v-bind="props" class="menu-btn">
-                          <v-icon size="x-small">mdi-dots-vertical</v-icon>
-                        </v-btn>
-                      </template>
-                      <v-list density="compact" class="options-list">
-                        <v-list-item v-if="comment.authorId === currentUserId" @click="showEditCommentForm(comment)" density="compact" class="option-item">
-                          <v-list-item-title>
-                            <div class="menu-item edit-item">
-                              <v-icon size="x-small">mdi-pencil</v-icon>
-                              <span class="menu-text">수정</span>
-                            </div>
-                          </v-list-item-title>
-                        </v-list-item>
-                        <v-list-item @click="deleteComment(comment.commentId)" density="compact" class="option-item">
-                          <v-list-item-title>
-                            <div class="menu-item delete-item">
-                              <v-icon size="x-small">mdi-delete</v-icon>
-                              <span class="menu-text">삭제</span>
-                            </div>
-                          </v-list-item-title>
-                        </v-list-item>
-                      </v-list>
-                    </v-menu>
-                  </div>
+            <div class="comment-user-info">
+              <img :src="comment.authorProfileUrl || defaultProfileImage" alt="프로필 이미지" class="profile-image">
+              <div class="comment-author-info">
+                <div class="author-name-time">
+                  <span class="comment-author">{{ comment.authorNickName }}</span>
+                  <span class="comment-time">{{ formatRelativeTime(comment.createdTime) }}</span>
+                </div>
+                <div class="comment-options" v-if="(comment.isOwner === 'Y' || comment.authorId === currentUserId) && comment.isDeleted !== 'Y'">
+                  <v-menu>
+                    <template v-slot:activator="{ props }">
+                      <v-btn icon size="x-small" v-bind="props" class="menu-btn">
+                        <v-icon size="x-small">mdi-dots-vertical</v-icon>
+                      </v-btn>
+                    </template>
+                    <v-list density="compact" class="options-list">
+                      <v-list-item v-if="comment.authorId === currentUserId" @click="showEditCommentForm(comment)" density="compact" class="option-item">
+                        <v-list-item-title>
+                          <div class="menu-item edit-item">
+                            <v-icon size="x-small">mdi-pencil</v-icon>
+                            <span class="menu-text">수정</span>
+                          </div>
+                        </v-list-item-title>
+                      </v-list-item>
+                      <v-list-item @click="deleteComment(comment.commentId)" density="compact" class="option-item">
+                        <v-list-item-title>
+                          <div class="menu-item delete-item">
+                            <v-icon size="x-small">mdi-delete</v-icon>
+                            <span class="menu-text">삭제</span>
+                          </div>
+                        </v-list-item-title>
+                      </v-list-item>
+                    </v-list>
+                  </v-menu>
                 </div>
               </div>
+            </div>
+            
+            <div class="comment-body">
+              <!-- 삭제된 댓글일 경우 -->
+              <div v-if="comment.isDeleted === 'Y'" class="deleted-comment">
+                <span>삭제된 댓글입니다.</span>
+              </div>
               
-              <div class="comment-body">
+              <!-- 일반 댓글일 경우 -->
+              <template v-else>
                 <!-- 댓글 내용 (일반 모드) -->
                 <div v-if="!comment.isEditing" class="comment-text">{{ comment.content }}</div>
                 
@@ -186,88 +187,89 @@
                     버프 {{ comment.likeCount || 0 }}
                   </div>
                 </div>
-              </div>
-              
-              <!-- 답글 작성 폼 -->
-              <div v-if="comment.showReplyForm && !comment.parentCommentId" class="reply-form">
-                <div class="reply-input-container">
-                  <img :src="userProfileImage" alt="내 프로필" class="profile-image small">
-                  <div class="reply-input-wrapper">
-                    <textarea 
-                      v-model="comment.replyContent" 
-                      class="reply-input" 
-                      placeholder="답글을 입력하세요"
-                      @input="checkReplyLength(comment)"
-                    ></textarea>
-                    <div class="reply-input-footer">
-                      <div class="content-count" :class="{ 'limit-exceeded': comment.replyContent.length > 500 }">
-                        {{ comment.replyContent.length }}/500
-                      </div>
-                      <div class="button-group">
-                        <v-btn text size="small" @click="hideReplyForm(comment)" class="cancel-reply-btn">취소</v-btn>
-                        <v-btn 
-                          color="#B084CC" 
-                          size="small" 
-                          class="submit-reply-btn" 
-                          :disabled="comment.replyContent.trim() === '' || comment.replyContent.length > 500"
-                          @click="submitReply(comment)"
-                        >
-                          등록
-                        </v-btn>
-                      </div>
+              </template>
+            </div>
+            
+            <!-- 답글 작성 폼 -->
+            <div v-if="comment.showReplyForm && !comment.parentCommentId && comment.isDeleted !== 'Y'" class="reply-form">
+              <div class="reply-input-container">
+                <img :src="userProfileImage" alt="내 프로필" class="profile-image small">
+                <div class="reply-input-wrapper">
+                  <textarea 
+                    v-model="comment.replyContent" 
+                    class="reply-input" 
+                    placeholder="답글을 입력하세요"
+                    @input="checkReplyLength(comment)"
+                  ></textarea>
+                  <div class="reply-input-footer">
+                    <div class="content-count" :class="{ 'limit-exceeded': comment.replyContent.length > 500 }">
+                      {{ comment.replyContent.length }}/500
+                    </div>
+                    <div class="button-group">
+                      <v-btn text size="small" @click="hideReplyForm(comment)" class="cancel-reply-btn">취소</v-btn>
+                      <v-btn 
+                        color="#B084CC" 
+                        size="small" 
+                        class="submit-reply-btn" 
+                        :disabled="comment.replyContent.trim() === '' || comment.replyContent.length > 500"
+                        @click="submitReply(comment)"
+                      >
+                        등록
+                      </v-btn>
                     </div>
                   </div>
                 </div>
               </div>
-            </template>
+            </div>
             
             <!-- 대댓글 목록 -->
             <div v-if="comment.replies && comment.replies.length > 0" class="replies-list">
               <div v-for="reply in comment.replies" :key="reply.commentId" class="reply-item" :class="{ 'deleted': reply.isDeleted === 'Y' }">
-                <template v-if="reply.isDeleted === 'Y'">
-                  <div class="deleted-comment">
-                    <span>삭제된 답글입니다.</span>
-                  </div>
-                </template>
-                <template v-else>
-                  <div class="reply-user-info">
-                    <img :src="reply.authorProfileUrl || defaultProfileImage" alt="프로필 이미지" class="profile-image small">
-                    <div class="reply-author-info">
-                      <div class="author-name-time">
-                        <span class="comment-author">{{ reply.authorNickName }}</span>
-                        <span class="comment-time">{{ formatRelativeTime(reply.createdTime) }}</span>
-                      </div>
-                      <div class="comment-options" v-if="reply.isOwner === 'Y' || reply.authorId === currentUserId">
-                        <v-menu>
-                          <template v-slot:activator="{ props }">
-                            <v-btn icon size="x-small" v-bind="props" class="menu-btn">
-                              <v-icon size="x-small">mdi-dots-vertical</v-icon>
-                            </v-btn>
-                          </template>
-                          <v-list density="compact" class="options-list">
-                            <v-list-item v-if="reply.authorId === currentUserId" @click="showEditCommentForm(reply)" density="compact" class="option-item">
-                              <v-list-item-title>
-                                <div class="menu-item edit-item">
-                                  <v-icon size="x-small">mdi-pencil</v-icon>
-                                  <span class="menu-text">수정</span>
-                                </div>
-                              </v-list-item-title>
-                            </v-list-item>
-                            <v-list-item @click="deleteComment(reply.commentId)" density="compact" class="option-item">
-                              <v-list-item-title>
-                                <div class="menu-item delete-item">
-                                  <v-icon size="x-small">mdi-delete</v-icon>
-                                  <span class="menu-text">삭제</span>
-                                </div>
-                              </v-list-item-title>
-                            </v-list-item>
-                          </v-list>
-                        </v-menu>
-                      </div>
+                <div class="reply-user-info">
+                  <img :src="reply.authorProfileUrl || defaultProfileImage" alt="프로필 이미지" class="profile-image small">
+                  <div class="reply-author-info">
+                    <div class="author-name-time">
+                      <span class="comment-author">{{ reply.authorNickName }}</span>
+                      <span class="comment-time">{{ formatRelativeTime(reply.createdTime) }}</span>
+                    </div>
+                    <div class="comment-options" v-if="(reply.isOwner === 'Y' || reply.authorId === currentUserId) && reply.isDeleted !== 'Y'">
+                      <v-menu>
+                        <template v-slot:activator="{ props }">
+                          <v-btn icon size="x-small" v-bind="props" class="menu-btn">
+                            <v-icon size="x-small">mdi-dots-vertical</v-icon>
+                          </v-btn>
+                        </template>
+                        <v-list density="compact" class="options-list">
+                          <v-list-item v-if="reply.authorId === currentUserId" @click="showEditCommentForm(reply)" density="compact" class="option-item">
+                            <v-list-item-title>
+                              <div class="menu-item edit-item">
+                                <v-icon size="x-small">mdi-pencil</v-icon>
+                                <span class="menu-text">수정</span>
+                              </div>
+                            </v-list-item-title>
+                          </v-list-item>
+                          <v-list-item @click="deleteComment(reply.commentId)" density="compact" class="option-item">
+                            <v-list-item-title>
+                              <div class="menu-item delete-item">
+                                <v-icon size="x-small">mdi-delete</v-icon>
+                                <span class="menu-text">삭제</span>
+                              </div>
+                            </v-list-item-title>
+                          </v-list-item>
+                        </v-list>
+                      </v-menu>
                     </div>
                   </div>
+                </div>
+                
+                <div class="reply-body">
+                  <!-- 삭제된 답글일 경우 -->
+                  <div v-if="reply.isDeleted === 'Y'" class="deleted-comment">
+                    <span>삭제된 답글입니다.</span>
+                  </div>
                   
-                  <div class="reply-body">
+                  <!-- 일반 답글일 경우 -->
+                  <template v-else>
                     <!-- 대댓글 내용 (일반 모드) -->
                     <div v-if="!reply.isEditing" class="reply-text">{{ reply.content }}</div>
                     
@@ -309,40 +311,40 @@
                         버프 {{ reply.likeCount || 0 }}
                       </div>
                     </div>
-                  </div>
-                  
-                  <!-- 대댓글의 답글 폼 추가 -->
-                  <div v-if="reply.showReplyForm" class="reply-form reply-to-reply-form">
-                    <div class="reply-input-container">
-                      <img :src="userProfileImage" alt="내 프로필" class="profile-image small">
-                      <div class="reply-input-wrapper">
-                        <textarea 
-                          v-model="reply.replyContent" 
-                          class="reply-input" 
-                          placeholder="답글을 입력하세요"
-                          @input="checkReplyLength(reply)"
-                        ></textarea>
-                        <div class="reply-input-footer">
-                          <div class="content-count" :class="{ 'limit-exceeded': reply.replyContent.length > 500 }">
-                            {{ reply.replyContent.length }}/500
-                          </div>
-                          <div class="button-group">
-                            <v-btn text size="small" @click="hideReplyForm(reply)" class="cancel-reply-btn">취소</v-btn>
-                            <v-btn 
-                              color="#B084CC" 
-                              size="small" 
-                              class="submit-reply-btn" 
-                              :disabled="reply.replyContent.trim() === '' || reply.replyContent.length > 500"
-                              @click="submitReply(reply)"
-                            >
-                              등록
-                            </v-btn>
-                          </div>
+                  </template>
+                </div>
+                
+                <!-- 대댓글의 답글 폼 추가 -->
+                <div v-if="reply.showReplyForm && reply.isDeleted !== 'Y'" class="reply-form reply-to-reply-form">
+                  <div class="reply-input-container">
+                    <img :src="userProfileImage" alt="내 프로필" class="profile-image small">
+                    <div class="reply-input-wrapper">
+                      <textarea 
+                        v-model="reply.replyContent" 
+                        class="reply-input" 
+                        placeholder="답글을 입력하세요"
+                        @input="checkReplyLength(reply)"
+                      ></textarea>
+                      <div class="reply-input-footer">
+                        <div class="content-count" :class="{ 'limit-exceeded': reply.replyContent.length > 500 }">
+                          {{ reply.replyContent.length }}/500
+                        </div>
+                        <div class="button-group">
+                          <v-btn text size="small" @click="hideReplyForm(reply)" class="cancel-reply-btn">취소</v-btn>
+                          <v-btn 
+                            color="#B084CC" 
+                            size="small" 
+                            class="submit-reply-btn" 
+                            :disabled="reply.replyContent.trim() === '' || reply.replyContent.length > 500"
+                            @click="submitReply(reply)"
+                          >
+                            등록
+                          </v-btn>
                         </div>
                       </div>
                     </div>
                   </div>
-                </template>
+                </div>
               </div>
             </div>
           </div>
@@ -437,7 +439,7 @@
     <v-dialog v-model="deleteConfirmModalOpen" max-width="400" content-class="community-modal">
       <div class="modal-container">
         <div class="modal-header">
-          <div class="modal-title">게시글 삭제</div>
+          <div class="modal-title">{{ deleteTargetType === 'post' ? '게시글 삭제' : '댓글 삭제' }}</div>
           <v-btn icon @click="cancelDeleteConfirm" class="close-btn">
             <v-icon>mdi-close</v-icon>
           </v-btn>
@@ -447,7 +449,7 @@
           <div class="message-container warning-container">
             <v-icon icon="mdi-alert" color="#ff9800" size="x-large" class="message-icon"></v-icon>
             <div class="message-text">
-              <p>정말 이 게시글을 삭제하시겠습니까?</p>
+              <p>정말 이 {{ deleteTargetType === 'post' ? '게시글' : '댓글' }}을 삭제하시겠습니까?</p>
               <p class="warning-submessage">삭제 후에는 다시 복구할 수 없습니다.</p>
             </div>
           </div>
@@ -567,7 +569,7 @@ const loading = ref(true);
 const commentsLoading = ref(false);
 const defaultProfileImage = ref('https://bestplace-media.s3.ap-northeast-2.amazonaws.com/bestplace-basic-profile-image.png');
 const userProfileImage = ref(localStorage.getItem('profileImageUrl') || 'https://bestplace-media.s3.ap-northeast-2.amazonaws.com/bestplace-basic-profile-image.png');
-const currentUserId = ref(localStorage.getItem('userId'));
+const currentUserId = ref(localStorage.getItem('userId') ? Number(localStorage.getItem('userId')) : null);
 const commentPage = ref(0);
 const hasMoreComments = ref(true);
 const commentListRef = ref(null);
@@ -730,6 +732,7 @@ const fetchComments = async (page = 0, refresh = false) => {
 
 // 댓글 수정 폼 표시
 const showEditCommentForm = (comment) => {
+  // 작성자 ID가 현재 사용자 ID와 일치하는지 확인
   if (comment.authorId !== currentUserId.value) {
     showAlertModal('자신이 작성한 댓글만 수정할 수 있습니다.', 'mdi-alert-circle', '#ff5252');
     return;
@@ -747,6 +750,7 @@ const cancelEditComment = (comment) => {
 
 // 댓글 수정
 const updateComment = async (comment) => {
+  // 작성자 ID가 현재 사용자 ID와 일치하는지 확인
   if (comment.authorId !== currentUserId.value) {
     showAlertModal('자신이 작성한 댓글만 수정할 수 있습니다.', 'mdi-alert-circle', '#ff5252');
     return;
@@ -1006,9 +1010,9 @@ const deleteComment = (commentId) => {
     }
   }
   
-  // 권한 체크
+  // 권한 체크: 본인이 작성한 댓글이거나 관리자인 경우에만 삭제 가능
   if (targetComment && targetComment.authorId !== currentUserId.value && targetComment.isOwner !== 'Y') {
-    showAlertModal('삭제 권한이 없습니다.', 'mdi-alert-circle', '#ff5252');
+    showAlertModal('본인이 작성한 댓글이나 관리자만 삭제할 수 있습니다.', 'mdi-alert-circle', '#ff5252');
     return;
   }
   
@@ -1430,6 +1434,19 @@ const showReplyFormFromReply = (reply) => {
     // 추가 속성: 원본 댓글 ID 저장 (실제 답글은 원본 댓글에 달리도록)
     reply.parentCommentForReply = parentComment.commentId;
   }
+};
+
+// 게시글 삭제 함수 추가
+const deletePost = (postId) => {
+  deleteTargetId.value = postId;
+  deleteTargetType.value = 'post';
+  deleteConfirmModalOpen.value = true;
+};
+
+// 삭제 확인 모달 닫기
+const cancelDeleteConfirm = () => {
+  deleteConfirmModalOpen.value = false;
+  deleteTargetId.value = null;
 };
 
 // 컴포넌트 마운트 시 실행
@@ -2057,10 +2074,6 @@ onUnmounted(() => {
   padding: 6px 0;
   border-top: 1px solid rgba(255, 255, 255, 0.05);
   margin-bottom: 0;
-}
-
-.reply-user-info {
-  align-items: center !important;
 }
 
 .reply-body {
