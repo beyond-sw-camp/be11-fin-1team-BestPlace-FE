@@ -12,9 +12,24 @@
           @click="goToCategoryDetail(category)"
         >
           <div class="category-thumbnail">
+            <div class="viewer-count" :class="{ 'live': category.streamCount > 0, 'off': category.streamCount === 0 }">
+              <div class="live-dot" v-if="category.streamCount > 0 && category.viewerCount > 0"></div>
+              <template v-if="category.streamCount > 0">
+                <template v-if="category.viewerCount > 0">
+                  {{ formatViewerCount(category.viewerCount) }}명
+                </template>
+                <template v-else>
+                  LIVE
+                </template>
+              </template>
+              <template v-else>
+                OFF
+              </template>
+            </div>
             <img :src="category.image" :alt="category.name" class="thumbnail-image">
           </div>
           <div class="category-name">{{ category.name }}</div>
+          <div class="stream-count">라이브 {{ category.streamCount }}개</div>
         </div>
       </div>
       
@@ -114,6 +129,15 @@ export default {
     
     goToCategoryDetail(category) {
       this.$router.push(`/category/${category.name}`);
+    },
+    
+    formatViewerCount(count) {
+      if (count >= 10000) {
+        return (count / 10000).toFixed(1) + '만';
+      } else if (count >= 1000) {
+        return (count / 1000).toFixed(1) + '천';
+      }
+      return count.toString();
     }
   }
 };
@@ -168,6 +192,44 @@ export default {
   border-radius: 10px;
   background-color: #0F0F0F;
   margin-bottom: 12px;
+}
+
+.viewer-count {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  z-index: 1;
+}
+
+.viewer-count.live {
+  background-color: rgba(255, 0, 0, 0.8);
+}
+
+.viewer-count.off {
+  background-color: rgba(128, 128, 128, 0.8);
+}
+
+.live-dot {
+  width: 6px;
+  height: 6px;
+  background-color: #ffffff;
+  border-radius: 50%;
+  margin-right: 4px;
+}
+
+.stream-count {
+  font-size: 12px;
+  color: #aaaaaa;
+  padding: 0 4px;
+  margin-top: 4px;
 }
 
 .thumbnail-image {
