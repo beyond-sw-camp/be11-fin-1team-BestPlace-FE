@@ -1183,7 +1183,7 @@ onBeforeUnmount(() => {
 .banner-container {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 8px;
   justify-content: flex-start;
   padding: 0;
   margin-left: 0;
@@ -1194,7 +1194,7 @@ onBeforeUnmount(() => {
   flex-direction: column;
   align-items: center;
   cursor: pointer;
-  width: 120px;
+  width: 130px;
   transition: transform 0.2s;
 }
 
@@ -1203,8 +1203,8 @@ onBeforeUnmount(() => {
 }
 
 .banner-image-wrapper {
-  width: 80px;
-  height: 80px;
+  width: 120px;
+  height: 120px;
   border-radius: 8px;
   overflow: hidden;
   background: #18191c;

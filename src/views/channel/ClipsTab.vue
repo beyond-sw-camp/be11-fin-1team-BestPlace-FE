@@ -159,7 +159,7 @@ import { useRouter } from 'vue-router';
 import axios from 'axios';
 
 const props = defineProps({
-  channelId: {
+  streamerId: {
     type: [String, Number],
     required: true
   },
@@ -213,7 +213,7 @@ const loadClips = async () => {
   
   try {
     console.log('Loading clips:', {
-      streamerId: props.channelId,
+      streamerId: props.streamerId,
       page: clipPage.value,
       periodType: selectedClipPeriod.value,
       sort: selectedClipSort.value
@@ -227,7 +227,7 @@ const loadClips = async () => {
     const response = await axios.get(`${process.env.VUE_APP_MEMBER_API}${endpoint}`, {
       params: {
         page: clipPage.value,
-        streamerId: props.channelId,
+        streamerId: props.streamerId,
         periodType: selectedClipPeriod.value
       }
     });
@@ -340,7 +340,7 @@ onBeforeUnmount(() => {
 });
 
 // 채널ID 변경 시 클립 목록 다시 로드
-watch(() => props.channelId, (newId) => {
+watch(() => props.streamerId, (newId) => {
   if (newId) {
     resetAndLoadClips(selectedClipPeriod.value, selectedClipSort.value);
   }
