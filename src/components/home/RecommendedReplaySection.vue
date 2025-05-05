@@ -395,6 +395,10 @@ onMounted(() => {
     transition: opacity 0.3s ease;
 }
 
+.video-item:hover .thumbnail {
+    opacity: 0.7;
+}
+
 .blur-thumbnail {
     filter: blur(3px);
     opacity: 0.9;
