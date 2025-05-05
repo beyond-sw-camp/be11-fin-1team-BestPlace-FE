@@ -83,9 +83,11 @@
             <input 
               type="text" 
               v-model="editForm.nickname" 
-              class="profile-input" 
+              class="profile-input disabled-input" 
               placeholder="닉네임을 입력하세요"
+              disabled
             />
+            <div class="input-note">닉네임은 변경할 수 없습니다.</div>
             <div v-if="nicknameError" class="error-message">{{ nicknameError }}</div>
           </div>
           
@@ -579,6 +581,18 @@ export default {
   border-radius: 8px;
   color: white;
   font-size: 16px;
+}
+
+.disabled-input {
+  background-color: #282828;
+  color: #888;
+  cursor: not-allowed;
+}
+
+.input-note {
+  font-size: 12px;
+  color: #888;
+  margin-top: 4px;
 }
 
 .profile-textarea {
