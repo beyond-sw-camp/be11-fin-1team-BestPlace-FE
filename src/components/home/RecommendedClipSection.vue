@@ -1,7 +1,7 @@
 <template>
     <div class="recommended-clip-section">
         <div class="section-header">
-            <h2 class="section-title">BestPlace가 추천하는 클립</h2>
+            <h1 class="section-title">BestPlace가 추천하는 클립</h1>
         </div>
 
         <div class="clips-grid">
@@ -251,8 +251,8 @@ onMounted(() => {
 
 .section-title {
     color: #fff;
-    font-size: 24px;
-    font-weight: 600;
+    font-size: 22px;
+    font-weight: 400;
 }
 
 .clips-grid {
