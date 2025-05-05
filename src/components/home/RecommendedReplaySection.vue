@@ -308,8 +308,8 @@ onMounted(() => {
 
 .section-title {
     color: #fff;
-    font-size: 24px;
-    font-weight: 600;
+    font-size: 22px;
+    font-weight: 400;
 }
 
 .more-button-container {
