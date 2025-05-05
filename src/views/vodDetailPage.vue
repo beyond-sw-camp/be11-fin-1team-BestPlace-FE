@@ -265,16 +265,45 @@
     </div>
 
     <!-- 삭제 확인 모달 추가 -->
-    <div v-if="showDeleteModal" class="modal-overlay">
-      <div class="modal-content">
-        <p class="modal-title">Bestplace</p>
-        <p class="modal-message">댓글을 삭제하시겠습니까?</p>
-        <div class="modal-buttons">
-          <button class="modal-button cancel" @click="cancelDelete">취소</button>
-          <button class="modal-button confirm" @click="confirmDelete">확인</button>
+    <v-dialog v-model="showDeleteModal" max-width="400" content-class="community-modal">
+      <div class="modal-container">
+        <div class="modal-header">
+          <div class="modal-title">Bestplace</div>
+          <v-btn icon @click="cancelDelete" class="close-btn">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </div>
+        
+        <div class="modal-content">
+          <div class="message-container warning-container">
+            <v-icon icon="mdi-alert" color="#FF5252" size="x-large" class="message-icon"></v-icon>
+            <div class="message-text">
+              <p>댓글을 삭제하시겠습니까?</p>
+              <p class="warning-submessage">삭제된 댓글은 복구할 수 없습니다.</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <div class="button-group">
+            <v-btn 
+              variant="outlined" 
+              class="cancel-btn" 
+              @click="cancelDelete"
+            >
+              취소
+            </v-btn>
+            <v-btn 
+              color="#FF5252" 
+              class="delete-confirm-btn" 
+              @click="confirmDelete"
+            >
+              삭제
+            </v-btn>
+          </div>
         </div>
       </div>
-    </div>
+    </v-dialog>
 
     <!-- 클립 생성 모달 -->
     <div v-if="showClipModal" class="modal-overlay">
