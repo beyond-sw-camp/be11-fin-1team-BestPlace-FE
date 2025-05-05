@@ -50,28 +50,23 @@
             팔로우한 채널이 없습니다
           </div>
           <div v-else class="channel-list">
-            <router-link 
-              v-for="channel in followedChannels" 
-              :key="channel.id" 
-              :to="`/channel/${channel.id}`" 
-              custom 
-              v-slot="{ isExactActive, navigate }"
+            <div
+              v-for="(channel, idx) in followedChannels"
+              :key="idx"
+              class="channel-item"
             >
-              <div @click="navigate" :class="['channel-item', { 'is-active': isExactActive }]">
-                <v-avatar size="32" class="channel-avatar">
-                  <v-img :src="channel.profileImage || '/default-profile.png'" alt="채널 이미지"></v-img>
-                </v-avatar>
-                <span class="channel-name text-truncate">{{ channel.name }}</span>
-                <v-chip
-                  v-if="channel.isLive"
-                  color="error"
-                  size="x-small"
-                  class="px-1 live-chip ml-auto"
+              <div class="profile-wrapper">
+                <div
+                  class="profile-img"
+                  :class="{ 'live-border': channel.liveYn === 'Y' }"
+                  style="position: relative;"
                 >
-                  LIVE
-                </v-chip>
+                  <img :src="channel.profileImage" alt="프로필" />
+                  <span v-if="channel.liveYn === 'Y'" class="live-badge-bottom">LIVE</span>
+                </div>
               </div>
-            </router-link>
+              <span class="channel-name text-truncate">{{ channel.name }}</span>
+            </div>
           </div>
 
           <v-divider class="my-3 divider-style"></v-divider>
@@ -110,7 +105,8 @@ export default {
     return {
       followedChannels: [],
       loading: true,
-      isLoggedIn: false
+      isLoggedIn: false,
+      memberApi: process.env.VUE_APP_MEMBER_API
     };
   },
 
@@ -124,23 +120,14 @@ export default {
           this.isLoggedIn = false;
           return;
         }
-        
         this.isLoggedIn = true;
-        
-        const response = await axios.get('/follow/list', {
-          headers: {
-            'X-User-Id': userId
-          }
-        });
-
-        if (response.data && response.data.result) {
-          this.followedChannels = response.data.result.map(channel => ({
-            id: channel.id,
-            name: channel.name,
-            profileImage: channel.profileImage,
-            isLive: channel.isLive || false
-          }));
-        }
+        const response = await axios.get(`${this.memberApi}/follow/list`);
+        // API 응답에 맞게 매핑
+        this.followedChannels = (response.data.result || []).map(item => ({
+          name: item.followerNickName,
+          profileImage: item.followerImg,
+          liveYn: item.liveYn
+        }));
       } catch (error) {
         console.error('팔로우 채널 목록을 가져오는 중 오류 발생:', error);
       } finally {
@@ -243,10 +230,33 @@ export default {
   transition: none !important;
 }
 
-.channel-avatar {
-  border: 1px solid FFFFFF;
+.profile-wrapper {
+  position: relative;
+  width: 32px;
+  height: 32px;
   margin-right: 8px;
-  flex-shrink: 0;
+}
+.profile-img {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  overflow: visible;
+  border: 2px solid transparent;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.profile-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  position: relative;
+  z-index: 1;
+}
+.profile-img.live-border {
+  border: 2px solid #FF2A46;
 }
 
 .channel-name {
@@ -257,8 +267,7 @@ export default {
   flex-grow: 1;
 }
 
-/* 호버 효과 - 색상만 변경 */
-.channel-item:hover .channel-name {
+/* 호버 효과 - 색상만 변경 */.channel-item:hover .channel-name {
   color: #B084CC !important;
 }
 
@@ -308,5 +317,23 @@ export default {
 
 .caption.text-grey.font-weight-medium {
   color: #FFFFFF !important;
+}
+
+.live-badge-bottom {
+  position: absolute;
+  left: 50%;
+  bottom: -4px;
+  transform: translateX(-50%);
+  background: #FF2A46;
+  font-size: 6px;
+  font-weight: 700;
+  padding: 2px 2px 1px 2px;
+  border-radius: 8px;
+  z-index: 10;
+  letter-spacing: 1px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.10);
+  min-width: 20px;
+  text-align: center;
+  line-height: 1.3;
 }
 </style>
