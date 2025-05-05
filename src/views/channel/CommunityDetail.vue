@@ -121,7 +121,7 @@
                         </v-btn>
                       </template>
                       <v-list density="compact" class="options-list">
-                        <v-list-item @click="showEditCommentForm(comment)" density="compact" class="option-item">
+                        <v-list-item v-if="comment.authorId === currentUserId" @click="showEditCommentForm(comment)" density="compact" class="option-item">
                           <v-list-item-title>
                             <div class="menu-item edit-item">
                               <v-icon size="x-small">mdi-pencil</v-icon>
@@ -175,15 +175,15 @@
                 </div>
                 
                 <div class="comment-actions">
+                  <div v-if="!comment.parentCommentId" class="reply-button" @click="showReplyForm(comment)">
+                    <span>답글 쓰기</span>
+                  </div>
+                  
                   <div class="buff-button comment-buff" 
                     :class="{ 'liked': comment.isLike === 'Y' }" 
                     @click="toggleCommentLike(comment)"
                   >
                     버프 {{ comment.likeCount || 0 }}
-                  </div>
-                  
-                  <div v-if="!comment.parentCommentId" class="reply-button" @click="showReplyForm(comment)">
-                    <span>답글 쓰기</span>
                   </div>
                 </div>
               </div>
@@ -245,7 +245,7 @@
                             </v-btn>
                           </template>
                           <v-list density="compact" class="options-list">
-                            <v-list-item @click="showEditCommentForm(reply)" density="compact" class="option-item">
+                            <v-list-item v-if="reply.authorId === currentUserId" @click="showEditCommentForm(reply)" density="compact" class="option-item">
                               <v-list-item-title>
                                 <div class="menu-item edit-item">
                                   <v-icon size="x-small">mdi-pencil</v-icon>
@@ -299,11 +299,46 @@
                     </div>
                     
                     <div class="reply-actions">
+                      <div class="reply-button" @click="showReplyFormFromReply(reply)">
+                        <span>답글 쓰기</span>
+                      </div>
                       <div class="buff-button comment-buff" 
                         :class="{ 'liked': reply.isLike === 'Y' }" 
                         @click="toggleCommentLike(reply)"
                       >
                         버프 {{ reply.likeCount || 0 }}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- 대댓글의 답글 폼 추가 -->
+                  <div v-if="reply.showReplyForm" class="reply-form reply-to-reply-form">
+                    <div class="reply-input-container">
+                      <img :src="userProfileImage" alt="내 프로필" class="profile-image small">
+                      <div class="reply-input-wrapper">
+                        <textarea 
+                          v-model="reply.replyContent" 
+                          class="reply-input" 
+                          placeholder="답글을 입력하세요"
+                          @input="checkReplyLength(reply)"
+                        ></textarea>
+                        <div class="reply-input-footer">
+                          <div class="content-count" :class="{ 'limit-exceeded': reply.replyContent.length > 500 }">
+                            {{ reply.replyContent.length }}/500
+                          </div>
+                          <div class="button-group">
+                            <v-btn text size="small" @click="hideReplyForm(reply)" class="cancel-reply-btn">취소</v-btn>
+                            <v-btn 
+                              color="#B084CC" 
+                              size="small" 
+                              class="submit-reply-btn" 
+                              :disabled="reply.replyContent.trim() === '' || reply.replyContent.length > 500"
+                              @click="submitReply(reply)"
+                            >
+                              등록
+                            </v-btn>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -695,6 +730,11 @@ const fetchComments = async (page = 0, refresh = false) => {
 
 // 댓글 수정 폼 표시
 const showEditCommentForm = (comment) => {
+  if (comment.authorId !== currentUserId.value) {
+    showAlertModal('자신이 작성한 댓글만 수정할 수 있습니다.', 'mdi-alert-circle', '#ff5252');
+    return;
+  }
+  
   comment.isEditing = true;
   comment.editContent = comment.content;
 };
@@ -707,6 +747,11 @@ const cancelEditComment = (comment) => {
 
 // 댓글 수정
 const updateComment = async (comment) => {
+  if (comment.authorId !== currentUserId.value) {
+    showAlertModal('자신이 작성한 댓글만 수정할 수 있습니다.', 'mdi-alert-circle', '#ff5252');
+    return;
+  }
+  
   if (comment.editContent.trim() === '') {
     showAlertModal('댓글 내용을 입력해주세요.', 'mdi-comment-alert', '#ff9800');
     return;
@@ -782,6 +827,9 @@ const showReplyForm = (comment) => {
 const hideReplyForm = (comment) => {
   comment.showReplyForm = false;
   comment.replyContent = '';
+  if (comment.parentCommentForReply) {
+    comment.parentCommentForReply = null;
+  }
 };
 
 // 답글 작성
@@ -805,10 +853,16 @@ const submitReply = async (comment) => {
   try {
     const memberApiUrl = process.env.VUE_APP_MEMBER_API;
     
+    // 대댓글에서 답글 달 때 원본 댓글 ID 사용
+    let targetCommentId = comment.commentId;
+    if (comment.parentCommentForReply) {
+      targetCommentId = comment.parentCommentForReply;
+    }
+    
     const response = await axios.post(
       `${memberApiUrl}/comment/reply`,
       {
-        commentId: comment.commentId,
+        commentId: targetCommentId,
         content: comment.replyContent
       },
       { 
@@ -825,6 +879,9 @@ const submitReply = async (comment) => {
       // 답글 폼 닫기
       comment.showReplyForm = false;
       comment.replyContent = '';
+      if (comment.parentCommentForReply) {
+        comment.parentCommentForReply = null;
+      }
     }
   } catch (error) {
     console.error('답글 등록 실패:', error);
@@ -927,6 +984,34 @@ const checkEditCommentLength = (comment) => {
 
 // 댓글 삭제
 const deleteComment = (commentId) => {
+  // 댓글 찾기
+  let targetComment = null;
+  
+  // 원댓글 검색
+  for (const comment of comments.value) {
+    if (comment.commentId === commentId) {
+      targetComment = comment;
+      break;
+    }
+    
+    // 대댓글 검색
+    if (comment.replies) {
+      for (const reply of comment.replies) {
+        if (reply.commentId === commentId) {
+          targetComment = reply;
+          break;
+        }
+      }
+      if (targetComment) break;
+    }
+  }
+  
+  // 권한 체크
+  if (targetComment && targetComment.authorId !== currentUserId.value && targetComment.isOwner !== 'Y') {
+    showAlertModal('삭제 권한이 없습니다.', 'mdi-alert-circle', '#ff5252');
+    return;
+  }
+  
   deleteTargetId.value = commentId;
   deleteTargetType.value = 'comment';
   deleteConfirmModalOpen.value = true;
@@ -1319,6 +1404,34 @@ const toggleLike = async () => {
   }
 };
 
+// showReplyFormFromReply 함수 수정
+const showReplyFormFromReply = (reply) => {
+  // 모든 댓글의 답글 폼 닫기
+  comments.value.forEach(c => {
+    c.showReplyForm = false;
+    // 대댓글도 답글 폼 닫기 (미래에 확장 가능성 대비)
+    if (c.replies) {
+      c.replies.forEach(r => {
+        if (r.showReplyForm) r.showReplyForm = false;
+      });
+    }
+  });
+  
+  // 대댓글이 속한 원본 댓글 찾기
+  const parentComment = comments.value.find(c => 
+    c.replies && c.replies.some(r => r.commentId === reply.commentId)
+  );
+  
+  if (parentComment) {
+    // 현재 대댓글 아래에 표시하기 위해 대댓글에 replyContent 할당
+    reply.showReplyForm = true;
+    reply.replyContent = '';
+
+    // 추가 속성: 원본 댓글 ID 저장 (실제 답글은 원본 댓글에 달리도록)
+    reply.parentCommentForReply = parentComment.commentId;
+  }
+};
+
 // 컴포넌트 마운트 시 실행
 onMounted(() => {
   fetchPostDetail();
@@ -1455,34 +1568,34 @@ onUnmounted(() => {
 .comment-item {
   display: flex;
   flex-direction: column;
-  padding: 12px 0;
+  padding: 6px 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .comment-actions, .reply-actions {
   display: flex;
-  justify-content: flex-start;
+  justify-content: space-between;
   gap: 16px;
-  margin-top: 8px;
+  margin-top: 4px;
 }
 
 .buff-button {
-  padding: 4px 8px;
+  padding: 2px 10px;
   border-radius: 4px;
   background: #2D2D2D;
   color: #fff;
   border: none;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .comment-buff {
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .buff-button.liked {
   background: #B084CC;
-  color: #000;
+  color: #fff;
 }
 
 .reply-button {
@@ -1490,7 +1603,7 @@ onUnmounted(() => {
   align-items: center;
   gap: 4px;
   color: #999;
-  font-size: 14px;
+  font-size: 13px;
   cursor: pointer;
   transition: color 0.2s;
 }
@@ -1500,13 +1613,13 @@ onUnmounted(() => {
 }
 
 .replies-list {
-  margin-left: 40px;
+  margin-left: 52px;
   margin-top: 8px;
 }
 
 .comment-user-info, .reply-user-info {
   display: flex;
-  align-items: flex-start;
+  align-items: center !important;
   gap: 12px;
   margin-bottom: 0;
 }
@@ -1515,33 +1628,40 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   width: 100%;
+  align-items: center !important;
 }
 
 .author-name-time {
-  display: flex;
-  align-items: center;
-  gap: 8px;
   margin-bottom: 0 !important;
 }
 
 .comment-time {
   color: #7B7B7B;
-  font-size: 14px;
+  font-size: 13px;
+  margin-left: 4px;
+}
+
+.comment-author {
+  font-weight: 700 !important;
+  font-size: 14px !important;
+  color: #B084CC !important;
 }
 
 .comment-text, .reply-text {
-  font-size: 13px !important;
+  font-size: 14px !important;
   font-weight: 400 !important;
   line-height: 1.4 !important;
   white-space: pre-line;
   word-break: break-word;
-  margin: 0 0 8px !important;
-  padding-top: 2px !important;
+  margin: 0 !important;
+  padding-top: 4px !important;
+  color: #E8E8E8 !important;
 }
 
-.comment-body, .reply-body {
+.comment-body {
   margin-left: 52px;
-  margin-top: 0 !important;
+  margin-top: -6px !important;
+  padding-right: 8px;
 }
 
 /* 댓글 섹션 */
@@ -1552,21 +1672,23 @@ onUnmounted(() => {
 }
 
 .comments-header {
-  margin: 16px 0;
+  margin: 24px 0 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 12px;
 }
 
 .comments-header h3 {
   font-size: 16px;
-  font-weight: 500;
+  font-weight: 600;
   color: #fff;
 }
 
 .comment-input-container {
   display: flex;
   gap: 12px;
-  margin: 16px 0;
+  margin: 24px 0 16px;
   align-items: flex-start;
-  padding-top: 16px;
+  padding-top: 0;
 }
 
 .comment-input-wrapper {
@@ -1574,7 +1696,7 @@ onUnmounted(() => {
   border: 1px solid #333;
   border-radius: 8px;
   overflow: hidden;
-  background-color: #1e1e1e;
+  background-color: #141414;
 }
 
 .comment-input {
@@ -1595,7 +1717,7 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 8px 12px;
-  background-color: #1e1e1e;
+  background-color: #141414;
   border-top: 1px solid #333;
 }
 
@@ -1634,9 +1756,10 @@ onUnmounted(() => {
 }
 
 .deleted-comment {
-  color: #7B7B7B;
-  font-size: 14px;
+  color: #666;
+  font-size: 13px;
   padding: 8px 0;
+  font-style: italic;
 }
 
 /* 모달 스타일 */
@@ -1883,6 +2006,13 @@ onUnmounted(() => {
   margin-top: 12px;
 }
 
+.reply-to-reply-form {
+  margin-left: 0;
+  margin-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding-top: 10px;
+}
+
 .reply-input-container {
   display: flex;
   gap: 12px;
@@ -1894,7 +2024,7 @@ onUnmounted(() => {
   border: 1px solid #333;
   border-radius: 8px;
   overflow: hidden;
-  background-color: #1e1e1e;
+  background-color: #141414;
 }
 
 .reply-input {
@@ -1915,16 +2045,77 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 8px 12px;
-  background-color: #1e1e1e;
+  background-color: #141414;
   border-top: 1px solid #333;
-}
-
-.button-group {
-  display: flex;
-  gap: 8px;
 }
 
 .cancel-reply-btn {
   color: #aaa !important;
+}
+
+.reply-item {
+  padding: 6px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  margin-bottom: 0;
+}
+
+.reply-user-info {
+  align-items: center !important;
+}
+
+.reply-body {
+  margin-left: 44px;
+  margin-top: -6px !important;
+  padding-right: 8px;
+}
+
+.comment-body {
+  margin-left: 52px;
+  margin-top: -6px !important;
+  padding-right: 8px;
+}
+
+.comment-edit-form, .reply-edit-form {
+  background-color: #242424;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  border: 1px solid #333;
+  overflow: hidden;
+}
+
+.comment-edit-input, .reply-edit-input {
+  width: 100%;
+  min-height: 80px;
+  background: transparent;
+  border: none;
+  resize: none;
+  color: white;
+  font-size: 14px;
+  line-height: 1.5;
+  padding: 12px;
+  outline: none;
+}
+
+.comment-edit-footer, .reply-edit-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background-color: #1e1e1e;
+  border-top: 1px solid #333;
+}
+
+.save-edit-btn {
+  background-color: #B084CC !important;
+  color: white !important;
+  font-weight: 500;
+  text-transform: none;
+  border-radius: 4px;
+  height: 32px;
+}
+
+.cancel-edit-btn {
+  color: #aaa !important;
+  text-transform: none;
 }
 </style> 
