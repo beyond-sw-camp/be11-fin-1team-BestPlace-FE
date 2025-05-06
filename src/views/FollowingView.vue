@@ -13,7 +13,10 @@
         
         <!-- 컴포넌트 렌더링 영역 -->
         <div class="following-component">
-          <component :is="currentTabComponent" />
+          <component 
+            :is="currentTabComponent" 
+            @update-tab="updateTab"
+          />
         </div>
       </div>
     </div>
@@ -53,6 +56,10 @@
     methods: {
       updateTab(tab) {
         this.selectedTab = tab;
+        // 탭 변경 시 스크롤을 맨 위로 올립니다
+        window.scrollTo({
+          top: 0,
+        });
       }
     }
   };
