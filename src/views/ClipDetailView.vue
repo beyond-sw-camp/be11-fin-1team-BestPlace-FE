@@ -16,11 +16,13 @@
             ref="videoRef"
             :src="currentClip.url"
             autoplay
+            loop
             :muted="isMuted"
             :volume="volume"
             class="clip-video"
             @volumechange="onVideoVolumeChange"
             @timeupdate="onVideoTimeUpdate"
+            @click="handleVideoClick"
           ></video>
           <transition name="play-pause-fade">
             <div v-if="showPlayPauseIcon" class="play-pause-overlay">
@@ -39,7 +41,7 @@
                 <div v-if="streamerInfo?.streamingYn === 'Y'" class="live-badge">LIVE</div>
               </div>
               <span class="streamer-nickname">{{ streamerInfo?.streamerNickName }}</span>
-              <button class="follow-btn" :class="{ 'is-following': streamerInfo?.isFollow === 'Y' }" @click="toggleFollow">
+              <button v-if="currentClip?.owner === 'N'" class="follow-btn" :class="{ 'is-following': streamerInfo?.isFollow === 'Y' }" @click="toggleFollow">
                 {{ streamerInfo?.isFollow === 'Y' ? '팔로잉' : '팔로우' }}
               </button>
             </div>
@@ -232,7 +234,7 @@ const loginConfirmModalOpen = ref(false)
 // 볼륨/음소거 상태
 const showVolume = ref(false)
 const volume = ref(1)
-const isMuted = ref(false)
+const isMuted = ref(true)
 const videoRef = ref(null)
 
 const streamerInfo = ref(null)
@@ -257,7 +259,7 @@ const editInput = ref({})
 async function fetchClips() {
   const response = await axios.get(`${memberApi}/video/clip/${route.params.clipId}`)
   clips.value = response.data.result
-  console.log(clips.value)
+  
   if (!clips.value || clips.value.length === 0) {
     currentClip.value = null
     return
@@ -265,7 +267,20 @@ async function fetchClips() {
   const idx = clips.value.findIndex(c => String(c.id) === String(route.params.clipId))
   currentIndex.value = idx !== -1 ? idx : 0
   currentClip.value = clips.value[currentIndex.value]
-  getComment()
+  console.log(clips.value[currentIndex.value].owner)
+  await getComment()
+  await fetchStreamerInfo()
+
+  // 비디오가 로드될 때까지 대기 후 재생
+  if (videoRef.value) {
+    videoRef.value.load()
+    await new Promise((resolve) => {
+      videoRef.value.addEventListener('loadeddata', resolve, { once: true })
+    })
+    // 음소거 상태로 재생 시작
+    videoRef.value.muted = true
+    await videoRef.value.play()
+  }
 }
 // 스트리머 정보
 async function fetchStreamerInfo() {
@@ -375,8 +390,16 @@ function showMenu() {
 }
 
 function toggleMute() {
-  isMuted.value = !isMuted.value
-  if (videoRef.value) videoRef.value.muted = isMuted.value
+  if (!videoRef.value) return
+  
+  // 음소거 해제 시도
+  if (isMuted.value) {
+    videoRef.value.muted = false
+    isMuted.value = false
+  } else {
+    videoRef.value.muted = true
+    isMuted.value = true
+  }
 }
 
 function onVideoVolumeChange() {
@@ -388,7 +411,9 @@ function onVideoVolumeChange() {
 
 function onVideoTimeUpdate() {
   if (videoRef.value) {
-    progress.value = videoRef.value.currentTime / videoRef.value.duration
+    const currentTime = videoRef.value.currentTime
+    const duration = videoRef.value.duration
+    progress.value = 0.00 + (currentTime / duration) * 1.1
   }
 }
 
@@ -538,6 +563,27 @@ const orderedComments = computed(() => {
   }
   return result
 })
+
+function handleVideoClick(event) {
+  // 클릭된 요소가 특정 영역에 속하는지 확인
+  const target = event.target
+  const isOverlay = target.closest('.clip-info-overlay')
+  const isVolumeBtn = target.closest('.volume-btn')
+  const isSideActions = target.closest('.clip-side-actions')
+  
+  // 특정 영역이 아닐 때만 재생/일시정지 토글
+  if (!isOverlay && !isVolumeBtn && !isSideActions) {
+    if (videoRef.value) {
+      if (videoRef.value.paused) {
+        videoRef.value.play()
+        showPlayPause('play')
+      } else {
+        videoRef.value.pause()
+        showPlayPause('pause')
+      }
+    }
+  }
+}
 
 onMounted(() => {
   fetchClips()
