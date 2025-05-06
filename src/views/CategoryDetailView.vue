@@ -780,7 +780,7 @@ export default {
 
 .category-name {
   font-size: 28px;
-  font-weight: 700;
+  font-weight: 500;
   margin-top: 15px;
   color: #ffffff;
 }

@@ -632,7 +632,7 @@ export default {
 .search-title {
   margin-bottom: 24px;
   font-size: 24px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .search-results {
@@ -705,7 +705,7 @@ export default {
 
 .streamer-name {
   font-size: 18px;
-  font-weight: 600;
+  font-weight: 500;
   margin-bottom: 4px;
 }
 
@@ -748,7 +748,7 @@ export default {
 
 .section-title {
   font-size: 20px;
-  font-weight: 600;
+  font-weight: 500;
   margin-bottom: 20px;
   color: white;
 }
@@ -841,7 +841,7 @@ export default {
 
 .video-title {
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
   margin-bottom: 5px;
   color: white;
   display: -webkit-box;
