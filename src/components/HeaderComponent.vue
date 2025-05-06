@@ -168,7 +168,7 @@
               <template v-slot:prepend>
                 <v-icon>mdi-star</v-icon>
               </template>
-              <v-list-item-title>팔로잉 채널</v-list-item-title>
+              <v-list-item-title>팔로잉</v-list-item-title>
             </v-list-item>
 
             <v-divider></v-divider>
