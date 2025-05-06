@@ -363,7 +363,7 @@ export default {
 
 .clips-title {
   font-size: 32px;
-  font-weight: 700;
+  font-weight: 500;
   margin-bottom: 1px;
 }
 

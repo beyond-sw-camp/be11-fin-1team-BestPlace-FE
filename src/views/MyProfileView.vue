@@ -391,7 +391,7 @@ export default {
 
 .profile-title {
   font-size: 32px;
-  font-weight: 700;
+  font-weight: 500;
   padding: 0 0 10px 0;
 }
 

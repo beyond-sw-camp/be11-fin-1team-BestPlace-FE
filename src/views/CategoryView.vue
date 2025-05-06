@@ -159,7 +159,7 @@ export default {
 
 .category-title {
   font-size: 32px;
-  font-weight: 700;
+  font-weight: 500;
   margin-bottom: 30px;
 }
 
