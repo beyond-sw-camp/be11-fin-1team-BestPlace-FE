@@ -89,7 +89,7 @@
 
 .nav-item.active {
   color: #fff;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .nav-item.active::after {
