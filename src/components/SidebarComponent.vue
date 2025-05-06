@@ -1,5 +1,5 @@
 <template>
-  <v-navigation-drawer app permanent width="200" color="#141517" class="sidebar" elevation="0">
+  <v-navigation-drawer app permanent width="200" color="#141517" class="v-navigation-drawer v-navigation-drawer--left v-navigation-drawer--active v-theme--chzzkTheme elevation-0 sidebar">
     <div class="sidebar-content">
       <!-- 기본 메뉴 아이템 -->
       <div class="sidebar-menu">
@@ -39,7 +39,13 @@
           <div class="px-3 py-2">
             <div class="d-flex align-center justify-space-between">
               <span class="caption text-grey font-weight-medium">팔로잉 채널</span>
-              <v-icon small color="#5D5F61">mdi-chevron-down</v-icon>
+              <v-icon 
+                small 
+                color="#5D5F61" 
+                class="refresh-icon"
+                :class="{ 'rotating': isRefreshing }"
+                @click="fetchFollowedChannels"
+              >mdi-refresh</v-icon>
             </div>
           </div>
           
@@ -106,13 +112,17 @@ export default {
       followedChannels: [],
       loading: true,
       isLoggedIn: false,
-      memberApi: process.env.VUE_APP_MEMBER_API
+      memberApi: process.env.VUE_APP_MEMBER_API,
+      isRefreshing: false
     };
   },
 
   methods: {
     async fetchFollowedChannels() {
+      if (this.isRefreshing) return;
+      
       try {
+        this.isRefreshing = true;
         this.loading = true;
         const userId = localStorage.getItem('userId') || '';
 
@@ -132,6 +142,9 @@ export default {
         console.error('팔로우 채널 목록을 가져오는 중 오류 발생:', error);
       } finally {
         this.loading = false;
+        setTimeout(() => {
+          this.isRefreshing = false;
+        }, 500); // 애니메이션 시간과 동일하게 설정
       }
     },
     
@@ -335,5 +348,26 @@ export default {
   min-width: 20px;
   text-align: center;
   line-height: 1.3;
+}
+
+.refresh-icon {
+  cursor: pointer;
+}
+
+.refresh-icon:hover {
+  color: #B084CC !important;
+}
+
+.refresh-icon.rotating {
+  animation: rotate 0.5s ease;
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>
