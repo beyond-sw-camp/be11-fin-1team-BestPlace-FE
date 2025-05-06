@@ -222,7 +222,7 @@ export default {
 .menu-item.is-active .menu-icon,
 .menu-item.is-active .menu-title {
   color: #B084CC !important;
-  font-weight: 600 !important;
+  font-weight: 500 !important;
 }
 
 /* 채널 목록 스타일 */

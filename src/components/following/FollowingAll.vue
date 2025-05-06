@@ -19,6 +19,7 @@
     },
     methods: {
       goToTab(tabName) {
+        console.log('FollowingAll: goToTab called with', tabName);
         this.$emit('update-tab', tabName);
       }
     }

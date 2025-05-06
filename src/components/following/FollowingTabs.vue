@@ -3,7 +3,7 @@
       <button 
         v-for="tab in tabs" 
         :key="tab.value"
-        :class="['tab-btn', { active: selectedTab === tab.value }]"
+        :class="['sort-btn', { active: selectedTab === tab.value }]"
         @click="$emit('update-tab', tab.value)"
       >
         {{ tab.label }}
@@ -36,19 +36,21 @@
   .tab-buttons {
     display: flex;
     gap: 10px;
-    margin-bottom: 16px;
   }
-  .tab-btn {
-    padding: 6px 16px;
-    background-color: #2c2c2c;
-    color: #aaa;
-    border-radius: 20px;
+  
+  .sort-btn {
+    padding: 8px 16px;
     border: none;
+    border-radius: 20px;
+    background: #2c2c2c;
+    color: #7B7B7B;
     font-size: 14px;
     cursor: pointer;
+    transition: all 0.2s;
   }
-  .tab-btn.active {
-    background-color: #B084CC;
+  
+  .sort-btn.active {
+    background: #B084CC;
     color: #fff;
   }
   </style>
