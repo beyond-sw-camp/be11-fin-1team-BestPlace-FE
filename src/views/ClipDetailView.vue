@@ -159,6 +159,47 @@
         <button @click="showMenuModal = false">닫기</button>
       </div>
     </div>
+
+    <!-- 로그인 확인 모달 -->
+    <v-dialog v-model="loginConfirmModalOpen" max-width="400" content-class="community-modal">
+      <div class="modal-container">
+        <div class="modal-header">
+          <div class="modal-title">로그인 필요</div>
+          <v-btn icon @click="closeLoginConfirmModal" class="close-btn">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </div>
+        
+        <div class="modal-content">
+          <div class="message-container login-container">
+            <v-icon icon="mdi-account-alert" color="#B084CC" size="x-large" class="message-icon"></v-icon>
+            <div class="message-text">
+              <p>로그인이 필요한 기능입니다.</p>
+              <p class="login-submessage">로그인 페이지로 이동하시겠습니까?</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <div class="button-group">
+            <v-btn 
+              variant="outlined" 
+              class="cancel-btn" 
+              @click="closeLoginConfirmModal"
+            >
+              아니오
+            </v-btn>
+            <v-btn 
+              color="#B084CC" 
+              class="login-confirm-btn" 
+              @click="goToLogin"
+            >
+              예, 로그인하기
+            </v-btn>
+          </div>
+        </div>
+      </div>
+    </v-dialog>
   </div>
   <div v-else class="clip-loading">
     <v-progress-circular indeterminate color="#B084CC"></v-progress-circular>
@@ -186,6 +227,7 @@ const transitionName = ref('slide-down')
 const showCommentPanel = ref(false)
 const showMenuModal = ref(false)
 const isCopied = ref(false)
+const loginConfirmModalOpen = ref(false)
 
 // 볼륨/음소거 상태
 const showVolume = ref(false)
@@ -251,7 +293,30 @@ function nextClip() {
   selectClipByIndex(currentIndex.value + 1)
 }
 
+// 로그인 체크 함수
+function checkLogin() {
+  const token = localStorage.getItem('token')
+  if (!token) {
+    loginConfirmModalOpen.value = true
+    return false
+  }
+  return true
+}
+
+// 로그인 모달 닫기
+function closeLoginConfirmModal() {
+  loginConfirmModalOpen.value = false
+}
+
+// 로그인 페이지로 이동
+function goToLogin() {
+  closeLoginConfirmModal()
+  router.push('/member/login')
+}
+
+// 기존 함수들 수정
 async function toggleLike(clip) {
+  if (!checkLogin()) return
   if (!clip.id) return
   try {
     const response = await axios.post(`${memberApi}/video/toggle/${clip.id}`)
@@ -328,6 +393,7 @@ function onVideoTimeUpdate() {
 }
 
 async function toggleFollow() {
+  if (!checkLogin()) return
   if (!streamerInfo.value) return
   try {
     await axios.post(`${memberApi}/follow/toggle/${clips.value[currentIndex.value].memberId}`)
@@ -338,6 +404,7 @@ async function toggleFollow() {
 }
 
 async function createComment() {
+  if (!checkLogin()) return
   if (!newComment.value.trim()) return
   try {
     await axios.post(`${memberApi}/videoComment/create`, {
@@ -352,6 +419,7 @@ async function createComment() {
 }
 
 async function replyComment(commentId) {
+  if (!checkLogin()) return
   const content = replyInput.value[commentId]?.trim()
   if (!content) return
   try {
@@ -394,6 +462,7 @@ async function updateComment(commentId, content) {
 }
 
 async function likeComment(commentId) {
+  if (!checkLogin()) return
   try {
     await axios.post(`${memberApi}/videoComment/toggle/${commentId}`)
     await getComment()
@@ -1226,5 +1295,114 @@ onMounted(() => {
 }
 .edit-confirm-btn:hover:enabled {
   background: #6d5eee;
+}
+
+/* 로그인 모달 스타일 */
+.community-modal {
+  background: transparent !important;
+  box-shadow: none !important;
+  display: flex;
+  align-items: flex-start !important;
+  padding-top: 50px;
+  padding-bottom: 50px;
+}
+
+.modal-container {
+  background-color: #1E2029;
+  border-radius: 12px;
+  overflow: hidden;
+  color: white;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid #333;
+  background-color: #1a1a1a;
+}
+
+.modal-title {
+  font-size: 18px;
+  font-weight: 500;
+  color: white;
+}
+
+.close-btn {
+  color: #aaa;
+  background: transparent;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.close-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.modal-content {
+  padding: 20px;
+  max-height: 70vh;
+  overflow-y: auto;
+  width: 100%;
+  background-color: #1a1a1a;
+}
+
+.message-container {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  background-color: rgba(255, 82, 82, 0.1);
+  border-radius: 8px;
+  width: 100%;
+}
+
+.login-container {
+  background-color: rgba(176, 132, 204, 0.1) !important;
+}
+
+.message-icon {
+  margin-right: 16px;
+}
+
+.message-text {
+  font-size: 16px;
+  line-height: 1.5;
+  color: #fff;
+}
+
+.login-submessage {
+  font-size: 14px;
+  color: #aaa;
+  margin-top: 8px;
+}
+
+.modal-footer {
+  padding: 16px;
+  border-top: 1px solid #333;
+  background-color: #1a1a1a;
+}
+
+.button-group {
+  display: flex;
+  width: 100%;
+  gap: 10px;
+}
+
+.cancel-btn {
+  flex: 1;
+  border-color: #555 !important;
+  color: white !important;
+}
+
+.login-confirm-btn {
+  flex: 2;
 }
 </style>
