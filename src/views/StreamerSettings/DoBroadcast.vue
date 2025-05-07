@@ -198,6 +198,18 @@ export default {
     triggerFileUpload() {
       this.$refs.fileInput.click();
     },
+
+    async getChatHistory() {
+      try {
+        const response = await axios.get(`${process.env.VUE_APP_STREAMING_API}/chat/history/${this.roomId}`);
+        if (Array.isArray(response.data)) {
+          this.messages = response.data;
+        }
+      } catch (error) {
+        console.error('채팅 기록 불러오기 실패:', error);
+      }
+    },
+
     handleFileUpload(event) {
       const file = event.target.files[0];
       if (!file) return;
@@ -381,6 +393,7 @@ export default {
         }
 
         this.initializeStreamingVideo();   // streamKey 설정 후 video 초기화
+        await this.getChatHistory();
         await this.connectWebsocket();      // roomId로 채팅 연결
       } catch (error) {
         console.error('방송 정보 불러오기 실패', error);
