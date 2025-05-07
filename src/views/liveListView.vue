@@ -577,7 +577,7 @@ const formatHashtags = (hashtags) => {
   padding: 4px 8px;
   border-radius: 4px;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .viewer-count {
@@ -759,7 +759,6 @@ const formatHashtags = (hashtags) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: bold;
   font-size: 16px;
   margin-bottom: 8px;
 }
@@ -776,7 +775,7 @@ const formatHashtags = (hashtags) => {
 
 .video-title {
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 500;
   color: #ffffff;
   overflow: hidden;
   text-overflow: ellipsis;
