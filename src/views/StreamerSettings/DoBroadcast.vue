@@ -67,8 +67,8 @@
           <div class="form-group">
             <label>성인 방송 여부</label>
             <v-switch
-              v-model="adultYN"
-              :label="adultYN === 'Y' ? '성인 방송' : '일반 방송'"
+              v-model="adultYn"
+              :label="adultYn === 'Y' ? '성인 방송' : '일반 방송'"
               color="red"
               true-value="Y"
               false-value="N"
@@ -167,7 +167,7 @@ export default {
       tags: [],
       thumbnailFile: null,
       thumbnailPreview: null,
-      adultYN: 'N',
+      adultYn: 'N',
       
       messages: [],
       newMessage: '',
@@ -233,7 +233,7 @@ export default {
         const formData = new FormData();
         formData.append('title', this.title);
         formData.append('category', this.category);
-        formData.append('adultYN', this.adultYN);
+        formData.append('adultYn', this.adultYn);
         
         if (this.tags.length > 0) {
           this.tags.forEach(tag => {
@@ -370,7 +370,7 @@ export default {
         this.title = result.title;
         this.category = result.categoryId;
         this.tags = result.hashTags;
-        this.adultYN = result.adultYN || 'N';
+        this.adultYn = result.adultYn || 'N';
         this.thumbnailPreview = result.thumbnail;
         this.streamKey = result.streamKey; 
         this.roomId = result.roomId;       
@@ -429,7 +429,7 @@ export default {
         formData.append('title', this.title);
         formData.append('categoryId', this.category); // id 보내기
         formData.append('clipYN', 'Y');
-        formData.append('adultYN', 'N');
+        formData.append('adultYn', this.adultYn);
         formData.append('minDonation', 1000);
 
         if (this.tags.length > 0) {
