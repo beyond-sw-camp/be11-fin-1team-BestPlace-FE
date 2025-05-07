@@ -464,8 +464,8 @@ const formatHashtags = (hashtags) => {
 
 .header-title {
   color: #fff;
-  font-size: 24px;
-  font-weight: 600;
+  font-size: 32px;
+  font-weight: 500;
 }
 
 .header-tabs {

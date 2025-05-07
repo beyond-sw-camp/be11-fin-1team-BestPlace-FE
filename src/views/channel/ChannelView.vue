@@ -25,27 +25,15 @@
       />
 
       <div class="channel-content">
-        <HomeTab 
-          v-if="activeTab === 'home'" 
-          :streamerInfo="streamerInfo"
-          :streamingId="streamingId" 
-          :userIsAdult="userIsAdult"
-        />
-        <VideosTab 
-          v-else-if="activeTab === 'videos'" 
+        <router-view
+          :streamerInfo="streamerInfo" 
           :streamerId="streamerId"
           :isLoggedIn="isLoggedIn"
           :userIsAdult="userIsAdult"
-        />
-        <ClipsTab 
-          v-else-if="activeTab === 'clips'" 
-          :channelId="streamerId"
-          :isLoggedIn="isLoggedIn"
-          :userIsAdult="userIsAdult"
+          :isChannelManager="isChannelManager"
+          :streamingId="streamingId"
           @showAdultAlert="handleShowAdultAlert"
         />
-        <CommunityTab v-else-if="activeTab === 'community'" />
-        <InfoTab v-else-if="activeTab === 'info'" />
       </div>
     </div>
     
@@ -63,7 +51,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 import { jwtDecode } from 'jwt-decode'
@@ -87,10 +75,28 @@ const loading = ref(true)
 const isLoggedIn = ref(false)
 const currentUserId = ref(null)
 const isChannelManager = ref(false)
-const activeTab = ref('home')
-const userIsAdult = ref(false)
 const defaultProfileImage = ref('/path/to/default-profile.png')
 const streamingId = ref(null)
+const userIsAdult = ref(false)
+
+// 활성화 탭 가져오기
+const activeTab = computed(() => {
+  const path = route.path
+  
+  if (path.includes('/community/detail/')) {
+    return 'community'
+  }
+  
+  const pathSegments = path.split('/')
+  // /channel/123/community와 같은 형태에서 마지막 세그먼트가 탭 이름
+  const lastSegment = pathSegments[pathSegments.length - 1]
+  
+  if (lastSegment === streamerId.value) { // /channel/123 형태
+    return 'home'
+  }
+  
+  return lastSegment // 'videos', 'clips', 'community', 'info'
+})
 
 // 성인 컨텐츠 모달 관련
 const clipAdultAlertModalOpen = ref(false)
@@ -271,7 +277,7 @@ const checkIsChannelManager = async () => {
       const token = localStorage.getItem('token')
       
       const response = await axios.get(
-        `${streamingApiUrl}/manager/checking/${streamerId.value}?requester=${currentUserId.value}`,
+        `${streamingApiUrl}/manager/checking/channel/${streamerId.value}?requester=${currentUserId.value}`,
         { headers: { Authorization: `Bearer ${token}` }}
       )
       

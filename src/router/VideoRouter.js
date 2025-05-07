@@ -1,6 +1,7 @@
 import VodDetailPage from "@/views/vodDetailPage.vue";
 import CategoryDetailView from "@/views/CategoryDetailView.vue";
 import ClipCreateView from "@/views/ClipCreateView.vue";
+import ClipDetailView from "@/views/ClipDetailView.vue";
 
 export default [
   {
@@ -17,5 +18,10 @@ export default [
     path: '/video/clip/create/:vodId',
     name: 'ClipCreate',
     component: ClipCreateView
+  },
+  {
+    path: '/clip/:clipId',
+    name: 'ClipDetail',
+    component: ClipDetailView
   }
 ];

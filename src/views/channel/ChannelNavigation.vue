@@ -39,6 +39,8 @@
   </template>
   
   <script setup>
+  import { useRoute, useRouter } from 'vue-router';
+
   const props = defineProps({
     activeTab: {
       type: String,
@@ -47,9 +49,20 @@
   })
   
   const emit = defineEmits(['tabChange'])
+  const router = useRouter()
+  const route = useRoute()
   
   const changeTab = (tab) => {
     emit('tabChange', tab)
+    
+    const memberId = route.params.memberId
+    let path = `/channel/${memberId}`
+    
+    if (tab !== 'home') {
+      path += `/${tab}`
+    }
+    
+    router.push(path)
   }
   </script>
   
@@ -76,7 +89,7 @@
 
 .nav-item.active {
   color: #fff;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .nav-item.active::after {

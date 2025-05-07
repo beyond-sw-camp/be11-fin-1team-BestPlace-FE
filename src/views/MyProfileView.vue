@@ -83,9 +83,11 @@
             <input 
               type="text" 
               v-model="editForm.nickname" 
-              class="profile-input" 
+              class="profile-input disabled-input" 
               placeholder="닉네임을 입력하세요"
+              disabled
             />
+            <div class="input-note">닉네임은 변경할 수 없습니다.</div>
             <div v-if="nicknameError" class="error-message">{{ nicknameError }}</div>
           </div>
           
@@ -218,7 +220,14 @@ export default {
     async fetchProfileData() {
       try {
         const response = await axios.get(`${this.memberApi}/member/my/profile`)
-        this.profileData = response.data.result
+        const profileData = response.data.result
+
+        if (profileData.profileImageUrl) {
+          profileData.profileImageUrl += `?v=${Date.now()}`
+        }
+
+        this.profileData = profileData
+
         console.log('프로필 데이터:', this.profileData) // 디버깅용 로그 추가
       } catch (error) {
         console.error('프로필 정보를 가져오는 중 오류가 발생했습니다:', error)
@@ -382,7 +391,7 @@ export default {
 
 .profile-title {
   font-size: 32px;
-  font-weight: 700;
+  font-weight: 500;
   padding: 0 0 10px 0;
 }
 
@@ -572,6 +581,18 @@ export default {
   border-radius: 8px;
   color: white;
   font-size: 16px;
+}
+
+.disabled-input {
+  background-color: #282828;
+  color: #888;
+  cursor: not-allowed;
+}
+
+.input-note {
+  font-size: 12px;
+  color: #888;
+  margin-top: 4px;
 }
 
 .profile-textarea {

@@ -5,286 +5,300 @@
       <p>데이터를 불러오는 중...</p>
     </div>
     
-    <div v-else-if="isLive && streamInfo && streamingId" class="live-section">
-      <div class="video-container" @click="goToLiveDetail">
-        <video
-          ref="videoPlayer"
-          autoplay
-          muted
-          playsinline
-          class="video-player"
-        ></video>
-        
-        <!-- 비디오 위 오버레이 -->
-        <div class="video-overlay">
-          <div class="overlay-content">
-            <div class="overlay-top">
-              <div class="live-badge">
-                <span class="live-dot"></span>
-                LIVE
-              </div>
-              <div class="viewer-count">
-                {{ streamInfo.viewerCount }}명 시청중
-              </div>
-            </div>
+    <template v-else>
+      <!-- 모든 컨텐츠가 없을 때 빈 상태 UI 표시 -->
+      <div v-if="!hasContent" class="empty-home-state">
+        <div class="empty-home-content">
+          <v-icon size="80" color="#444">mdi-home-variant-outline</v-icon>
+          <h3 class="empty-home-title">아직 컨텐츠가 없습니다</h3>
+          <p class="empty-home-text">라이브 방송, 동영상 또는 클립이 등록되면 이곳에 표시됩니다</p>
+        </div>
+      </div>
+
+      <!-- 컨텐츠가 있을 때 해당 섹션 표시 -->
+      <template v-else>
+        <div v-if="isLive && streamInfo && streamingId" class="live-section">
+          <div class="video-container" @click="goToLiveDetail">
+            <video
+              ref="videoPlayer"
+              autoplay
+              muted
+              playsinline
+              class="video-player"
+            ></video>
             
-            <div class="overlay-bottom">
-              <h2 class="live-title">{{ streamInfo.title }}</h2>
-              <div class="stream-meta">
-                <span 
-                  class="category"
-                  @click.stop="goToCategory(streamInfo.category)"
-                >{{ streamInfo.category }}</span>
-              </div>
-              <div class="hashtags" v-if="streamInfo.hashTag && streamInfo.hashTag.length > 0">
-                <span v-for="tag in streamInfo.hashTag" :key="tag" class="hashtag">{{ tag }}</span>
+            <!-- 비디오 위 오버레이 -->
+            <div class="video-overlay">
+              <div class="overlay-content">
+                <div class="overlay-top">
+                  <div class="live-badge">
+                    <span class="live-dot"></span>
+                    LIVE
+                  </div>
+                  <div class="viewer-count">
+                    {{ streamInfo.viewerCount }}명 시청중
+                  </div>
+                </div>
+                
+                <div class="overlay-bottom">
+                  <h2 class="live-title">{{ streamInfo.title }}</h2>
+                  <div class="stream-meta">
+                    <span 
+                      class="category"
+                      @click.stop="goToCategory(streamInfo.category)"
+                    >{{ streamInfo.category }}</span>
+                  </div>
+                  <div class="hashtags" v-if="streamInfo.hashTag && streamInfo.hashTag.length > 0">
+                    <span v-for="tag in streamInfo.hashTag" :key="tag" class="hashtag">{{ tag }}</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    </div>
-    
-    <div v-else-if="!isLive && vodInfo" class="vod-section">
-      <div class="vod-card" @click="goToVodDetail(vodInfo.id)">
-        <div class="vod-thumbnail-wrapper">
-          <img :src="vodInfo.thumbnailUrl" alt="VOD 썸네일" class="vod-thumbnail" />
-          <div class="vod-badge">다시보기</div>
-        </div>
-        <div class="vod-info">
-          <div class="vod-meta-top">
-            <span class="vod-recommend">추천영상</span>
-          </div>
-          <div class="vod-title">{{ vodInfo.title }}</div>
-          <div class="vod-meta-bottom">
-            <span class="vod-views">조회수 {{ vodInfo.views }}회</span>
-            <span class="vod-dot">·</span>
-            <span class="vod-date">{{ formatRelativeTime(vodInfo.createdTime) }}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-    
-    <!-- 배너 섹션 추가 -->
-    <div v-if="banners && banners.length > 0" class="banner-section">
-      <div class="banner-container">
-        <div 
-          v-for="banner in banners" 
-          :key="banner.id" 
-          class="banner-item"
-          @click="goToBanner(banner.bannerUrl)"
-        >
-          <div class="banner-image-wrapper">
-            <img :src="banner.imageUrl" :alt="banner.title" class="banner-image" />
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 동영상 섹션 추가 -->
-    <div class="recent-videos-section">
-      <div class="section-header">
-        <div class="title-container">
-          <h2 class="section-title">동영상</h2>
-          <span class="view-all" @click="goToVideosTab">더보기</span>
-        </div>
-        <div class="video-filters">
-          <button
-            :class="{ active: videoSortType === 'views' }"
-            @click="changeVideoSort('views')"
-          >
-            인기순
-          </button>
-          <button
-            :class="{ active: videoSortType === 'recent' }"
-            @click="changeVideoSort('recent')"
-          >
-            최신순
-          </button>
-        </div>
-      </div>
-
-      <div class="videos-container" 
-           @mouseenter="showNavButtons = true" 
-           @mouseleave="showNavButtons = false">
-        <button 
-          v-if="showNavButtons && currentPage > 0" 
-          class="nav-button prev-button" 
-          @click="slidePrev">
-          <v-icon>mdi-chevron-left</v-icon>
-        </button>
-
-        <div class="videos-slider" ref="videosSlider">
-          <div
-            v-for="(video, index) in visibleVideos"
-            :key="video.id"
-            class="video-item"
-            @mouseenter="startPreviewTimer(index)"
-            @mouseleave="stopPreview(index)"
-            @click="goToVideoDetail(video.id)"
-          >
-            <div class="thumbnail-container">
+        
+        <div v-else-if="!isLive && vodInfo" class="vod-section">
+          <div class="vod-card" @click="goToVodDetail(vodInfo.id)">
+            <div class="vod-thumbnail-wrapper">
+              <img :src="vodInfo.thumbnailUrl" alt="VOD 썸네일" class="vod-thumbnail" />
               <div class="vod-badge">다시보기</div>
-              <img
-                :src="video.thumbnailUrl"
-                alt="Video Thumbnail"
-                class="thumbnail"
-                :class="{
-                  'blur-thumbnail': isAdultContent(video) && userIsAdult,
-                  'hide-thumbnail': isAdultContent(video) && !userIsAdult
-                }"
-              >
-              <video
-                v-if="video.showPreview && video.url && !isAdultContent(video)"
-                :src="video.url"
-                class="video-preview"
-                autoplay
-                muted
-                loop
-              ></video>
-              <div class="duration">{{ video.duration }}</div>
-
-              <!-- 연령 제한 표시 -->
-              <div v-if="isAdultContent(video)" class="age-restriction-overlay">
-                <div class="age-restriction-content">
-                  <div class="age-icon-circle">19</div>
-                  <div class="age-text">연령 제한</div>
-                </div>
+            </div>
+            <div class="vod-info">
+              <div class="vod-meta-top">
+                <span class="vod-recommend">추천영상</span>
+              </div>
+              <div class="vod-title">{{ vodInfo.title }}</div>
+              <div class="vod-meta-bottom">
+                <span class="vod-views">조회수 {{ vodInfo.views }}회</span>
+                <span class="vod-dot">·</span>
+                <span class="vod-date">{{ formatRelativeTime(vodInfo.createdTime) }}</span>
               </div>
             </div>
-
-            <div class="video-info">
-              <div class="video-title">{{ video.title }}</div>
-              <div class="video-meta">
-                <span class="view-count">조회수 {{ formatNumber(video.views || 0) }}회</span>
-                <span class="dot-separator">·</span>
-                <span class="video-time">{{ formatTime(video.createdTime) }}</span>
+          </div>
+        </div>
+        
+        <!-- 배너 섹션 추가 -->
+        <div v-if="banners && banners.length > 0" class="banner-section">
+          <div class="banner-container">
+            <div 
+              v-for="banner in banners" 
+              :key="banner.id" 
+              class="banner-item"
+              @click="goToBanner(banner.bannerUrl)"
+            >
+              <div class="banner-image-wrapper">
+                <img :src="banner.imageUrl" :alt="banner.title" class="banner-image" />
               </div>
             </div>
           </div>
         </div>
 
-        <button 
-          v-if="showNavButtons && currentPage < Math.ceil(videos.length / videosPerPage) - 1" 
-          class="nav-button next-button" 
-          @click="slideNext">
-          <v-icon>mdi-chevron-right</v-icon>
-        </button>
-      </div>
-    </div>
-
-    <!-- 클립 섹션 추가 -->
-    <div class="clips-section">
-      <div class="section-header">
-        <div class="title-container">
-          <h2 class="section-title">클립</h2>
-          <span class="view-all" @click="goToClipsTab">더보기</span>
-        </div>
-      </div>
-
-      <!-- 필터 버튼 -->
-      <div class="clips-filter-bar">
-        <div class="filter-left">
-          <button 
-            :class="['clip-filter-btn', { active: selectedClipPeriod === 'ALL' }]"
-            @click="changeClipFilter('ALL')"
-          >
-            전체
-          </button>
-          <button 
-            :class="['clip-filter-btn', { active: selectedClipPeriod === 'DAYS_30' }]"
-            @click="changeClipFilter('DAYS_30')"
-          >
-            한달
-          </button>
-          <button 
-            :class="['clip-filter-btn', { active: selectedClipPeriod === 'DAYS_7' }]"
-            @click="changeClipFilter('DAYS_7')"
-          >
-            주간
-          </button>
-          <button 
-            :class="['clip-filter-btn', { active: selectedClipPeriod === 'HOURS_24' }]"
-            @click="changeClipFilter('HOURS_24')"
-          >
-            하루
-          </button>
-        </div>
-        <div class="filter-right">
-          <button 
-            :class="['clip-filter-btn', { active: selectedClipSort === 'views' }]"
-            @click="changeClipSort('views')"
-          >
-            인기순
-          </button>
-          <button 
-            :class="['clip-filter-btn', { active: selectedClipSort === 'recent' }]"
-            @click="changeClipSort('recent')"
-          >
-            최신순
-          </button>
-        </div>
-      </div>
-
-      <div class="clips-container" 
-           @mouseenter="showClipNavButtons = true" 
-           @mouseleave="showClipNavButtons = false">
-        <button 
-          v-if="showClipNavButtons && clipCurrentPage > 0" 
-          class="nav-button prev-button" 
-          @click="slideClipPrev">
-          <v-icon>mdi-chevron-left</v-icon>
-        </button>
-
-        <div class="clips-slider" ref="clipsSlider">
-          <div
-            v-for="clip in visibleClips"
-            :key="clip.id || clip.clipId"
-            class="clip-item"
-            @click="goToClipDetail(clip.id || clip.clipId)"
-          >
-            <div class="thumbnail-container">
-              <div class="clip-badge">클립</div>
-              <img
-                :src="clip.thumbnailUrl"
-                alt="Clip Thumbnail"
-                class="thumbnail"
-                :class="{
-                  'blur-thumbnail': isAdultContent(clip) && userIsAdult,
-                  'hide-thumbnail': isAdultContent(clip) && !userIsAdult
-                }"
+        <!-- 동영상 섹션 추가 -->
+        <div v-if="videos.length > 0" class="recent-videos-section">
+          <div class="section-header">
+            <div class="title-container">
+              <h2 class="section-title">동영상</h2>
+              <span class="view-all" @click="goToVideosTab">더보기</span>
+            </div>
+            <div class="video-filters">
+              <button
+                :class="{ active: videoSortType === 'views' }"
+                @click="changeVideoSort('views')"
               >
-              
-              <!-- 연령 제한 표시 -->
-              <div v-if="isAdultContent(clip)" class="age-restriction-overlay">
-                <div class="age-restriction-content">
-                  <div class="age-icon-circle">19</div>
-                  <div class="age-text">연령 제한</div>
+                인기순
+              </button>
+              <button
+                :class="{ active: videoSortType === 'recent' }"
+                @click="changeVideoSort('recent')"
+              >
+                최신순
+              </button>
+            </div>
+          </div>
+
+          <div class="videos-container" 
+               @mouseenter="showNavButtons = true" 
+               @mouseleave="showNavButtons = false">
+            <button 
+              v-if="showNavButtons && currentPage > 0" 
+              class="nav-button prev-button" 
+              @click="slidePrev">
+              <v-icon>mdi-chevron-left</v-icon>
+            </button>
+
+            <div class="videos-slider" ref="videosSlider">
+              <div
+                v-for="(video, index) in visibleVideos"
+                :key="video.id"
+                class="video-item"
+                @mouseenter="startPreviewTimer(index)"
+                @mouseleave="stopPreview(index)"
+                @click="goToVideoDetail(video.id)"
+              >
+                <div class="thumbnail-container">
+                  <div class="vod-badge">다시보기</div>
+                  <img
+                    :src="video.thumbnailUrl"
+                    alt="Video Thumbnail"
+                    class="thumbnail"
+                    :class="{
+                      'blur-thumbnail': isAdultContent(video) && userIsAdult,
+                      'hide-thumbnail': isAdultContent(video) && !userIsAdult
+                    }"
+                  >
+                  <video
+                    v-if="video.showPreview && video.url && !isAdultContent(video)"
+                    :src="video.url"
+                    class="video-preview"
+                    autoplay
+                    muted
+                    loop
+                  ></video>
+                  <div class="duration">{{ video.duration }}</div>
+
+                  <!-- 연령 제한 표시 -->
+                  <div v-if="isAdultContent(video)" class="age-restriction-overlay">
+                    <div class="age-restriction-content">
+                      <div class="age-icon-circle">19</div>
+                      <div class="age-text">연령 제한</div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              
-              <!-- 텍스트 오버레이 -->
-              <div class="clip-info-overlay">
-                <div class="clip-meta">
-                  <div class="clip-title">{{ clip.title }}</div>
-                  <span class="view-count">
-                    <v-icon size="x-small" class="mr-1">mdi-eye</v-icon>
-                    {{ formatNumber(clip.views) }}
-                  </span>
+
+                <div class="video-info">
+                  <div class="video-title">{{ video.title }}</div>
+                  <div class="video-meta">
+                    <span class="view-count">조회수 {{ formatNumber(video.views || 0) }}회</span>
+                    <span class="dot-separator">·</span>
+                    <span class="video-time">{{ formatTime(video.createdTime) }}</span>
+                  </div>
                 </div>
               </div>
             </div>
+
+            <button 
+              v-if="showNavButtons && currentPage < Math.ceil(videos.length / videosPerPage) - 1" 
+              class="nav-button next-button" 
+              @click="slideNext">
+              <v-icon>mdi-chevron-right</v-icon>
+            </button>
           </div>
         </div>
 
-        <button 
-          v-if="showClipNavButtons && clipCurrentPage < Math.ceil(clips.length / clipsPerPage) - 1" 
-          class="nav-button next-button" 
-          @click="slideClipNext">
-          <v-icon>mdi-chevron-right</v-icon>
-        </button>
-      </div>
-    </div>
+        <!-- 클립 섹션 추가 -->
+        <div v-if="clips.length > 0" class="clips-section">
+          <div class="section-header">
+            <div class="title-container">
+              <h2 class="section-title">클립</h2>
+              <span class="view-all" @click="goToClipsTab">더보기</span>
+            </div>
+          </div>
+
+          <!-- 필터 버튼 -->
+          <div class="clips-filter-bar">
+            <div class="filter-left">
+              <button 
+                :class="['clip-filter-btn', { active: selectedClipPeriod === 'ALL' }]"
+                @click="changeClipFilter('ALL')"
+              >
+                전체
+              </button>
+              <button 
+                :class="['clip-filter-btn', { active: selectedClipPeriod === 'DAYS_30' }]"
+                @click="changeClipFilter('DAYS_30')"
+              >
+                한달
+              </button>
+              <button 
+                :class="['clip-filter-btn', { active: selectedClipPeriod === 'DAYS_7' }]"
+                @click="changeClipFilter('DAYS_7')"
+              >
+                주간
+              </button>
+              <button 
+                :class="['clip-filter-btn', { active: selectedClipPeriod === 'HOURS_24' }]"
+                @click="changeClipFilter('HOURS_24')"
+              >
+                하루
+              </button>
+            </div>
+            <div class="filter-right">
+              <button 
+                :class="['clip-filter-btn', { active: selectedClipSort === 'views' }]"
+                @click="changeClipSort('views')"
+              >
+                인기순
+              </button>
+              <button 
+                :class="['clip-filter-btn', { active: selectedClipSort === 'recent' }]"
+                @click="changeClipSort('recent')"
+              >
+                최신순
+              </button>
+            </div>
+          </div>
+
+          <div class="clips-container" 
+              @mouseenter="showClipNavButtons = true" 
+              @mouseleave="showClipNavButtons = false">
+            <button 
+              v-if="showClipNavButtons && clipCurrentPage > 0" 
+              class="nav-button prev-button" 
+              @click="slideClipPrev">
+              <v-icon>mdi-chevron-left</v-icon>
+            </button>
+
+            <div class="clips-slider" ref="clipsSlider">
+              <div
+                v-for="clip in visibleClips"
+                :key="clip.id || clip.clipId"
+                class="clip-item"
+                @click="goToClipDetail(clip.id || clip.clipId)"
+              >
+                <div class="thumbnail-container">
+                  <div class="clip-badge">클립</div>
+                  <img
+                    :src="clip.thumbnailUrl"
+                    alt="Clip Thumbnail"
+                    class="thumbnail"
+                    :class="{
+                      'blur-thumbnail': isAdultContent(clip) && userIsAdult,
+                      'hide-thumbnail': isAdultContent(clip) && !userIsAdult
+                    }"
+                  >
+                  
+                  <!-- 연령 제한 표시 -->
+                  <div v-if="isAdultContent(clip)" class="age-restriction-overlay">
+                    <div class="age-restriction-content">
+                      <div class="age-icon-circle">19</div>
+                      <div class="age-text">연령 제한</div>
+                    </div>
+                  </div>
+                  
+                  <!-- 텍스트 오버레이 -->
+                  <div class="clip-info-overlay">
+                    <div class="clip-meta">
+                      <div class="clip-title">{{ clip.title }}</div>
+                      <span class="view-count">
+                        <v-icon size="x-small" class="mr-1">mdi-eye</v-icon>
+                        {{ formatNumber(clip.views) }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <button 
+              v-if="showClipNavButtons && clipCurrentPage < Math.ceil(clips.length / clipsPerPage) - 1" 
+              class="nav-button next-button" 
+              @click="slideClipNext">
+              <v-icon>mdi-chevron-right</v-icon>
+            </button>
+          </div>
+        </div>
+      </template>
+    </template>
     </div>
   </template>
   
@@ -813,6 +827,15 @@ const slideClipPrev = () => {
   }
 };
 
+// 컨텐츠 유무 확인 computed 속성 추가
+const hasContent = computed(() => {
+  return (isLive.value && streamInfo.value && streamingId.value) || 
+         (!isLive.value && vodInfo.value) ||
+         (banners.value && banners.value.length > 0) || 
+         videos.value.length > 0 || 
+         clips.value.length > 0;
+});
+
 onMounted(async () => {
   isLoading.value = true;
   
@@ -1160,7 +1183,7 @@ onBeforeUnmount(() => {
 .banner-container {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 8px;
   justify-content: flex-start;
   padding: 0;
   margin-left: 0;
@@ -1171,7 +1194,7 @@ onBeforeUnmount(() => {
   flex-direction: column;
   align-items: center;
   cursor: pointer;
-  width: 120px;
+  width: 130px;
   transition: transform 0.2s;
 }
 
@@ -1180,8 +1203,8 @@ onBeforeUnmount(() => {
 }
 
 .banner-image-wrapper {
-  width: 80px;
-  height: 80px;
+  width: 120px;
+  height: 120px;
   border-radius: 8px;
   overflow: hidden;
   background: #18191c;
@@ -1587,5 +1610,44 @@ onBeforeUnmount(() => {
   line-height: 1.3;
   text-shadow: none;
   margin-right: 8px;
+}
+
+/* 전체 홈 빈 상태 UI */
+.empty-home-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 500px;
+  width: 100%;
+}
+
+.empty-home-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 0;
+  background-color: #18191c;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 600px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.empty-home-title {
+  margin-top: 24px;
+  color: #aaaaaa;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.empty-home-text {
+  margin-top: 12px;
+  color: #7B7B7B;
+  font-size: 16px;
+  font-weight: 500;
+  text-align: center;
+  max-width: 80%;
 }
   </style>

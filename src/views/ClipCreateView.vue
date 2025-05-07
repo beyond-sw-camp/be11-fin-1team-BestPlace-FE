@@ -72,6 +72,39 @@
         </div>
       </div>
     </div>
+
+    <!-- 클립 생성 완료 모달 -->
+    <v-dialog v-model="showSuccessModal" max-width="400" content-class="community-modal">
+      <div class="modal-container">
+        <div class="modal-header">
+          <div class="modal-title">클립 생성 완료</div>
+          <v-btn icon @click="closeSuccessModal" class="close-btn">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </div>
+        
+        <div class="modal-content">
+          <div class="message-container success-container">
+            <v-icon icon="mdi-check-circle" color="#B084CC" size="x-large" class="message-icon"></v-icon>
+            <div class="message-text">
+              <p>클립이 성공적으로 생성되었습니다.</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <div class="button-group">
+            <v-btn 
+              color="#B084CC" 
+              class="confirm-btn" 
+              @click="closeSuccessModal"
+            >
+              확인
+            </v-btn>
+          </div>
+        </div>
+      </div>
+    </v-dialog>
   </div>
 </template>
 
@@ -107,6 +140,9 @@ const vodInfo = ref({
 })
 
 const isLoading = ref(false)
+
+// 클립 생성 완료 모달 관련 상태 추가
+const showSuccessModal = ref(false)
 
 // VOD 정보 가져오기
 const getVodInfo = async () => {
@@ -224,14 +260,19 @@ const createClip = async () => {
       headers: { Authorization: `Bearer ${token.value}` }
     })
     
-    alert('클립이 생성되었습니다.')
-    window.close()
+    showSuccessModal.value = true
   } catch (error) {
     console.error('클립 생성 실패:', error)
     alert('클립 생성에 실패했습니다.')
   } finally {
     isLoading.value = false
   }
+}
+
+// 모달 닫기 함수
+const closeSuccessModal = () => {
+  showSuccessModal.value = false
+  window.close()
 }
 
 // 뒤로 가기
@@ -490,6 +531,24 @@ video {
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.create-button:disabled {
+  background: #2D2D2D;
+  color: #7B7B7B;
+  cursor: not-allowed;
+  opacity: 0.7;
+  transform: scale(0.98);
+}
+
+.create-button:not(:disabled):hover {
+  background: #C19AD6;
+  transform: scale(1.02);
+}
+
+.create-button:not(:disabled):active {
+  transform: scale(0.98);
 }
 
 .loading-spinner {
@@ -505,5 +564,83 @@ video {
   to {
     transform: rotate(360deg);
   }
+}
+
+/* 모달 스타일 */
+.community-modal {
+  background: transparent !important;
+  box-shadow: none !important;
+  display: flex;
+  align-items: flex-start !important;
+  padding-top: 50px;
+  padding-bottom: 50px;
+}
+
+.modal-container {
+  background-color: #1a1a1a;
+  border-radius: 12px;
+  overflow: hidden;
+  color: white;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid #333;
+}
+
+.modal-title {
+  font-size: 18px;
+  font-weight: 500;
+  color: white;
+}
+
+.close-btn {
+  color: #aaa;
+}
+
+.modal-content {
+  padding: 20px;
+  max-height: 70vh;
+  overflow-y: auto;
+  width: 100%;
+}
+
+.message-container {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  background-color: rgba(176, 132, 204, 0.1);
+  border-radius: 8px;
+  width: 100%;
+}
+
+.message-icon {
+  margin-right: 16px;
+}
+
+.message-text {
+  font-size: 16px;
+  line-height: 1.5;
+  color: #fff;
+}
+
+.modal-footer {
+  padding: 16px;
+  border-top: 1px solid #333;
+}
+
+.confirm-btn {
+  height: 44px;
+  font-size: 16px;
+  font-weight: 500;
+  width: 100%;
+}
+
+.button-group {
+  display: flex;
+  width: 100%;
 }
 </style> 

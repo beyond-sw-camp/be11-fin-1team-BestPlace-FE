@@ -47,6 +47,47 @@
 
     <v-spacer />
 
+    <!-- 알림 버튼: 로그인한 경우에만 노출 -->
+    <v-menu
+      v-if="isLogin"
+      offset-y
+      min-width="340"
+      :close-on-content-click="false"
+      v-model="notificationMenu"
+      @update:model-value="onNotificationMenuChange"
+    >
+      <template v-slot:activator="{ props }">
+        <v-btn
+          class="notification-btn mr-2"
+          icon
+          v-bind="props"
+        >
+          <v-icon>mdi-bell-outline</v-icon>
+        </v-btn>
+      </template>
+      <div class="notification-dropdown">
+        <div class="notification-list" v-if="notifications.length">
+          <div
+            v-for="item in notifications"
+            :key="item.id"
+            class="notification-item"
+            :class="{ unread: item.isRead === 'N' }"
+            @click="goToNotification(item.url, item.id)"
+          >
+            <div class="profile-img-wrap">
+              <img :src="item.senderProfileUrl" class="profile-img" />
+              <span v-if="item.isRead === 'N'" class="unread-dot"></span>
+            </div>
+            <div class="notification-content">
+              <div class="notification-title">{{ item.content }}</div>
+              <div class="notification-date">{{ formatDate(item.createdTime) }}</div>
+            </div>
+          </div>
+        </div>
+        <div v-else class="notification-empty">알림이 없습니다.</div>
+      </div>
+    </v-menu>
+
     <!-- 스튜디오 버튼 추가 -->
     <v-btn
       class="studio-btn mr-2"
@@ -127,7 +168,7 @@
               <template v-slot:prepend>
                 <v-icon>mdi-star</v-icon>
               </template>
-              <v-list-item-title>팔로잉 채널</v-list-item-title>
+              <v-list-item-title>팔로잉</v-list-item-title>
             </v-list-item>
 
             <v-divider></v-divider>
@@ -208,7 +249,10 @@ export default {
       currentIndex: -1,
       selectedItem: null,
       // 로그인 필요 모달
-      loginRequiredDialog: false
+      loginRequiredDialog: false,
+      memberApi: process.env.VUE_APP_MEMBER_API,
+      notificationMenu: false,
+      notifications: [],
     };
   },
   mounted() {
@@ -226,6 +270,10 @@ export default {
     }
   },
   methods: {
+    async getNotification() {
+      const response = await axios.get(`${this.memberApi}/alarm/list`);
+      this.notifications = response.data.result.content || [];
+    },
     doLogout() {
       localStorage.clear();
       this.isLogin = false;
@@ -429,7 +477,29 @@ export default {
           profileImage: this.defaultAvatar
         };
       }
-    }
+    },
+    async readNotification(id) {
+      const response = await axios.post(`${this.memberApi}/alarm/read/${id}`);
+    },
+    async onNotificationMenuChange(val) {
+      this.notificationMenu = val;
+      if (val) {
+        await this.getNotification();
+      }
+    },
+    goToNotification(url, id) {
+      this.readNotification(id);
+      window.location.href = url;
+      this.notificationMenu = false;
+      // window.open(url, "_blank", "noopener");
+      // this.notificationMenu = false;
+    },
+    formatDate(dateStr) {
+      const date = new Date(dateStr);
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const day = date.getDate().toString().padStart(2, '0');
+      return `${month}.${day}`;
+    },
   },
 };
 </script>
@@ -653,5 +723,114 @@ export default {
   height: 44px;
   font-size: 16px;
   font-weight: 500;
+}
+
+.notification-btn {
+  background-color: rgba(40, 40, 52, 0.95);
+  color: white;
+  border-radius: 8px;
+  height: 36px !important;
+  width: 36px !important;
+  min-width: 36px !important;
+  min-height: 36px !important;
+  font-weight: 500;
+  font-size: 16px;
+  box-shadow: none;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 16px;
+}
+
+.notification-btn:hover {
+  background-color: rgba(60, 60, 72, 0.95);
+}
+
+.notification-dropdown {
+  background: #fff;
+  color: #222;
+  border-radius: 12px;
+  box-shadow: 0 2px 16px 0 rgba(0,0,0,0.18);
+  min-width: 400px;
+  width: 400px;
+  max-height: 420px;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+.notification-list {
+  display: flex;
+  flex-direction: column;
+}
+.notification-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 20px 12px 16px;
+  cursor: pointer;
+  transition: background 0.15s;
+  border-bottom: 1px solid #f0f0f0;
+}
+.notification-item:last-child {
+  border-bottom: none;
+}
+.notification-item:hover {
+  background: #f7f3fa;
+}
+.profile-img-wrap {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+}
+.profile-img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #eee;
+}
+.unread-dot {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 9px;
+  height: 9px;
+  background: #FF2A46;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  z-index: 2;
+}
+.notification-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.notification-title {
+  font-size: 15px;
+  color: #B084CC;
+  font-weight: 600;
+  margin-bottom: 2px;
+  word-break: break-all;
+  width: 315px;
+  max-width: 315px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.notification-date {
+  font-size: 13px;
+  color: #7B7B7B;
+  font-weight: 400;
+}
+.notification-empty {
+  text-align: center;
+  color: #aaa;
+  padding: 32px 0;
+  font-size: 15px;
+}
+.notification-item.unread .notification-title {
+  color: #B084CC;
 }
 </style>

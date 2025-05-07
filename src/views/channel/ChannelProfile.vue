@@ -150,7 +150,7 @@
   }
   .streamer-name {
     font-size: 28px;
-    font-weight: 700;
+    font-weight: 500;
     margin: 0;
   }
   .follower-count {

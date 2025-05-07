@@ -4,7 +4,7 @@
     <SidebarComponent v-if="!isStreamerRoute && !isClipCreateRoute" :mini="mini" />
     <v-main style="background-color: #141517;" class="main-content">
       <router-view class="full-width"/>
-      <FooterComponent v-if="!isStreamerRoute && !isClipCreateRoute"/>
+      <FooterComponent v-if="!isStreamerRoute && !isClipCreateRoute && !isClipDetailRoute"/>
     </v-main>
   </v-app>
 </template>
@@ -32,6 +32,9 @@ export default {
     },
     isClipCreateRoute() {
       return this.$route.path.startsWith("/video/clip/create/");
+    },
+    isClipDetailRoute() {
+      return this.$route.path.startsWith("/clip/");
     }
   },
   methods: {

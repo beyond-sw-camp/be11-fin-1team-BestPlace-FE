@@ -265,16 +265,45 @@
     </div>
 
     <!-- 삭제 확인 모달 추가 -->
-    <div v-if="showDeleteModal" class="modal-overlay">
-      <div class="modal-content">
-        <p class="modal-title">Bestplace</p>
-        <p class="modal-message">댓글을 삭제하시겠습니까?</p>
-        <div class="modal-buttons">
-          <button class="modal-button cancel" @click="cancelDelete">취소</button>
-          <button class="modal-button confirm" @click="confirmDelete">확인</button>
+    <v-dialog v-model="showDeleteModal" max-width="400" content-class="community-modal">
+      <div class="modal-container">
+        <div class="modal-header">
+          <div class="modal-title">Bestplace</div>
+          <v-btn icon @click="cancelDelete" class="close-btn">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </div>
+        
+        <div class="modal-content">
+          <div class="message-container warning-container">
+            <v-icon icon="mdi-alert" color="#FF5252" size="x-large" class="message-icon"></v-icon>
+            <div class="message-text">
+              <p>댓글을 삭제하시겠습니까?</p>
+              <p class="warning-submessage">삭제된 댓글은 복구할 수 없습니다.</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <div class="button-group">
+            <v-btn 
+              variant="outlined" 
+              class="cancel-btn" 
+              @click="cancelDelete"
+            >
+              취소
+            </v-btn>
+            <v-btn 
+              color="#FF5252" 
+              class="delete-confirm-btn" 
+              @click="confirmDelete"
+            >
+              삭제
+            </v-btn>
+          </div>
         </div>
       </div>
-    </div>
+    </v-dialog>
 
     <!-- 클립 생성 모달 -->
     <div v-if="showClipModal" class="modal-overlay">
@@ -322,6 +351,47 @@
         </div>
       </div>
     </div>
+
+    <!-- 로그인 확인 모달 -->
+    <v-dialog v-model="loginConfirmModalOpen" max-width="400" content-class="community-modal">
+      <div class="modal-container">
+        <div class="modal-header">
+          <div class="modal-title">로그인 필요</div>
+          <v-btn icon @click="closeLoginConfirmModal" class="close-btn">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </div>
+        
+        <div class="modal-content">
+          <div class="message-container login-container">
+            <v-icon icon="mdi-account-alert" color="#B084CC" size="x-large" class="message-icon"></v-icon>
+            <div class="message-text">
+              <p>로그인이 필요한 기능입니다.</p>
+              <p class="login-submessage">로그인 페이지로 이동하시겠습니까?</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <div class="button-group">
+            <v-btn 
+              variant="outlined" 
+              class="cancel-btn" 
+              @click="closeLoginConfirmModal"
+            >
+              아니오
+            </v-btn>
+            <v-btn 
+              color="#B084CC" 
+              class="login-confirm-btn" 
+              @click="goToLogin"
+            >
+              예, 로그인하기
+            </v-btn>
+          </div>
+        </div>
+      </div>
+    </v-dialog>
   </div>
 </template>
 
@@ -338,6 +408,9 @@ const streamingApi = process.env.VUE_APP_STREAMING_API
 const memberApi = process.env.VUE_APP_MEMBER_API
 const token = ref(localStorage.getItem('token'))
 const isLogin = ref(false)
+
+// 로그인 확인 모달 관련 상태 추가
+const loginConfirmModalOpen = ref(false)
 
 // VOD 정보
 const vodInfo = ref({
@@ -422,11 +495,7 @@ const getVodInfo = async () => {
     // 토큰 준비
     await prepareToken()
     
-    const response = await axios.get(`${memberApi}/video/vod/${vodId}`, {
-      headers: {
-        Authorization: `Bearer ${token.value}`
-      }
-    })
+    const response = await axios.get(`${memberApi}/video/vod/${vodId}`)
 
     if (!response.data || !response.data.result) {
       console.error('VOD 정보가 없습니다:', response.data)
@@ -438,11 +507,7 @@ const getVodInfo = async () => {
     
     // 스트리머 정보 가져오기
     if (vodInfo.value.owner) {
-      const streamerResponse = await axios.get(`${memberApi}/member/info/${vodInfo.value.memberId}`, {
-        headers: {
-          Authorization: `Bearer ${token.value}`
-        }
-      })
+      const streamerResponse = await axios.get(`${memberApi}/member/info/${vodInfo.value.memberId}`)
       
       if (streamerResponse.data && streamerResponse.data.result) {
         streamerInfo.value = streamerResponse.data.result
@@ -467,11 +532,7 @@ const getChatHistory = async () => {
   }
 
   try {
-    const response = await axios.get(`${streamingApi}/chat/history/${vodInfo.value.roomId}`, {
-      headers: {
-        Authorization: `Bearer ${token.value}`
-      }
-    })
+    const response = await axios.get(`${streamingApi}/chat/history/${vodInfo.value.roomId}`)
     
     // 채팅 기록을 정렬하여 저장
     chatHistory.value = response.data
@@ -637,9 +698,7 @@ const formatRelativeTime = (dateString) => {
 // 팔로우 토글
 const toggleFollow = async () => {
   try {
-    await axios.post(`${memberApi}/follow/toggle/${vodInfo.value.memberId}`, null, {
-      headers: { Authorization: `Bearer ${token.value}` }
-    })
+    await axios.post(`${memberApi}/follow/toggle/${vodInfo.value.memberId}`)
     streamerInfo.value.isFollow = streamerInfo.value.isFollow === 'Y' ? 'N' : 'Y'
     // 팔로워 수 실시간 업데이트
     if (streamerInfo.value.isFollow === 'Y') {
@@ -655,9 +714,7 @@ const toggleFollow = async () => {
 // 댓글 목록 가져오기
 const getComments = async () => {
   try {
-    const response = await axios.get(`${memberApi}/videoComment/list/${vodId}`, {
-      headers: { Authorization: `Bearer ${token.value}` }
-    })
+    const response = await axios.get(`${memberApi}/videoComment/list/${vodId}`)
     const allComments = response.data.result.content
     comments.value = allComments.filter(c => !c.parentCommentId)
     replies.value = allComments.filter(c => c.parentCommentId)
@@ -668,14 +725,17 @@ const getComments = async () => {
 
 // 댓글 작성
 const createComment = async () => {
+  if (!isLogin.value) {
+    loginConfirmModalOpen.value = true
+    return
+  }
+  
   if (!newComment.value.trim()) return
   
   try {
     await axios.post(`${memberApi}/videoComment/create`, {
       videoPostId: vodId,
       content: newComment.value
-    }, {
-      headers: { Authorization: `Bearer ${token.value}` }
     })
     newComment.value = ''
     await getComments()
@@ -686,6 +746,10 @@ const createComment = async () => {
 
 // 답글 입력 표시
 const showReplyInput = (commentId) => {
+  if (!isLogin.value) {
+    loginConfirmModalOpen.value = true
+    return
+  }
   replyToId.value = commentId
   // nextTick을 사용하여 DOM 업데이트 후 textarea에 포커스
   nextTick(() => {
@@ -710,8 +774,6 @@ const createReply = async (commentId) => {
     await axios.post(`${memberApi}/videoComment/reply`, {
       commentId: commentId,
       content: newReply.value
-    }, {
-      headers: { Authorization: `Bearer ${token.value}` }
     })
     newReply.value = ''
     replyToId.value = null
@@ -727,8 +789,6 @@ const updateComment = async (comment) => {
     await axios.post(`${memberApi}/videoComment/update`, {
       videoCommentId: comment.commentId,
       content: comment.content
-    }, {
-      headers: { Authorization: `Bearer ${token.value}` }
     })
     editingComment.value = null
     await getComments()
@@ -762,9 +822,7 @@ const confirmDelete = async () => {
 // 기존 deleteComment 함수 수정
 const deleteComment = async (commentId) => {
   try {
-    await axios.post(`${memberApi}/videoComment/delete/${commentId}`, {
-      headers: { Authorization: `Bearer ${token.value}` }
-    })
+    await axios.post(`${memberApi}/videoComment/delete/${commentId}`)
     await getComments()
   } catch (error) {
     console.error('댓글 삭제 실패:', error)
@@ -773,10 +831,13 @@ const deleteComment = async (commentId) => {
 
 // 좋아요 토글
 const toggleLike = async (commentId) => {
+  if (!isLogin.value) {
+    loginConfirmModalOpen.value = true
+    return
+  }
+  
   try {
-    await axios.post(`${memberApi}/videoComment/toggle/${commentId}`, {
-      headers: { Authorization: `Bearer ${token.value}` }
-    })
+    await axios.post(`${memberApi}/videoComment/toggle/${commentId}`)
     await getComments()
   } catch (error) {
     console.error('좋아요 토글 실패:', error)
@@ -839,6 +900,11 @@ const goToCategory = (category) => {
 
 // Add in the script section, after goToCategory function
 const goToClipCreate = () => {
+  if (!isLogin.value) {
+    loginConfirmModalOpen.value = true
+    return
+  }
+  
   const width = 800
   const height = 800
   const left = (window.screen.width - width) / 2
@@ -867,6 +933,17 @@ const formatTime = (seconds) => {
   const mins = Math.floor(seconds / 60)
   const secs = Math.floor(seconds % 60)
   return `${mins}:${secs.toString().padStart(2, '0')}`
+}
+
+// 로그인 모달 닫기
+const closeLoginConfirmModal = () => {
+  loginConfirmModalOpen.value = false
+}
+
+// 로그인 페이지로 이동
+const goToLogin = () => {
+  closeLoginConfirmModal()
+  router.push('/member/login')
 }
 
 onMounted(() => {
@@ -1385,15 +1462,15 @@ video {
 .modal-content {
   background: #1A1A1A;
   border-radius: 8px;
-  padding: 24px;
-  width: 320px;
-  text-align: center;
+  padding: 20px;
+  max-height: 70vh;
+  overflow-y: auto;
+  width: 100%;
 }
 
 .modal-title {
   font-size: 18px;
   font-weight: 600;
-  margin: 0 0 16px 0;
 }
 
 .modal-message {
@@ -1786,5 +1863,117 @@ video {
   background: #2D2D2D;
   color: #7B7B7B;
   cursor: not-allowed;
+}
+
+/* 로그인 모달 스타일 */
+.community-modal {
+  background: transparent !important;
+  box-shadow: none !important;
+  display: flex;
+  align-items: flex-start !important;
+  padding-top: 50px;
+  padding-bottom: 50px;
+}
+
+.modal-container {
+  background-color: #1a1a1a;
+  border-radius: 12px;
+  overflow: hidden;
+  color: white;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid #333;
+}
+
+.modal-title {
+  font-size: 18px;
+  font-weight: 500;
+  color: white;
+}
+
+.close-btn {
+  color: #aaa;
+}
+
+.modal-content {
+  padding: 20px;
+  max-height: 70vh;
+  overflow-y: auto;
+  width: 100%;
+}
+
+.message-container {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  background-color: rgba(255, 82, 82, 0.1);
+  border-radius: 8px;
+  width: 100%;
+}
+
+.warning-container {
+  background-color: rgba(255, 152, 0, 0.1);
+}
+
+.message-icon {
+  margin-right: 16px;
+}
+
+.message-text {
+  font-size: 16px;
+  line-height: 1.5;
+  color: #fff;
+}
+
+.warning-submessage {
+  font-size: 14px;
+  color: #aaa;
+  margin-top: 8px;
+}
+
+.modal-footer {
+  padding: 16px;
+  border-top: 1px solid #333;
+}
+
+.confirm-btn {
+  height: 44px;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.button-group {
+  display: flex;
+  width: 100%;
+  gap: 10px;
+}
+
+.cancel-btn {
+  flex: 1;
+  border-color: #555 !important;
+  color: white !important;
+}
+
+.delete-confirm-btn {
+  flex: 2;
+}
+
+.login-container {
+  background-color: rgba(176, 132, 204, 0.1) !important;
+}
+
+.login-submessage {
+  font-size: 14px;
+  color: #aaa;
+  margin-top: 8px;
+}
+
+.login-confirm-btn {
+  flex: 2;
 }
 </style>

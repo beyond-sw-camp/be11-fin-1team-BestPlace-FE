@@ -7,6 +7,8 @@ import PostRouter from './PostRouter';
 import VideoRouter from './VideoRouter';
 import StreamingRouter from './streamingRouter';
 import streamerRouter from './streamerRouter';
+import HomeRouter from './HomeRouter';
+import FollowingRouter from './FollowingRouter';
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
 
@@ -18,7 +20,9 @@ const routes = [
     ...PostRouter,
     ...VideoRouter,
     ...StreamingRouter,
-    ...streamerRouter
+    ...streamerRouter,
+    ...HomeRouter,
+    ...FollowingRouter
 ];
 
 const router = createRouter({

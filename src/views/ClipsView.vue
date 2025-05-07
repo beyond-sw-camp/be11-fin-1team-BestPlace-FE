@@ -363,7 +363,7 @@ export default {
 
 .clips-title {
   font-size: 32px;
-  font-weight: 700;
+  font-weight: 500;
   margin-bottom: 1px;
 }
 
@@ -410,7 +410,7 @@ export default {
 
 .clips-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 20px;
   width: 100%;
   max-width: 1920px;
@@ -444,7 +444,7 @@ export default {
   overflow: hidden;
   border-radius: 8px;
   width: 100%;
-  aspect-ratio: 9 / 16;
+  aspect-ratio: 3 / 5;
   background-color: #000;
 }
 
