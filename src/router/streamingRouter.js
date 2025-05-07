@@ -27,7 +27,6 @@ export default [
       component: SearchView
     },
     {
-      path: '/channel/:memberId',
       component: ChannelView,
       children: [
         {
