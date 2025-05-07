@@ -71,6 +71,24 @@
       </div>
     </div>
 
+    <!-- 정렬 옵션 (라이브 탭에서만 표시) -->
+    <div class="sort-container" v-if="activeTab === 'live'">
+      <div class="sort-options">
+        <button 
+          :class="['sort-btn', { active: liveSortOption === 'views' }]" 
+          @click="setLiveSortOption('views')"
+        >
+          인기순
+        </button>
+        <button 
+          :class="['sort-btn', { active: liveSortOption === 'recent' }]" 
+          @click="setLiveSortOption('recent')"
+        >
+          최신순
+        </button>
+      </div>
+    </div>
+
     <!-- 동영상 목록 (동영상 탭에서만 표시) -->
     <div class="videos-grid" v-if="activeTab === 'video' && videos.length > 0">
       <div 
@@ -128,26 +146,50 @@
     </div>
 
     <!-- 방송 목록 (라이브 탭에서만 표시) -->
-    <div class="broadcasts-grid" v-if="activeTab === 'live'">
+    <div class="broadcasts-grid" v-if="activeTab === 'live' && broadcasts.length > 0">
       <div 
         v-for="(broadcast, index) in broadcasts" 
         :key="index" 
         class="broadcast-item"
+        @click="handleBroadcastClick(broadcast)"
       >
         <div class="thumbnail-container">
-          <img :src="broadcast.thumbnailUrl" alt="Broadcast Thumbnail" class="thumbnail">
-          <div class="duration">{{ broadcast.duration }}</div>
-          <div class="replay-badge">다시보기</div>
+          <img 
+            :src="broadcast.thumbnailUrl" 
+            alt="Broadcast Thumbnail" 
+            class="thumbnail"
+            :class="{
+              'blur-thumbnail': shouldBlurThumbnail(broadcast),
+              'hide-thumbnail': shouldHideThumbnail(broadcast)
+            }"
+          >
+          <div class="live-indicator">LIVE</div>
+          <div class="viewer-count">
+            <v-icon size="x-small" class="mr-1">mdi-eye</v-icon>
+            {{ broadcast.viewerCount }}명
+          </div>
+          
+          <!-- 연령 제한 표시 -->
+          <div v-if="broadcast.adultYn === 'Y'" class="age-restriction-overlay">
+            <div class="age-restriction-content">
+              <div class="age-icon-circle">19</div>
+              <div class="age-text">연령 제한</div>
+            </div>
+          </div>
         </div>
         <div class="broadcast-info">
           <div class="broadcast-title">{{ broadcast.title }}</div>
           <div class="streamer-info">
             <div class="streamer-profile">
-              <img :src="broadcast.streamerProfileUrl" alt="Streamer Profile" class="profile-img">
-              <div class="live-badge" v-if="broadcast.isLive">LIVE</div>
+              <img :src="broadcast.streamerProfileUrl || defaultProfileImage" alt="Streamer Profile" class="profile-img">
             </div>
-            <div class="streamer-name">{{ broadcast.streamerName }}</div>
-            <div class="broadcast-time">{{ broadcast.time }}</div>
+            <div class="streamer-detail">
+              <div class="streamer-name">{{ broadcast.streamerNickname }}</div>
+              <div class="broadcast-time">{{ formatTime(broadcast.startTime) }}</div>
+            </div>
+          </div>
+          <div v-if="broadcast.hashTag && broadcast.hashTag.length > 0" class="hashtags">
+            <span v-for="(tag, i) in broadcast.hashTag" :key="i" class="hashtag">{{ tag }}</span>
           </div>
         </div>
       </div>
@@ -296,6 +338,7 @@ export default {
       clips: [],
       loading: false,
       sortOption: 'views', // 기본값은 인기순
+      liveSortOption: 'views', // 라이브 탭 기본값은 인기순
       // 클립 탭 관련 데이터
       selectedPeriod: 'DAYS_7', // 초기값: 주간
       selectedSort: 'popular',   // 초기값: 인기순
@@ -358,6 +401,8 @@ export default {
         this.fetchVideos();
       } else if (this.activeTab === 'clip') {
         this.initClipDataLoading();
+      } else if (this.activeTab === 'live') {
+        this.fetchLiveStreams();
       }
     });
     this.setupInfiniteScroll();
@@ -379,6 +424,9 @@ export default {
       } else if (newTab === 'clip') {
         // 클립 탭으로 변경될 때마다 데이터 확인 및 로드
         this.initClipDataLoading();
+      } else if (newTab === 'live' && this.broadcasts.length === 0) {
+        // 라이브 탭으로 변경될 때 데이터 로드
+        this.fetchLiveStreams();
       }
     },
     sortOption() {
@@ -397,6 +445,11 @@ export default {
     },
     selectedSort() {
       this.resetAndLoadClips();
+    },
+    liveSortOption() {
+      // 라이브 정렬 옵션이 변경되면 데이터 다시 로드
+      this.broadcasts = [];
+      this.fetchLiveStreams();
     }
   },
   
@@ -448,6 +501,50 @@ export default {
       }
     },
 
+    async fetchLivesbyViewer() {
+      try{
+        const apiUrl = process.env.VUE_APP_STREAMING_API;
+        const url = `${apiUrl}/streaming/streamListViewer/${this.categoryName}`;
+        console.log('요청 URL:', url);
+
+        const response = await axios.get(url);
+        console.log('응답 데이터:', response.data);
+        
+        if (response.data && response.data.result) {
+          this.broadcasts = response.data.result.content.map(broadcast => ({
+            ...broadcast,
+            isAdult: broadcast.adultYn
+          }));
+        }
+      }catch(error){
+        console.error('라이브 목록을 불러오는 중 오류 발생:', error);
+      }finally{
+        this.loading = false;
+      }
+    },
+
+    async fetchLivesbyStartTime() {
+      try{
+        const apiUrl = process.env.VUE_APP_STREAMING_API;
+        const url = `${apiUrl}/streaming/streamListStartTime/${this.categoryName}`;
+        console.log('요청 URL:', url);
+
+        const response = await axios.get(url);
+        console.log('응답 데이터:', response.data);
+        
+        if (response.data && response.data.result) {
+          this.broadcasts = response.data.result.content.map(broadcast => ({
+            ...broadcast,
+            isAdult: broadcast.adultYn
+          }));
+        }
+      }catch(error){
+        console.error('라이브 목록을 불러오는 중 오류 발생:', error);
+      }finally{
+        this.loading = false;
+      }
+    },
+
     async fetchVideos() {
       if (this.loading || !this.hasMoreVideos) return;
       
@@ -493,6 +590,10 @@ export default {
 
     setSortOption(option) {
       this.sortOption = option;
+    },
+
+    setLiveSortOption(option) {
+      this.liveSortOption = option;
     },
 
     setupInfiniteScroll() {
@@ -750,6 +851,32 @@ export default {
       } else {
         // 아니면 클립 페이지로 이동
         this.$router.push(`/clip/${clip.id}`);
+      }
+    },
+
+    async fetchLiveStreams() {
+      this.loading = true;
+      
+      try {
+        if (this.liveSortOption === 'views') {
+          await this.fetchLivesbyViewer();
+        } else {
+          await this.fetchLivesbyStartTime();
+        }
+      } catch (error) {
+        console.error('라이브 방송 목록을 불러오는 중 오류 발생:', error);
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    handleBroadcastClick(broadcast) {
+      // 성인 컨텐츠 처리
+      if (broadcast.adultYn === 'Y' && (!this.isLoggedIn || !this.userIsAdult)) {
+        this.adultAlertModalOpen = true;
+      } else {
+        // 방송 시청 페이지로 이동
+        this.$router.push(`/streaming/${broadcast.streamId}`);
       }
     },
   }
@@ -1145,7 +1272,6 @@ export default {
   color: #6c757d;
 }
 
-
 .hashtags {
   display: flex;
   align-items: center;
@@ -1495,4 +1621,49 @@ export default {
   background: #B084CC;
   color: #fff;
 }
+
+.broadcasts-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 20px;
+  max-width: 1920px;
+  margin: 0 auto;
+  padding: 10px 24px 24px 24px;
+}
+
+.broadcast-item {
+  background-color: #141517;
+  border-radius: 8px;
+  padding: 8px;
+  overflow: hidden;
+}
+
+.live-indicator {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background-color: #ff2e2e;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  z-index: 2;
+}
+
+.viewer-count {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  z-index: 2;
+}
 </style>
+
