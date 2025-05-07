@@ -143,7 +143,7 @@ export default {
       this.$router.push('/chat/setting');
     },
     goToForbiddenWords() {
-      this.$router.push('/chat/fobterm');
+      this.$router.push(`/streamer/${this.$route.params.memberId}/banword`);
     }
   }
 };

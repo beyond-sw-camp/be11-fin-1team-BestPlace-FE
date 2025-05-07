@@ -5,6 +5,7 @@ import DoBroadcast from "@/views/StreamerSettings/DoBroadcast.vue";
 import FollowerManagement from "@/views/StreamerSettings/FollowerManagement.vue";
 import ManagerList from "@/views/StreamerSettings/ManagerList.vue";
 import StreamerDashboard from "@/views/StreamerSettings/StreamerDashboard.vue";
+import ForbiddenWords from "@/views/StreamerSettings/ForbiddenWords.vue";
 
 export default [
     {
@@ -43,7 +44,11 @@ export default [
             name: 'BlockList',
             component: BlockList
         },
-        
+        {
+            path: 'banword',
+            name: 'ForbiddenWords',
+            component: ForbiddenWords
+        },
       ]
     }
   ];

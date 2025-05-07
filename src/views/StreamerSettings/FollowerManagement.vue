@@ -32,7 +32,12 @@
                 <td>{{ formatDate(follower.createdTime) }}</td>
                 <td>{{ getDaysAgo(follower.createdTime) }}일</td>
                 <td>
-                  <button class="follow-btn" @click="followBack(follower.memberId)">팔로잉</button>
+                  <button 
+                    :class="['follow-btn', follower.isFollow === 'Y' ? 'following' : '']" 
+                    @click="followBack(follower.memberId, follower)"
+                  >
+                    {{ follower.isFollow === 'Y' ? '팔로잉' : '팔로우' }}
+                  </button>
                 </td>
               </tr>
               <tr v-if="pagedFollowers.length === 0">
@@ -106,6 +111,10 @@
             }
           );
           this.followers = response.data.result || [];
+          // 각 팔로워에 isFollow 속성 추가 (기본값은 'N')
+          this.followers.forEach(follower => {
+            follower.isFollow = follower.isFollow || 'N';
+          });
           this.currentPage = 1;
         } catch (e) {
           console.error(e);
@@ -124,7 +133,7 @@
         const diff = Math.floor((now - date) / (1000 * 60 * 60 * 24));
         return diff;
       },
-      async followBack(targetMemberId) {
+      async followBack(targetMemberId, follower) {
         try {
           await axios.post(
             `${process.env.VUE_APP_MEMBER_API}/follow/toggle/${targetMemberId}`,
@@ -133,7 +142,8 @@
               headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
             }
           );
-          await this.fetchFollowers();
+          // 토글 성공 후 상태 업데이트
+          follower.isFollow = follower.isFollow === 'Y' ? 'N' : 'Y';
         } catch (error) {
           console.error('팔로우 토글 실패:', error);
           alert('팔로우 처리 중 오류가 발생했습니다.');
@@ -239,10 +249,20 @@
   cursor: pointer;
   transition: background 0.2s;
 }
+.follow-btn.following {
+  background: #23242a;
+  color: #3538ff;
+  border: 1px solid #3538ff;
+}
 .follow-btn:hover {
   background: #23242a;
   color: #3538ff;
   border: 1px solid #3538ff;
+}
+.follow-btn.following:hover {
+  background: #ff3535;
+  color: #fff;
+  border: 1px solid #ff3535;
 }
 .empty-row {
   text-align: center;
