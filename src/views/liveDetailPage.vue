@@ -367,11 +367,7 @@ const prepareToken = async () => {
 
 const getStreamInfo = async () => {
   try {
-    const response = await axios.get(`${streamingApi}/streaming/streamInfo/${streamId}`, {
-      headers: {
-        Authorization: `Bearer ${token.value}`
-      }
-    })
+    const response = await axios.get(`${streamingApi}/streaming/streamInfo/${streamId}`)
     if (response.data && response.data.result) {
       streamInfo.value = response.data.result
       console.log('스트리밍 정보:', streamInfo.value)
@@ -389,11 +385,7 @@ const getStreamInfo = async () => {
 
 const getStreamerInfo = async () => {
   try {
-    const response = await axios.get(`${memberApi}/member/info/${streamInfo.value.memberId}`, {
-      headers: {
-        Authorization: `Bearer ${token.value}`
-      }
-    })
+    const response = await axios.get(`${memberApi}/member/info/${streamInfo.value.memberId}`)
     console.log(streamInfo.value.memberId)
     if (response.data && response.data.result) {
       streamerInfo.value = response.data.result
