@@ -164,7 +164,7 @@
               <v-list-item-title>내 클립</v-list-item-title>
             </v-list-item>
 
-            <v-list-item to="/my-following">
+            <v-list-item to="/following">
               <template v-slot:prepend>
                 <v-icon>mdi-star</v-icon>
               </template>
@@ -278,7 +278,8 @@ export default {
       localStorage.clear();
       this.isLogin = false;
       this.profileMenuOpen = false;
-      this.$router.push('/');
+      // Use window.location to force a complete page refresh
+      window.location.href = '/';
     },
     
     // 스튜디오 이동 메소드
