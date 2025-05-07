@@ -336,20 +336,18 @@ const prepareToken = async () => {
   
   if (token.value) {
     try {
-      // JWT 토큰에서 사용자 정보 추출
-      const base64Url = token.value.split('.')[1];
-      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-      const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => {
-        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-      }).join(''));
+      const response = await axios.get(`${memberApi}/member/isMember`, {
+        headers: {
+          'Authorization': `Bearer ${token.value}`
+        }
+      });
       
-      const payload = JSON.parse(jsonPayload);
-      console.log('토큰에서 추출한 페이로드:', payload);
-      
-      // 토큰에서 추출한 사용자 정보
-      memberId.value = payload.sub;
-      senderNickname.value = payload.nickname;
-      isLogin.value = true; // 토큰이 있으면 로그인 상태로 간주
+      // response.data.result가 존재하면 로그인 상태로 설정
+      if (response.data && response.data.result) {
+        memberId.value = response.data.result.memberId;
+        senderNickname.value = response.data.result.memberNickname;
+        isLogin.value = true;
+      }
       
       console.log('사용자 정보 설정 완료:', {
         memberId: memberId.value,
@@ -357,8 +355,7 @@ const prepareToken = async () => {
         isLogin: isLogin.value
       });
     } catch (error) {
-      console.error('토큰 파싱 실패:', error);
-      // 토큰 파싱 실패 시 로그인 상태 초기화
+      console.error('사용자 정보 확인 실패:', error);
       isLogin.value = false;
       memberId.value = null;
       senderNickname.value = null;
