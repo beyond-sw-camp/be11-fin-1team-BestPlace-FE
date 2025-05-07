@@ -89,11 +89,11 @@
             <div class="streamer-info">
               <div 
                 class="streamer-avatar"
+                :class="{ 'streaming-active': streamerInfo.streamingYn === 'Y' }"
                 @click="goToStreamerProfile(streamInfo.memberId)"
               >
                 <img v-if="streamerInfo.streamerProfileImageUrl" :src="streamerInfo.streamerProfileImageUrl" alt="스트리머 프로필">
                 <div v-if="streamerInfo.streamingYn === 'Y'" class="live-badge">
-                  <span class="live-dot"></span>
                   LIVE
                 </div>
               </div>
@@ -120,6 +120,19 @@
           </div>
         </div>
       </div>
+      
+      <!-- 스트리머 동영상/클립 컴포넌트 추가 -->
+      <StreamerVideos 
+        :streamerId="streamInfo.memberId" 
+        :streamerName="streamerInfo.streamerNickName" 
+        :limit="4"
+      />
+      
+      <StreamerClips 
+        :streamerId="streamInfo.memberId" 
+        :streamerName="streamerInfo.streamerNickName" 
+        :limit="4"
+      />
     </div>
 
     <div class="chat-section">
@@ -246,6 +259,8 @@ import Stomp from 'webstomp-client'
 import axios from 'axios'
 import ReportModal from '@/components/ReportModal.vue'
 import BlockModal from '@/components/BlockModal.vue'
+import StreamerClips from '@/components/StreamerClips.vue'
+import StreamerVideos from '@/components/StreamerVideos.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -1055,7 +1070,7 @@ onBeforeUnmount(() => {
 
 .stream-title {
   font-size: 24px;
-  font-weight: 600;
+  font-weight: 500;
   color: #fff;
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', '맑은 고딕', 'Noto Sans KR', sans-serif;
@@ -1072,7 +1087,7 @@ onBeforeUnmount(() => {
 
 .category {
   color: #B084CC;
-  font-weight: 800;
+  font-weight: 500;
   font-size: 16px;
   text-shadow: 0 0 1px rgba(0, 255, 132, 0.3);
   cursor: pointer;
@@ -1105,6 +1120,11 @@ onBeforeUnmount(() => {
   position: relative;
   overflow: hidden;
   cursor: pointer;
+  border: 4px solid transparent;
+}
+
+.streaming-active {
+  border-color: #ff3b3b;
 }
 
 .streamer-avatar img {
@@ -1122,7 +1142,7 @@ onBeforeUnmount(() => {
 .streamer-name {
   font-size: 18px;
   color: #fff;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
 }
 
@@ -1133,32 +1153,21 @@ onBeforeUnmount(() => {
 .follower-count {
   font-size: 16px;
   color: #7B7B7B;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .live-badge {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  background: #B084CC;
-  padding: 2px 4px;
-  border-radius: 2px;
-  font-size: 11px;
-  font-weight: 600;
-  color: #000;
-}
-
-.live-dot {
-  width: 6px;
-  height: 6px;
-  background: #FF0000;
-  border-radius: 50%;
-  animation: pulse 1.5s ease-in-out infinite;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #ff3b3b;
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+  padding: 3px 8px;
+  border-radius: 12px;
+  text-transform: uppercase;
 }
 
 .stream-actions {
@@ -1312,34 +1321,6 @@ video {
   background: #000;
 }
 
-.live-badge {
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  background: rgba(0, 0, 0, 0.5);
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.live-dot {
-  width: 8px;
-  height: 8px;
-  background: #FF0000;
-  border-radius: 50%;
-  animation: pulse 1.5s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0% { opacity: 1; }
-  50% { opacity: 0.5; }
-  100% { opacity: 1; }
-}
-
 .chat-section {
   background: #0F0F0F;
   height: 100vh;
@@ -1361,7 +1342,7 @@ video {
 
 .chat-title {
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .chat-info {
@@ -1384,7 +1365,7 @@ video {
 
 .sender {
   color: #B084CC;
-  font-weight: 600;
+  font-weight: 500;
   margin-right: 6px;
 }
 
@@ -1422,7 +1403,7 @@ video {
   color: #000;
   border: none;
   border-radius: 4px;
-  font-weight: 600;
+  font-weight: 500;
   font-size: 13px;
   cursor: pointer;
 }
@@ -1488,7 +1469,7 @@ video {
   background: #B084CC;
   color: #000;
   border: none;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .donation-button.highlight:hover {
@@ -1500,7 +1481,7 @@ video {
 }
 
 .donation-amount {
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .hashtags {
@@ -1512,7 +1493,7 @@ video {
 .hashtag {
   color: #7B7B7B;
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 500;
   padding: 2px 8px;
   background: #1A1A1A;
   border-radius: 4px;
@@ -1526,13 +1507,13 @@ video {
 
 .viewer-count {
   color: #C9CEDC;
-  font-weight: 800;
+  font-weight: 500;
   font-size: 14px;
 }
 
 .uptime {
   color: #C9CEDC;
-  font-weight: 800;
+  font-weight: 500;
   font-size: 14px;
 }
 
@@ -1611,7 +1592,7 @@ video {
   align-items: center;
   color: #fff;
   font-size: 1.25rem;
-  font-weight: 600;
+  font-weight: 500;
   padding: 16px 20px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
@@ -1630,5 +1611,11 @@ video {
 .modal-actions {
   padding: 12px 20px;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
 }
 </style>

@@ -776,13 +776,13 @@ onMounted(() => {
   gap: 12px;
   font-size: 0.9rem;
   color: #B084CC;
-  font-weight: 600;
+  font-weight: 500;
   flex-wrap: wrap;
   pointer-events: auto;
 }
 .category {
   color: #B084CC;
-  font-weight: 700;
+  font-weight: 500;
 }
 .hashtag {
   color: #fff;
@@ -926,7 +926,6 @@ onMounted(() => {
   padding: 18px 24px 10px 24px;
   font-size: 1.2rem;
   color: #fff;
-  font-weight: bold;
   border-bottom: 1px solid #232428;
 }
 .comment-panel-close {
@@ -1009,7 +1008,7 @@ onMounted(() => {
 }
 .comment-nickname {
   color: #B084CC;
-  font-weight: 700;
+  font-weight: 500;
   font-size: 0.82rem;
 }
 .comment-time {
@@ -1054,7 +1053,7 @@ onMounted(() => {
 .dropdown-btn-delete {
   color: #ff4d4f;
   background: transparent;
-  font-weight: 700;
+  font-weight: 500;
 }
 .dropdown-btn-delete:hover {
   background: #ff4d4f22;
@@ -1212,7 +1211,7 @@ onMounted(() => {
 }
 .delete-modal-title-main {
   font-size: 1.18rem;
-  font-weight: 700;
+  font-weight: 500;
   color: #fff;
   letter-spacing: -0.5px;
 }
@@ -1247,7 +1246,7 @@ onMounted(() => {
 }
 .delete-modal-bold {
   font-size: 1.08rem;
-  font-weight: 700;
+  font-weight: 500;
   color: #fff;
   letter-spacing: -0.5px;
 }
@@ -1272,7 +1271,7 @@ onMounted(() => {
   padding: 12px 0;
   font-size: 1.05rem;
   cursor: pointer;
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: -0.5px;
   transition: background 0.2s, color 0.2s;
 }
@@ -1285,7 +1284,7 @@ onMounted(() => {
   padding: 12px 0;
   font-size: 1.05rem;
   cursor: pointer;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: -0.5px;
   transition: background 0.2s, color 0.2s;
 }
@@ -1319,7 +1318,7 @@ onMounted(() => {
   font-size: 0.80rem;
   padding: 7px 14px;
   cursor: pointer;
-  font-weight: 600;
+  font-weight: 500;
   transition: background 0.2s, color 0.2s;
 }
 .edit-cancel-btn {

@@ -980,7 +980,7 @@ onBeforeUnmount(() => {
 
 .viewer-count {
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 500;
   color: #ff3b3b;
   margin-left: 8px;
   letter-spacing: -1px;
@@ -988,7 +988,7 @@ onBeforeUnmount(() => {
 
 .live-title {
   font-size: 28px;
-  font-weight: 800;
+  font-weight: 500;
   margin: 0 0 18px 0;
   color: #fff;
   text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
@@ -1017,7 +1017,7 @@ onBeforeUnmount(() => {
 
 .category {
   color: #B084CC;
-  font-weight: 800;
+  font-weight: 500;
   font-size: 18px;
   background: none;
   padding: 0;
@@ -1048,7 +1048,7 @@ onBeforeUnmount(() => {
 .hashtag {
   color: #bfc2c7;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
   padding: 2px 10px;
   background: rgba(0, 0, 0, 0.6);
   border-radius: 4px;
@@ -1112,7 +1112,7 @@ onBeforeUnmount(() => {
   background: #4b53e1;
   color: #fff;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 500;
   padding: 3px 10px;
   border-radius: 4px;
   z-index: 2;
@@ -1138,7 +1138,7 @@ onBeforeUnmount(() => {
   background: #e5e5e5;
   color: #222;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 500;
   padding: 3px 12px;
   border-radius: 6px;
   margin-right: 8px;
@@ -1163,7 +1163,7 @@ onBeforeUnmount(() => {
   gap: 8px;
   color: #bfc2c7;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .vod-dot {
@@ -1223,7 +1223,7 @@ onBeforeUnmount(() => {
 
 .banner-title {
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 500;
   color: #fff;
   text-align: center;
   width: 100%;
@@ -1253,14 +1253,14 @@ onBeforeUnmount(() => {
 
 .section-title {
   font-size: 20px;
-  font-weight: 700;
+  font-weight: 500;
   color: #fff;
 }
 
 .view-all {
   color: #B084CC;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
 }
 
@@ -1370,7 +1370,7 @@ onBeforeUnmount(() => {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
-  line-height: 1.1;
+  line-height: 1.4;
   margin: 0;
   max-height: 30px;
 }
@@ -1566,8 +1566,8 @@ onBeforeUnmount(() => {
   left: 8px;
   background: #E05C8C;
   color: #fff;
-  font-size: 10px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 500;
   padding: 2px 6px;
   border-radius: 3px;
   z-index: 2;
@@ -1631,7 +1631,7 @@ onBeforeUnmount(() => {
   background-color: #18191c;
   border-radius: 12px;
   width: 100%;
-  max-width: 600px;
+  max-width: 500px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 
@@ -1639,7 +1639,7 @@ onBeforeUnmount(() => {
   margin-top: 24px;
   color: #aaaaaa;
   font-size: 24px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .empty-home-text {
