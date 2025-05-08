@@ -471,9 +471,7 @@ export default {
         return;
       }
 
-      const hlsSrc = process.env.NODE_ENV === 'production'
-        ? `https://hls.배포주소/hls/${this.streamKey}.m3u8`
-        : `http://localhost:8088/hls/${this.streamKey}.m3u8`;
+      const hlsSrc = `https://hls.bepl.site/hls/${this.streamKey}.m3u8`
 
 
       if (Hls.isSupported()) {
