@@ -1,10 +1,10 @@
 <template>
-  <v-app style="background-color: #141517;">
-    <HeaderComponent v-if="!isStreamerRoute && !isClipCreateRoute" @toggle-mini="toggleMini"/>
-    <SidebarComponent v-if="!isStreamerRoute && !isClipCreateRoute" :mini="mini" />
-    <v-main style="background-color: #141517;" class="main-content">
+  <v-app style="background-color: #141517;" :class="{ 'transparent-bg': isTransparent }">
+    <HeaderComponent v-if="!isStreamerRoute && !isClipCreateRoute && !isTransparent && !hideNav" @toggle-mini="toggleMini"/>
+    <SidebarComponent v-if="!isStreamerRoute && !isClipCreateRoute && !isTransparent && !hideNav" :mini="mini" />
+    <v-main :style="mainStyle" class="main-content">
       <router-view class="full-width"/>
-      <FooterComponent v-if="!isStreamerRoute && !isClipCreateRoute && !isClipDetailRoute"/>
+      <FooterComponent v-if="!isStreamerRoute && !isClipCreateRoute && !isClipDetailRoute && !isTransparent && !hideNav"/>
     </v-main>
   </v-app>
 </template>
@@ -35,6 +35,18 @@ export default {
     },
     isClipDetailRoute() {
       return this.$route.path.startsWith("/clip/");
+    },
+    isTransparent() {
+      return this.$route.meta.transparent === true;
+    },
+    hideNav() {
+      return this.$route.meta.hideNav === true;
+    },
+    mainStyle() {
+      return {
+        'background-color': this.isTransparent ? 'transparent' : '#141517',
+        'padding': this.isTransparent ? '0' : undefined
+      };
     }
   },
   methods: {
@@ -52,8 +64,16 @@ html, body {
   color: white;
 }
 
+body.chatting-url {
+  background-color: transparent !important;
+}
+
 .v-application {
   background-color: #141517 !important;
+}
+
+.v-application.transparent-bg {
+  background-color: transparent !important;
 }
 
 /* 공통 스타일 */

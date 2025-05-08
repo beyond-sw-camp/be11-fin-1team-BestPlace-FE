@@ -160,7 +160,7 @@
             <span class="reported-message">내가 신고한 작성자의 채팅입니다</span>
           </template>
           <template v-else>
-            <span class="sender">{{ message.sender }}</span>
+            <span class="sender" :style="getUsernameColor(message.sender)">{{ message.sender }}</span>
             <span class="message-content">{{ message.message }}</span>
           </template>
         </div>
@@ -324,6 +324,13 @@ const blockedUserDetails = ref([]) // 차단 해제를 위한 상세 정보 저�
 const showAlreadyReportedModal = ref(false)
 const showUnblockModal = ref(false)
 const selectedUserToUnblock = ref(null)
+
+// 사용자 이름 색상을 위한 색상 배열 추가
+const colors = ref([
+  '#FF5E5B', '#D8315B', '#1EA896', '#3E92CC', '#C3BD78', 
+  '#7768AE', '#FFB400', '#4AAB95', '#FF7A5A', '#7AC74F',
+  '#00A5E0', '#8A4FFF', '#FF9505', '#9A348E', '#0077B6'
+])
 
 // 채팅 관련 함수
 const prepareToken = async () => {
@@ -1024,6 +1031,18 @@ const loadReportedUsers = async () => {
   }
 };
 
+// 사용자 이름에 일관된 색상을 적용하는 메서드 추가
+const getUsernameColor = (username) => {
+  // 간단한 해시 함수로 사용자 이름을 숫자로 변환
+  const hash = username.split('').reduce((acc, char) => {
+    return acc + char.charCodeAt(0);
+  }, 0);
+  
+  // 색상 배열에서 사용자 이름에 해당하는 색상 선택
+  const colorIndex = hash % colors.value.length;
+  return { color: colors.value[colorIndex] };
+}
+
 onMounted(async () => {
   await initializeStreaming();
   setInterval(calculateUptime, 1000);
@@ -1373,6 +1392,15 @@ video {
   color: #B084CC;
   font-weight: 500;
   margin-right: 6px;
+  transition: all 0.2s ease;
+}
+
+.chat-message:hover .sender {
+  text-shadow: 0 0 2px rgba(255, 255, 255, 0.5);
+}
+
+.chat-message:hover {
+  background-color: rgba(50, 50, 50, 0.3);
 }
 
 .message-content {

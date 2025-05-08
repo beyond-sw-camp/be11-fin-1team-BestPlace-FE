@@ -11,13 +11,17 @@
       <div class="search-container">
         <input
           v-model="searchNickname"
-          placeholder="닉네임 또는 UID를 입력해주세요."
+          placeholder="닉네임 검색"
           @keyup.enter="searchManagers"
         />
         <div class="dropdown">
-          <button class="dropdown-btn">채널 관리자 <span class="arrow">▼</span></button>
+          <select v-model="roleFilter" class="dropdown-select">
+            <option value="all">모든 역할</option>
+            <option value="ChannelManager">채널 매니저</option>
+            <option value="ChattingManager">채팅 매니저</option>
+          </select>
         </div>
-        <button class="add-btn">추가</button>
+        <button class="add-btn" @click="showAddManagerModal = true">매니저 권한자 추가</button>
       </div>
     </div>
     
@@ -32,7 +36,7 @@
     <!-- 목록 섹션 -->
     <div class="list-section">
       <div class="list-header">
-        <span>목록 {{ totalManagers }}</span>
+        <span>목록 {{ filteredManagers.length }}</span>
       </div>
       
       <div class="table-container">
@@ -57,15 +61,26 @@
               <td>{{ getRegistrarText(manager) }}</td>
               <td>{{ formatDate(manager.createdTime) }}</td>
               <td>
-                <select v-model="manager.role" @change="updateRole(manager)" class="role-select">
-                  <option :value="'ChannelManager'">채널 관리자</option>
-                  <option :value="'ChattingManager'">채팅 관리자</option>
+                <select 
+                  v-if="!isStreamerRole(manager.role)"
+                  v-model="manager.role" 
+                  @change="updateRole(manager)" 
+                  class="role-select"
+                >
+                  <option value="ChannelManager">채널 매니저</option>
+                  <option value="ChattingManager">채팅 매니저</option>
                 </select>
+                <span v-else>소유자</span>
               </td>
               <td>
-                <button class="action-btn" @click="handleDeleteManager(manager)">
+                <button 
+                  v-if="!isStreamerRole(manager.role)"
+                  class="action-btn" 
+                  @click="handleDeleteManager(manager)"
+                >
                   삭제
                 </button>
+                <span v-else class="disabled-action">삭제 불가</span>
               </td>
             </tr>
             <tr v-if="pagedManagers.length === 0">
@@ -83,8 +98,8 @@
         <div class="modal-form">
           <input v-model="newManagerNickname" placeholder="닉네임 입력" />
           <select v-model="newManagerRole" class="role-select">
-            <option :value="'ChannelManager'">채널 관리자</option>
-            <option :value="'ChattingManager'">채팅 관리자</option>
+            <option value="ChannelManager">채널 매니저</option>
+            <option value="ChattingManager">채팅 매니저</option>
           </select>
         </div>
         <div class="modal-actions">
@@ -92,11 +107,6 @@
           <button @click="showAddManagerModal = false">취소</button>
         </div>
       </div>
-    </div>
-    
-    <!-- 매니저 추가 버튼 -->
-    <div class="add-manager-section">
-      <button class="add-manager-btn" @click="showAddManagerModal = true">매니저 권한자 추가</button>
     </div>
   </div>
 </template>
@@ -118,15 +128,25 @@ export default {
       showAddManagerModal: false,
       newManagerNickname: '',
       newManagerRole: 'ChannelManager',
-      userNickname: ''
+      userNickname: '',
+      roleFilter: 'all'
     };
   },
   computed: {
     filteredManagers() {
-      if (!this.searchNickname) return this.managers;
-      return this.managers.filter(m =>
-        m.nickName?.toLowerCase().includes(this.searchNickname.toLowerCase())
-      );
+      let filtered = this.managers;
+      
+      if (this.searchNickname) {
+        filtered = filtered.filter(m =>
+          m.nickName?.toLowerCase().includes(this.searchNickname.toLowerCase())
+        );
+      }
+      
+      if (this.roleFilter !== 'all') {
+        filtered = filtered.filter(m => m.role === this.roleFilter);
+      }
+      
+      return filtered;
     },
     pagedManagers() {
       const start = (this.currentPage - 1) * this.pageSize;
@@ -145,7 +165,6 @@ export default {
       const payload = jwtDecode(token);
       this.memberId = payload.sub;
       this.userNickname = payload.nickname;
-      // streamerId는 URL에서 가져오거나, 현재 로그인한 사용자의 ID 사용
       this.streamerId = this.$route.params.memberId;
     }
     await this.fetchManagers();
@@ -168,23 +187,35 @@ export default {
       }
     },
     searchManagers() {
-      // 검색 시 첫 페이지로 이동
       this.currentPage = 1;
     },
     formatDate(dateStr) {
       if (!dateStr) return '-';
       const date = new Date(dateStr);
-      // 년-월-일 시:분:초 형식으로 포맷
       return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}`;
     },
     getRegistrarText(manager) {
-      // 등록자 정보가 있으면 표시, 없으면 '소유자' 표시
       return manager.registrar || '소유자';
     },
+    isStreamerRole(role) {
+      return role === 'Streamer';
+    },
+    getRoleDisplayText(role) {
+      switch(role) {
+        case 'Streamer': return '소유자';
+        case 'ChannelManager': return '채널 매니저';
+        case 'ChattingManager': return '채팅 매니저';
+        default: return role;
+      }
+    },
     async updateRole(manager) {
+      if (this.isStreamerRole(manager.role)) {
+        return;
+      }
+      
       try {
         await axios.post(
-          `${process.env.VUE_APP_STREAMING_API}/manager/save`,
+          `${process.env.VUE_APP_STREAMING_API}/manager/managerRegister`,
           {
             streamerId: this.streamerId,
             nickName: manager.nickName,
@@ -199,11 +230,14 @@ export default {
       } catch (error) {
         console.error('권한 변경 실패:', error);
         alert('권한 변경에 실패했습니다.');
-        // 실패 시 원래 값으로 되돌리기
         this.fetchManagers();
       }
     },
     async handleDeleteManager(manager) {
+      if (this.isStreamerRole(manager.role)) {
+        return;
+      }
+      
       if (!confirm(`'${manager.nickName}' 매니저를 삭제하시겠습니까?`)) {
         return;
       }
@@ -236,7 +270,7 @@ export default {
       
       try {
         await axios.post(
-          `${process.env.VUE_APP_STREAMING_API}/manager/save`,
+          `${process.env.VUE_APP_STREAMING_API}/manager/managerRegister`,
           {
             streamerId: this.streamerId,
             nickName: this.newManagerNickname,
@@ -555,6 +589,22 @@ export default {
   border-radius: 8px;
   cursor: pointer;
   font-weight: 600;
+}
+
+.dropdown-select {
+  padding: 12px 16px;
+  background: #23242a;
+  color: #fff;
+  border: 1px solid #3d3d3d;
+  border-radius: 8px;
+  cursor: pointer;
+  min-width: 150px;
+  outline: none;
+}
+
+.disabled-action {
+  color: #666;
+  font-style: italic;
 }
 </style>
   
