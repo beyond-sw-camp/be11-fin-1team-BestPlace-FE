@@ -16,7 +16,7 @@
 
               <div class="software-container">
                 <v-card class="software-card" @click="goToOBSWebsite">
-                  <v-img src="@/assets/default-avatar.png" height="100" contain class="ma-3" />
+                  <img :src="obsLogo" style="height: 80px;" />
                   <div class="software-name text-center">Open Broadcaster Software</div>
                   <v-btn icon class="download-icon">
                     <v-icon>mdi-download</v-icon>
@@ -112,7 +112,7 @@
 </template>
 
 <script>
-
+import obsLogo from '@/assets/obsLogo.png';
 
 export default {
   data() {
@@ -120,7 +120,8 @@ export default {
       streamerId: null,
       blockList: [],
       memberId: null,
-      userNickname: ''
+      userNickname: '',
+      obsLogo: obsLogo
     };
   },
   created() {

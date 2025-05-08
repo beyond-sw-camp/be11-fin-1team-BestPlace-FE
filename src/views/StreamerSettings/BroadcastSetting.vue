@@ -33,35 +33,21 @@
     </div>
     <!-- --------------------------------------------------------------------------------------------------------- -->
     <div class="broadcast-setting">
-        <h1>채팅창 url</h1>
+        <h1>채팅창 URL</h1>
         
         <div class="stream-setting-container">
             <div class="setting-section">
-
                 <div class="input-group">
-                    <div class="label">스트림 URL</div>
+                    <div class="label">채팅창 URL</div>
                     <div class="input-container">
-                        <input type="text" v-model="streamUrl" readonly />
-                        <button class="copy-btn" @click="copyToClipboard(streamUrl)">복사</button>
+                        <input type="text" v-model="chattingUrl" readonly />
+                        <button class="copy-btn" @click="copyToClipboard(chattingUrl)">복사</button>
                     </div>
-                </div>
-                <div class="input-group">
-                    <div class="label">스트림 키</div>
-                    <div class="input-container">
-                        <input 
-                        :type="showStreamKey ? 'text' : 'password'" 
-                        v-model="streamKey" 
-                        readonly 
-                        />
-                        <button class="copy-btn" @click="copyToClipboard(streamKey)">복사</button>
-                        <button class="reissue-btn" @click="reissueStreamKey">재발급</button>
-                        <button class="eye-btn" @click="toggleStreamKeyVisibility">
-                        {{ showStreamKey ? '🙈' : '👁️' }}
-                        </button>
+                    <div class="url-info">
+                        이 URL을 OBS 브라우저 소스로 추가하여 방송에 채팅창을 표시할 수 있습니다.
                     </div>
                 </div>
             </div>
-
         </div>
     </div>
 </template>
@@ -75,6 +61,8 @@ export default {
             streamKey: '••••••••••••••••••••••••••',
             actualStreamKey: '',
             showStreamKey: false,
+            roomId: '',
+            chattingUrl: ''
         }
     },
     computed:{
@@ -82,6 +70,8 @@ export default {
     },
     async created(){
         await this.getStreamKey();
+        await this.getRoomId();
+        this.updateChattingUrl();
     },
     methods: {
         async getStreamKey() {
@@ -98,6 +88,33 @@ export default {
                 this.streamKey = this.actualStreamKey; // 화면 표시용
             } catch (error) {
                 console.error('스트림 키 가져오는 중 오류 발생:', error);
+            }
+        },
+        async getRoomId() {
+            try {
+                const response = await axios.get(
+                    `${process.env.VUE_APP_STREAMING_API}/streaming/getStreaming/${this.$route.params.memberId}`,
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                        }
+                    }
+                );
+                if (response.data.result && response.data.result.roomId) {
+                    this.roomId = response.data.result.roomId;
+                    this.updateChattingUrl();
+                }
+            } catch (error) {
+                console.error('방 ID 가져오는 중 오류 발생:', error);
+            }
+        },
+        updateChattingUrl() {
+            if (this.roomId) {
+                // 환경에 따라 적절한 호스트 URL 사용
+                const baseUrl = process.env.NODE_ENV === 'production' 
+                    ? `https://배포주소` 
+                    : `${process.env.VUE_APP_CHATTING_API || 'http://localhost:3000'}`;
+                this.chattingUrl = `${baseUrl}/chatting/${this.roomId}`;
             }
         },
         async reissueStreamKey() {
@@ -298,6 +315,21 @@ textarea {
 .button-group {
     display: flex;
     justify-content: flex-end;
+}
+
+.url-info {
+    margin-top: 8px;
+    font-size: 12px;
+    color: #888;
+    line-height: 1.4;
+}
+
+.eye-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 18px;
+    padding: 10px;
 }
 </style>
   

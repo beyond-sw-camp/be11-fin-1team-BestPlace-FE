@@ -6,6 +6,22 @@
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
     <link rel="icon" href="<%= BASE_URL %>favicon.ico">
     <title><%= htmlWebpackPlugin.options.title %></title>
+    <style>
+      /* 채팅 URL 페이지에서 배경 투명하게 설정 */
+      body.transparent-bg, 
+      body.chatting-url {
+        background-color: transparent !important;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+      }
+      
+      /* Vuetify 앱 배경색 설정 오버라이드 */
+      html.transparent-bg .v-application,
+      body.transparent-bg .v-application {
+        background-color: transparent !important;
+      }
+    </style>
   </head>
   <body>
     <noscript>

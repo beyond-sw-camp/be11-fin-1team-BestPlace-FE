@@ -9,6 +9,7 @@ import StreamingRouter from './streamingRouter';
 import streamerRouter from './streamerRouter';
 import HomeRouter from './HomeRouter';
 import FollowingRouter from './FollowingRouter';
+import ChattingRouter from './chattingRouter';
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
 
@@ -22,7 +23,8 @@ const routes = [
     ...StreamingRouter,
     ...streamerRouter,
     ...HomeRouter,
-    ...FollowingRouter
+    ...FollowingRouter,
+    ...ChattingRouter
 ];
 
 const router = createRouter({
@@ -39,6 +41,13 @@ const router = createRouter({
 
 // 글로벌 네비게이션 가드
 router.beforeEach(async (to, from, next) => {
+    // 채팅 URL 페이지에 대한 특별 처리
+    if (to.meta.transparent) {
+        document.body.classList.add('chatting-url');
+    } else {
+        document.body.classList.remove('chatting-url');
+    }
+
     const authRequiredPages = [
         '/my-profile',
         '/post/community/create',

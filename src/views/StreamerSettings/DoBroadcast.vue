@@ -128,7 +128,7 @@
             :key="message.messageId"
             class="chat-message"
           >
-            <span class="sender">{{ message.sender }}</span>
+            <span class="sender" :style="getUsernameColor(message.sender)">{{ message.sender }}</span>
             <span class="message-content">{{ message.message }}</span>
           </div>
         </div>
@@ -143,6 +143,36 @@
         </div>
       </div>
     </div>
+
+    <!-- 커스텀 모달 컴포넌트 -->
+    <v-dialog v-model="showModal" max-width="400">
+      <v-card class="custom-modal">
+        <v-card-title class="modal-title">
+          <v-icon 
+            left 
+            :color="modalType === 'success' ? 'success' : modalType === 'error' ? 'error' : 'primary'"
+            class="mr-2"
+          >
+            {{ modalType === 'success' ? 'mdi-check-circle' : 
+               modalType === 'error' ? 'mdi-alert-circle' : 'mdi-information' }}
+          </v-icon>
+          {{ modalTitle }}
+        </v-card-title>
+        <v-card-text class="modal-content">
+          <p>{{ modalMessage }}</p>
+        </v-card-text>
+        <v-card-actions class="modal-actions">
+          <v-spacer></v-spacer>
+          <v-btn 
+            :color="modalType === 'success' ? 'success' : modalType === 'error' ? 'error' : 'primary'" 
+            text 
+            @click="closeModal"
+          >
+            확인
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
@@ -177,7 +207,21 @@ export default {
       memberId: null,
       userNickname: '',
       
-      categories: [] // { id, name } 목록 저장
+      categories: [], // { id, name } 목록 저장
+      
+      // 모달 관련 상태 추가
+      showModal: false,
+      modalTitle: '',
+      modalMessage: '',
+      modalType: 'info', // 'info', 'success', 'error' 등의 타입
+      modalAction: null, // 확인 버튼 클릭 시 실행할 함수 (선택적)
+
+      // 사용자 이름 색상을 위한 색상 배열 추가
+      colors: [
+        '#FF5E5B', '#D8315B', '#1EA896', '#3E92CC', '#C3BD78', 
+        '#7768AE', '#FFB400', '#4AAB95', '#FF7A5A', '#7AC74F',
+        '#00A5E0', '#8A4FFF', '#FF9505', '#9A348E', '#0077B6'
+      ]
     };
   },
   async created() {
@@ -199,11 +243,27 @@ export default {
       this.$refs.fileInput.click();
     },
 
+    // 사용자 이름에 대한 일관된 색상 반환
+    getUsernameColor(username) {
+      // 간단한 해시 함수로 사용자 이름을 숫자로 변환
+      const hash = username.split('').reduce((acc, char) => {
+        return acc + char.charCodeAt(0);
+      }, 0);
+      
+      // 색상 배열에서 사용자 이름에 해당하는 색상 선택
+      const colorIndex = hash % this.colors.length;
+      return { color: this.colors[colorIndex] };
+    },
+
     async getChatHistory() {
       try {
         const response = await axios.get(`${process.env.VUE_APP_STREAMING_API}/chat/history/${this.roomId}`);
         if (Array.isArray(response.data)) {
           this.messages = response.data;
+          // 메시지 로드 후 맨 아래로 스크롤
+          this.$nextTick(() => {
+            this.scrollToBottom();
+          });
         }
       } catch (error) {
         console.error('채팅 기록 불러오기 실패:', error);
@@ -216,7 +276,7 @@ export default {
       
       // 파일 크기 체크 (5MB 제한)
       if (file.size > 5 * 1024 * 1024) {
-        alert('이미지 크기는 5MB 이하여야 합니다.');
+        this.showMessageModal('파일 크기 제한', '이미지 크기는 5MB 이하여야 합니다.', 'error');
         return;
       }
       
@@ -234,7 +294,7 @@ export default {
     
     async startStream() {
       if (!this.title || !this.category) {
-        alert('방송 제목과 카테고리는 필수입니다.');
+        this.showMessageModal('입력 필요', '방송 제목과 카테고리는 필수입니다.', 'error');
         return;
       }
       
@@ -282,11 +342,11 @@ export default {
         this.isStreaming = true;
         
         // 알림 표시
-        alert('방송이 시작되었습니다. OBS와 같은 스트리밍 소프트웨어에서 다음 스트림 키를 사용하세요: ' + this.streamKey);
+        this.showMessageModal('방송 시작', '방송이 시작되었습니다. OBS와 같은 스트리밍 소프트웨어에서 다음 스트림 키를 사용하세요: ' + this.streamKey, 'success');
         
       } catch (error) {
         console.error('방송 시작 실패:', error);
-        alert('방송 시작에 실패했습니다: ' + (error.response?.data?.message || error.message));
+        this.showMessageModal('방송 시작 실패', '방송 시작에 실패했습니다: ' + (error.response?.data?.message || error.message), 'error');
       } finally {
         this.isStarting = false;
       }
@@ -363,7 +423,7 @@ export default {
         this.categories = response.data.result.content;
       } catch (error) {
         console.error('카테고리 불러오기 실패', error);
-        alert('카테고리를 불러오는 데 실패했습니다.');
+        this.showMessageModal('카테고리 로드 실패', '카테고리를 불러오는 데 실패했습니다.', 'error');
       }
     },
     async fetchStreamingInfo() {
@@ -397,7 +457,7 @@ export default {
         await this.connectWebsocket();      // roomId로 채팅 연결
       } catch (error) {
         console.error('방송 정보 불러오기 실패', error);
-        alert('방송 정보를 불러오는 데 실패했습니다.');
+        this.showMessageModal('방송 정보 로드 실패', '방송 정보를 불러오는 데 실패했습니다.', 'error');
       }
     },
     initializeStreamingVideo() {
@@ -431,7 +491,7 @@ export default {
     },
     async updateStream() {
       if (!this.title || !this.category) {
-        alert('방송 제목과 카테고리는 필수입니다.');
+        this.showMessageModal('입력 필요', '방송 제목과 카테고리는 필수입니다.', 'error');
         return;
       }
 
@@ -466,17 +526,37 @@ export default {
           }
         );
 
-        alert('방송 정보가 성공적으로 수정되었습니다.');
-        window.location.reload();
+        this.showMessageModal('수정 완료', '방송 정보가 성공적으로 수정되었습니다.', 'success', () => {
+          window.location.reload();
+        });
 
       } catch (error) {
         console.error('방송 정보 수정 실패:', error);
-        alert('방송 수정 실패: ' + (error.response?.data?.message || error.message));
+        this.showMessageModal('수정 실패', '방송 수정 실패: ' + (error.response?.data?.message || error.message), 'error');
       } finally {
         this.isStarting = false;
       }
     },
-  },onMounted() {
+    // 모달 표시 함수
+    showMessageModal(title, message, type = 'info', action = null) {
+      this.modalTitle = title;
+      this.modalMessage = message;
+      this.modalType = type;
+      this.modalAction = action;
+      this.showModal = true;
+    },
+    
+    // 모달 닫기 함수
+    closeModal() {
+      this.showModal = false;
+      // 액션이 있는 경우 실행
+      if (this.modalAction) {
+        this.modalAction();
+        this.modalAction = null;
+      }
+    },
+  },
+  onMounted() {
     this.initializeStreaming();
   },
   beforeUnmount() {
@@ -655,7 +735,7 @@ export default {
 
 .chat-messages {
   flex: 1;
-  overflow-y: auto;
+  overflow-y: scroll; /* auto 대신 scroll 사용하여 항상 스크롤바 표시 */
   padding: 16px;
   display: flex;
   flex-direction: column;
@@ -679,12 +759,24 @@ export default {
   font-size: 13px;
   line-height: 1.5;
   word-break: break-word;
+  padding: 6px 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.chat-message:hover {
+  background-color: rgba(50, 50, 50, 0.5);
 }
 
 .sender {
   color: #727cf5;
   font-weight: 600;
   margin-right: 6px;
+  transition: text-shadow 0.2s ease;
+}
+
+.chat-message:hover .sender {
+  text-shadow: 0 0 2px rgba(255, 255, 255, 0.5);
 }
 
 .message-content {
@@ -734,7 +826,7 @@ export default {
   cursor: not-allowed;
 }
 
-/* 스크롤바 스타일 */
+/* 스크롤바 스타일 - 제거 (글로벌 스타일로 대체) */
 ::-webkit-scrollbar {
   width: 6px;
 }
@@ -744,12 +836,78 @@ export default {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #2d2d2d;
+  background: rgba(45, 45, 45, 0.7); /* 반투명한 어두운 회색 */
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #3d3d3d;
+  background: rgba(61, 61, 61, 0.8); /* 호버 시 더 진한 색상 */
+}
+
+/* 모달 스타일 */
+.custom-modal {
+  background-color: #1e2029;
+  color: #fff;
+  border-radius: 8px;
+}
+
+.modal-title {
+  display: flex;
+  align-items: center;
+  color: #fff;
+  font-size: 1.25rem;
+  font-weight: 600;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modal-content {
+  padding: 20px;
+  font-size: 1rem;
+}
+
+.modal-sub-text {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.875rem;
+  margin-top: 8px;
+}
+
+.modal-actions {
+  padding: 12px 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+</style>
+
+<style>
+/* 전역 스타일로 채팅 스크롤바 정의 */
+.chat-messages::-webkit-scrollbar {
+  width: 10px; /* 더 두껍게 만들어 가시성 높임 */
+  height: 10px;
+}
+
+.chat-messages::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 4px;
+}
+
+.chat-messages::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.7); /* 더 밝은 흰색 */
+  border-radius: 4px;
+  border: 2px solid transparent; /* 테두리 추가로 가시성 향상 */
+  background-clip: padding-box;
+}
+
+.chat-messages::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.9);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+/* 채팅 컨테이너에 추가적인 스크롤바 표시 설정 */
+.chat-messages {
+  -ms-overflow-style: none; /* IE/Edge */
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: rgba(255, 255, 255, 0.7) transparent; /* Firefox */
 }
 </style>
   
