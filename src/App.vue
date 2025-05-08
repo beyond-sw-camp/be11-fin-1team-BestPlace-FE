@@ -113,4 +113,8 @@ body.chatting-url {
   -ms-overflow-style: none !important; /* IE and Edge */
 }
 
+html, body {
+  overflow: auto !important;
+}
+
 </style>
