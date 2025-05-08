@@ -76,12 +76,18 @@
             </div>
           </div>
           <div class="stream-meta">
-            <span 
-              class="category"
-              @click="goToCategory(stream.category)"
-            >{{ stream.category }}</span>
-            <div class="hashtags" v-if="stream.hashTag && stream.hashTag.length > 0">
-              <span v-for="tag in stream.hashTag" :key="tag" class="hashtag">{{ tag }}</span>
+            <div class="tag-container" ref="tagContainer">
+              <span 
+                class="category"
+                @click="goToCategory(stream.category)"
+              >{{ stream.category }}</span>
+              <div class="hashtags" v-if="stream.hashTag && stream.hashTag.length > 0">
+                <span 
+                  v-for="(tag, index) in getVisibleHashtags(stream.hashTag, stream.streamId)" 
+                  :key="tag + '-' + index"
+                  class="hashtag"
+                >{{ tag }}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -179,7 +185,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import axios from 'axios'
 import { useRouter } from 'vue-router'
 import { jwtDecode } from 'jwt-decode'
@@ -202,6 +208,10 @@ const defaultProfileImage = 'https://bestplace-media.s3.ap-northeast-2.amazonaws
 const videoPage = ref(0)
 const hasMoreVideos = ref(true)
 
+// 컨테이너 및 측정용 ref 추가
+const tagContainer = ref(null)
+const tagMeasurements = ref({})
+
 const fetchStreams = async (type) => {
   try {
     const endpoint = type === 'popular' 
@@ -210,6 +220,11 @@ const fetchStreams = async (type) => {
     const response = await axios.get(`${streamingApi}${endpoint}`)
     if (response.data && response.data.result) {
       streams.value = response.data.result.content
+      
+      // 해시태그 측정을 위한 딜레이
+      setTimeout(() => {
+        calculateVisibleHashtags()
+      }, 100)
     }
   } catch (error) {
     console.error('방송 목록 로드 실패:', error)
@@ -398,15 +413,80 @@ const stopPreview = (index) => {
   video.showPreview = false;
 }
 
+// 보이는 해시태그만 필터링하는 함수
+const getVisibleHashtags = (hashTags, streamId) => {
+  if (!hashTags || !hashTags.length) return []
+  
+  // 측정 정보가 없으면 모든 태그 반환
+  if (!tagMeasurements.value[streamId]) return hashTags
+  
+  return tagMeasurements.value[streamId].visibleTags || []
+}
+
+// 해시태그 측정 및 계산
+const calculateVisibleHashtags = async () => {
+  await nextTick()
+  
+  const containers = document.querySelectorAll('.tag-container')
+  if (!containers.length) return
+  
+  containers.forEach((container, idx) => {
+    const streamId = streams.value[idx]?.streamId
+    if (!streamId) return
+    
+    const hashTags = streams.value[idx]?.hashTag
+    if (!hashTags || !hashTags.length) return
+    
+    // 컨테이너 계산
+    const containerWidth = container.offsetWidth
+    const categoryElem = container.querySelector('.category')
+    const availableWidth = containerWidth - (categoryElem ? categoryElem.offsetWidth + 8 : 0) // 8px는 gap
+    
+    // 가상 태그 엘리먼트로 너비 측정
+    const tempDiv = document.createElement('div')
+    tempDiv.style.visibility = 'hidden'
+    tempDiv.style.position = 'absolute'
+    tempDiv.style.whiteSpace = 'nowrap'
+    document.body.appendChild(tempDiv)
+    
+    let totalWidth = 0
+    const visibleTags = []
+    
+    // 각 태그의 너비 측정
+    for (const tag of hashTags) {
+      tempDiv.innerHTML = `<span class="hashtag" style="font-size:14px;margin-right:8px;">${tag}</span>`
+      const tagWidth = tempDiv.firstChild.offsetWidth
+      
+      if (totalWidth + tagWidth <= availableWidth) {
+        visibleTags.push(tag)
+        totalWidth += tagWidth + 8 // 8px는 gap
+      } else {
+        break // 더 이상 표시할 수 없으면 중단
+      }
+    }
+    
+    document.body.removeChild(tempDiv)
+    
+    // 결과 저장
+    tagMeasurements.value[streamId] = {
+      visibleTags
+    }
+  })
+}
+
 onMounted(async () => {
   checkLoginStatus();
   await fetchStreams('popular');
   setupInfiniteScroll();
+  
+  // 화면 크기가 변경될 때마다 태그 계산
+  window.addEventListener('resize', calculateVisibleHashtags)
 })
 
 // 컴포넌트 언마운트 시 observer 해제
 onUnmounted(() => {
   cleanupObserver();
+  window.removeEventListener('resize', calculateVisibleHashtags)
 })
 
 const cleanupObserver = () => {
@@ -640,27 +720,44 @@ const formatHashtags = (hashtags) => {
 }
 
 .stream-meta {
+  margin-top: 8px;
+}
+
+.tag-container {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  max-width: 100%;
+  height: 28px; /* 한 줄 높이로 고정 */
 }
 
 .category {
-  color: #B084CC;
+  background-color: #B084CC;
+  color: #000000;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
+  padding: 1px 5px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  height: 22px;
+  display: flex;
+  align-items: center;
 }
 
 .hashtags {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
+  overflow: hidden;
 }
 
 .hashtag {
   color: #7B7B7B;
   font-size: 14px;
+  white-space: nowrap;
 }
 
 /* 동영상 그리드 스타일 */
@@ -844,7 +941,7 @@ const formatHashtags = (hashtags) => {
   font-size: 12px;
   background-color: #B084CC;
   color: black;
-  padding: 2px 6px;
+  padding: 1px 6px;
   border-radius: 3px;
   font-weight: 500;
   cursor: pointer;

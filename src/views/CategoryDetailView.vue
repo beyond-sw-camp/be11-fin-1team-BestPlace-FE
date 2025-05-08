@@ -1,4 +1,4 @@
-<template>
+ㄴㄴ<template>
   <div class="category-detail-wrapper">
     <!-- 카테고리 헤더 섹션 -->
     <div class="category-header">
@@ -152,6 +152,8 @@
         :key="index" 
         class="broadcast-item"
         @click="handleBroadcastClick(broadcast)"
+        @mouseenter="startBroadcastPreviewTimer(index)"
+        @mouseleave="stopBroadcastPreview(index)"
       >
         <div class="thumbnail-container">
           <img 
@@ -163,6 +165,14 @@
               'hide-thumbnail': shouldHideThumbnail(broadcast)
             }"
           >
+          <video 
+            v-if="broadcast.showPreview && broadcast.streamKey && !shouldHideThumbnail(broadcast) && broadcast.adultYn !== 'Y'" 
+            :src="`https://bestplace-media.s3.ap-northeast-2.amazonaws.com/video/${broadcast.streamKey}/preview.mp4`" 
+            class="video-preview" 
+            autoplay 
+            muted 
+            loop
+          ></video>
           <div class="live-indicator">LIVE</div>
           <div class="viewer-count">
             <v-icon size="x-small" class="mr-1">mdi-eye</v-icon>
@@ -185,11 +195,13 @@
             </div>
             <div class="streamer-detail">
               <div class="streamer-name">{{ broadcast.streamerNickname }}</div>
-              <div class="broadcast-time">{{ formatTime(broadcast.startTime) }}</div>
+              <div class="tags-container">
+                <div class="category-badge">{{ broadcast.category }}</div>
+                <div v-if="broadcast.hashTag && broadcast.hashTag.length > 0" class="hashtags">
+                  <span v-for="(tag, i) in broadcast.hashTag" :key="i" class="hashtag">{{ tag }}</span>
+                </div>
+              </div>
             </div>
-          </div>
-          <div v-if="broadcast.hashTag && broadcast.hashTag.length > 0" class="hashtags">
-            <span v-for="(tag, i) in broadcast.hashTag" :key="i" class="hashtag">{{ tag }}</span>
           </div>
         </div>
       </div>
@@ -513,7 +525,9 @@ export default {
         if (response.data && response.data.result) {
           this.broadcasts = response.data.result.content.map(broadcast => ({
             ...broadcast,
-            isAdult: broadcast.adultYn
+            isAdult: broadcast.adultYn,
+            showPreview: false,
+            hoverTimer: null
           }));
         }
       }catch(error){
@@ -535,7 +549,9 @@ export default {
         if (response.data && response.data.result) {
           this.broadcasts = response.data.result.content.map(broadcast => ({
             ...broadcast,
-            isAdult: broadcast.adultYn
+            isAdult: broadcast.adultYn,
+            showPreview: false,
+            hoverTimer: null
           }));
         }
       }catch(error){
@@ -876,8 +892,41 @@ export default {
         this.adultAlertModalOpen = true;
       } else {
         // 방송 시청 페이지로 이동
-        this.$router.push(`/streaming/${broadcast.streamId}`);
+        this.$router.push(`/live/${broadcast.streamId}`);
       }
+    },
+
+    // 방송 썸네일 미리보기 관련 메서드
+    startBroadcastPreviewTimer(index) {
+      const broadcast = this.broadcasts[index];
+      if (!broadcast || !broadcast.streamKey) return;
+      
+      // 성인 컨텐츠인 경우 미리보기 시작하지 않음
+      if (broadcast.adultYn === 'Y') return;
+      
+      // 기존 타이머가 있으면 클리어
+      if (broadcast.hoverTimer) {
+        clearTimeout(broadcast.hoverTimer);
+      }
+      
+      // 0.5초 후에 미리보기 표시
+      broadcast.hoverTimer = setTimeout(() => {
+        broadcast.showPreview = true;
+      }, 500);
+    },
+    
+    stopBroadcastPreview(index) {
+      const broadcast = this.broadcasts[index];
+      if (!broadcast) return;
+      
+      // 타이머가 있으면 클리어
+      if (broadcast.hoverTimer) {
+        clearTimeout(broadcast.hoverTimer);
+        broadcast.hoverTimer = null;
+      }
+      
+      // 미리보기 숨기기
+      broadcast.showPreview = false;
     },
   }
 };
@@ -1089,7 +1138,7 @@ export default {
 }
 
 .broadcast-title, .video-title {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 500;
   margin-bottom: 8px;
   color: #ffffff;
@@ -1107,8 +1156,8 @@ export default {
 }
 
 .profile-img {
-  width: 24px;
-  height: 24px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   object-fit: cover;
 }
@@ -1126,7 +1175,7 @@ export default {
 }
 
 .streamer-name {
-  font-size: 13px;
+  font-size: 14px;
   color: #adb5bd;
   font-weight: 500;
 }
@@ -1136,17 +1185,33 @@ export default {
   color: #6c757d;
 }
 
+.tags-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.category-badge {
+  background-color: #B084CC;
+  color: black;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  display: inline-block;
+}
+
 .hashtags {
   display: flex;
   flex-wrap: wrap;
   gap: 5px;
-  margin-top: 8px;
-  max-height: 24px; /* 첫 번째 줄 높이만큼만 설정 */
-  overflow: hidden; /* 넘치는 부분(두 번째 줄부터) 숨김 */
+  overflow: hidden;
+  margin-top: 0;
 }
 
 .hashtag {
-  font-size: 11px;
+  font-size: 12px;
   color: #aaaaaa;
   background-color: transparent;
   padding: 1px 4px;
@@ -1255,8 +1320,8 @@ export default {
 }
 
 .profile-img {
-  width: 20px;
-  height: 20px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   object-fit: cover;
 }
@@ -1664,6 +1729,16 @@ export default {
   display: flex;
   align-items: center;
   z-index: 2;
+}
+
+.category-badge {
+  background-color: #B084CC;
+  color: black;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 400;
+  display: inline-block;
 }
 </style>
 

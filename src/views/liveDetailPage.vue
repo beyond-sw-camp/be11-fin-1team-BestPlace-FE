@@ -437,8 +437,12 @@ const connectWebsocket = () => {
         
         // messageId가 있는지 확인하고 로그 출력
         console.log('메시지 ID:', parsed.messageId)
-        
-        messages.value.push({
+        console.log('메시지 내용:', parsed.message)
+        console.log('메시지 타입:', parsed.type)
+        if (parsed.type==="Adult"){
+          handleAdultMessage()
+        }else{
+          messages.value.push({
           messageId: parsed.messageId,  // messageId 추가
           roomId: parsed.roomId,
           memberId: parsed.memberId,
@@ -446,8 +450,10 @@ const connectWebsocket = () => {
           sender: parsed.sender,
           type: parsed.type,
           createdTime: parsed.createdTime
-        })
-        scrollToBottom()
+          })
+          scrollToBottom()
+        }
+        
       } catch (err) {
         console.error('메시지 파싱 실패:', err)
       }
@@ -465,6 +471,10 @@ const connectWebsocket = () => {
       }, 3000)
   })
 }
+
+
+
+
 
 const sendMessage = () => {
   if (!newMessage.value.trim()) return;
@@ -677,6 +687,10 @@ const unblockUser = async () => {
     alert('차단 해제 중 오류가 발생했습니다.');
   }
 };
+
+const handleAdultMessage = () => {
+  
+}
 
 const scrollToBottom = () => {
   const chatContainer = document.querySelector('.chat-messages')
