@@ -1,10 +1,10 @@
 <template>
   <v-app style="background-color: #141517;" :class="{ 'transparent-bg': isTransparent }">
-    <HeaderComponent v-if="!isStreamerRoute && !isClipCreateRoute && !isTransparent && !hideNav" @toggle-mini="toggleMini"/>
-    <SidebarComponent v-if="!isStreamerRoute && !isClipCreateRoute && !isTransparent && !hideNav" :mini="mini" />
+    <HeaderComponent v-if="!isStreamerRoute && !isClipCreateRoute && !(isTransparent || hideNav)" @toggle-mini="toggleMini"/>
+    <SidebarComponent v-if="!isStreamerRoute && !isClipCreateRoute && !(isTransparent || hideNav)" :mini="mini" />
     <v-main :style="mainStyle" class="main-content">
       <router-view class="full-width"/>
-      <FooterComponent v-if="!isStreamerRoute && !isClipCreateRoute && !isClipDetailRoute && !isTransparent && !hideNav"/>
+      <FooterComponent v-if="!isStreamerRoute && !isClipCreateRoute && !isClipDetailRoute && !(isTransparent || hideNav)"/>
     </v-main>
   </v-app>
 </template>

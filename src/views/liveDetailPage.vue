@@ -479,10 +479,6 @@ const connectWebsocket = () => {
   })
 }
 
-
-
-
-
 const sendMessage = () => {
   if (!newMessage.value.trim()) return;
   if (!stompClient.value || !stompClient.value.connected || !isConnected.value) {
@@ -595,7 +591,26 @@ const handleReport = async (reportData) => {
       return;
     }
     
-    const response = await axios.post(`${streamingApi}/chat/report`, reportData, {
+    console.log('신고 처리 시작 - 원본 데이터:', reportData);
+    console.log('메시지 ID 타입:', typeof reportData.reportedChatMessageId);
+    
+    // messageId가 있는지 확인하고 정수로 변환 시도
+    if (!reportData.reportedChatMessageId) {
+      console.error('신고할 메시지 ID가 없습니다');
+      alert('신고할 메시지 ID가 없어 처리할 수 없습니다.');
+      return;
+    }
+    
+    // 서버로 전송할 데이터 준비
+    const payload = {
+      reportedChatMessageId: Number(reportData.reportedChatMessageId) || reportData.reportedChatMessageId,
+      reportType: reportData.reportType,
+      reportReason: reportData.reportReason
+    };
+    
+    console.log('서버로 전송할 최종 신고 데이터:', payload);
+    
+    const response = await axios.post(`${streamingApi}/chat/report`, payload, {
       headers: {
         'Authorization': `Bearer ${token.value}`
       }
@@ -610,6 +625,10 @@ const handleReport = async (reportData) => {
     alert('신고가 접수되었습니다.');
   } catch (error) {
     console.error('신고 처리 중 오류 발생:', error);
+    if (error.response) {
+      console.error('오류 응답:', error.response.data);
+      console.error('오류 상태:', error.response.status);
+    }
     alert('신고 처리 중 오류가 발생했습니다.');
   }
 };
