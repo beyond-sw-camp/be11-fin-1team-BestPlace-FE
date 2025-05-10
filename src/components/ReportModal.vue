@@ -152,7 +152,7 @@ const submitReport = () => {
 .report-modal :deep(.v-card-title) {
   color: #fff;
   font-size: 1.25rem;
-  font-weight: 600;
+  font-weight: 500;
   padding: 16px 24px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
@@ -189,7 +189,7 @@ const submitReport = () => {
 
 .report-modal :deep(.v-btn) {
   text-transform: none;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .report-modal :deep(.v-btn--text) {

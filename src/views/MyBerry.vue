@@ -697,7 +697,7 @@ export default {
 
 .berry-amount {
   font-size: 28px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .berry-unit {
@@ -847,7 +847,7 @@ export default {
 .charge-amount {
   flex-grow: 1;
   font-size: 18px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .clear-btn {
@@ -882,7 +882,7 @@ export default {
 
 .total-price-value {
   font-size: 18px;
-  font-weight: 600;
+  font-weight: 500;
   color: #b084cc;
 }
 
@@ -1021,7 +1021,7 @@ export default {
 
 .total-donation-amount {
   color: #b084cc;
-  font-weight: 600;
+  font-weight: 500;
   margin-left: 5px;
 }
 </style>

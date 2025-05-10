@@ -292,7 +292,7 @@ onMounted(() => {
     background: #E05C8C;
     color: #fff;
     font-size: 10px;
-    font-weight: 700;
+    font-weight: 500;
     padding: 2px 6px;
     border-radius: 3px;
     z-index: 2;
@@ -345,7 +345,6 @@ onMounted(() => {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: bold;
     font-size: 16px;
     margin-bottom: 8px;
 }

@@ -692,7 +692,6 @@ export default {
   background-color: #ff3b3b;
   color: white;
   font-size: 10px;
-  font-weight: bold;
   padding: 2px 6px;
   border-radius: 10px;
   text-transform: uppercase;
@@ -937,7 +936,6 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: bold;
   font-size: 14px;
 }
 

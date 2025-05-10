@@ -121,7 +121,6 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: bold;
   font-size: 24px;
 }
 

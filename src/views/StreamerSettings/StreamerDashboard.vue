@@ -174,7 +174,6 @@ export default {
 
 .dashboard-title {
   font-size: 24px;
-  font-weight: bold;
   margin-bottom: 16px;
   color: #fff;
   padding-left: 4px;
@@ -187,7 +186,6 @@ export default {
 
 .section-title {
   font-size: 20px;
-  font-weight: bold;
   color: #fff;
   padding: 16px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
@@ -213,7 +211,6 @@ export default {
   align-items: center;
   justify-content: center;
   margin-right: 10px;
-  font-weight: bold;
 }
 
 .step-text {
@@ -272,7 +269,6 @@ export default {
   min-width: 200px;
   height: 48px;
   font-size: 16px;
-  font-weight: bold;
 }
 
 .guide-container {

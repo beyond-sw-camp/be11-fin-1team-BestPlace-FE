@@ -218,7 +218,7 @@ export default {
 }
 
 .username {
-  font-weight: 600;
+  font-weight: 500;
   white-space: nowrap;
   font-size: 16px; /* 사용자 이름 글자 크기 16px로 조정 */
   display: inline; /* 인라인 요소로 변경 - 한 줄에 표시 */

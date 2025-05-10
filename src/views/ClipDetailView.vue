@@ -1186,7 +1186,6 @@ onMounted(() => {
   font-size: 0.72rem;
   padding: 2px 12px;
   cursor: pointer;
-  font-weight: bold;
   margin-left: 8px;
   transition: all 0.2s ease;
 }

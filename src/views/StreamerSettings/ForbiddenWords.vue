@@ -334,7 +334,6 @@ export default {
 
 .page-title {
   font-size: 24px;
-  font-weight: bold;
   margin-bottom: 20px;
 }
 
@@ -349,7 +348,6 @@ export default {
 
 .section-title {
   font-size: 18px;
-  font-weight: bold;
   color: #fff;
   display: flex;
   justify-content: space-between;
@@ -445,7 +443,6 @@ export default {
 .delete-dialog-title {
   color: #fff;
   background-color: #1e2029;
-  font-weight: bold;
 }
 
 .delete-dialog-content {

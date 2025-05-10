@@ -833,7 +833,7 @@ export default {
 
 .info-section-title {
   font-size: 22px;
-  font-weight: 600;
+  font-weight: 500;
   margin-bottom: 16px;
   color: #ffffff;
 }

@@ -131,7 +131,6 @@
     background-color: #ff3b3b;
     color: white;
     font-size: 12px;
-    font-weight: bold;
     padding: 3px 8px;
     border-radius: 12px;
     text-transform: uppercase;

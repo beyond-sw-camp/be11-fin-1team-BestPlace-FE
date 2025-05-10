@@ -476,7 +476,7 @@ export default {
 
 .stat-value {
   font-size: 24px; /* 더 키움 */
-  font-weight: 600;
+  font-weight: 500;
   color: #FFFFFF; /* 색상 변경 */
 }
 

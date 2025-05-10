@@ -963,7 +963,6 @@ onBeforeUnmount(() => {
   background-color: #ff3b3b;
   color: white;
   font-size: 16px;
-  font-weight: bold;
   padding: 4px 14px 4px 10px;
   border-radius: 6px;
   text-transform: uppercase;
@@ -1148,7 +1147,7 @@ onBeforeUnmount(() => {
 
 .vod-title {
   font-size: 24px;
-  font-weight: 800;
+  font-weight: 500;
   color: #fff;
   margin-top: 0;
   margin-bottom: 12px;
@@ -1449,7 +1448,6 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: bold;
   font-size: 16px;
   margin-bottom: 8px;
 }
