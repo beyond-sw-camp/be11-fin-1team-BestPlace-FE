@@ -440,6 +440,7 @@ const calculateVisibleHashtags = async () => {
     // 컨테이너 계산
     const containerWidth = container.offsetWidth
     const categoryElem = container.querySelector('.category')
+    const categoryText = categoryElem ? categoryElem.textContent : ''
     const availableWidth = containerWidth - (categoryElem ? categoryElem.offsetWidth + 8 : 0) // 8px는 gap
     
     // 가상 태그 엘리먼트로 너비 측정
@@ -450,16 +451,23 @@ const calculateVisibleHashtags = async () => {
     document.body.appendChild(tempDiv)
     
     let totalWidth = 0
+    let totalLength = categoryText.length // 카테고리 글자 수부터 시작
     const visibleTags = []
     
     // 각 태그의 너비 측정
     for (const tag of hashTags) {
+      // 현재까지의 총 글자 수 + 현재 태그의 글자 수가 20을 초과하면 중단
+      if (totalLength + tag.length > 20) {
+        break
+      }
+      
       tempDiv.innerHTML = `<span class="hashtag" style="font-size:14px;margin-right:8px;">${tag}</span>`
       const tagWidth = tempDiv.firstChild.offsetWidth
       
       if (totalWidth + tagWidth <= availableWidth) {
         visibleTags.push(tag)
         totalWidth += tagWidth + 8 // 8px는 gap
+        totalLength += tag.length // 총 글자 수 업데이트
       } else {
         break // 더 이상 표시할 수 없으면 중단
       }
