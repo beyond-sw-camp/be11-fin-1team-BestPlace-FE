@@ -147,6 +147,12 @@
               <li v-else @click="showAlreadyReportedModal">
                 🚨 이미 신고한 사용자입니다
               </li>
+              <li v-if="!isTempBanned(selectedMessage?.memberId)" @click="tempBanUser">
+                ⛔ 임시제한
+              </li>
+              <li v-else @click="releaseTempBan">
+                ✅ 임시제한 해제
+              </li>
             </ul>
           </div>
         </div>
@@ -253,6 +259,64 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- 임시제한 모달 추가 -->
+    <v-dialog v-model="tempBanModalVisible" max-width="400">
+      <v-card class="custom-modal">
+        <v-card-title class="modal-title">
+          <v-icon left color="warning" class="mr-2">mdi-account-cancel</v-icon>
+          임시제한 설정
+        </v-card-title>
+        <v-card-text class="modal-content">
+          <div class="reported-message mb-4" v-if="selectedMessage">
+            <p class="mb-1 text-caption text-grey">제한할 사용자의 메시지:</p>
+            <v-card class="pa-2 reported-message-card">
+              <p class="mb-0"><strong>{{ selectedMessage.sender }}</strong>: {{ selectedMessage.message }}</p>
+            </v-card>
+          </div>
+          
+          <p>이 사용자의 채팅을 임시적으로 제한하시겠습니까?</p>
+          <p class="text-caption text-grey mt-2">
+            제한 이력에 따라 시간이 자동으로 설정됩니다:<br>
+            첫 번째: 30초 / 두 번째: 1분 / 세 번째: 5분 / 네 번째 이상: 10분
+          </p>
+        </v-card-text>
+        <v-card-actions class="modal-actions">
+          <v-spacer></v-spacer>
+          <v-btn color="grey-darken-1" variant="text" @click="tempBanModalVisible = false">취소</v-btn>
+          <v-btn color="warning" variant="flat" @click="handleTempBan">
+            임시제한 적용
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- 임시제한 해제 모달 추가 -->
+    <v-dialog v-model="releaseBanModalVisible" max-width="400">
+      <v-card class="custom-modal">
+        <v-card-title class="modal-title">
+          <v-icon left color="success" class="mr-2">mdi-account-check</v-icon>
+          임시제한 해제
+        </v-card-title>
+        <v-card-text class="modal-content">
+          <div class="reported-message mb-4" v-if="selectedMessage">
+            <p class="mb-1 text-caption text-grey">임시제한을 해제할 사용자:</p>
+            <v-card class="pa-2 reported-message-card">
+              <p class="mb-0"><strong>{{ selectedMessage.sender }}</strong></p>
+            </v-card>
+          </div>
+          
+          <p>이 사용자의 임시제한을 해제하시겠습니까?</p>
+        </v-card-text>
+        <v-card-actions class="modal-actions">
+          <v-spacer></v-spacer>
+          <v-btn color="grey-darken-1" variant="text" @click="releaseBanModalVisible = false">취소</v-btn>
+          <v-btn color="success" variant="flat" @click="handleReleaseTempBan">
+            임시제한 해제
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
@@ -324,7 +388,13 @@ export default {
       reportModalVisible: false,
       alreadyReportedModalVisible: false,
       reportReason: null,
-      reportDescription: ''
+      reportDescription: '',
+
+      // 임시제한 관련
+      tempBannedUsers: new Map(), // 사용자 ID를 키로, 제한 정보를 값으로 저장
+      tempBanModalVisible: false,
+      releaseBanModalVisible: false,
+      banCheckTimer: null, // 임시제한 상태 체크 타이머
     };
   },
   
@@ -792,49 +862,58 @@ export default {
     },
 
     openContextMenu(event, message) {
-      event.preventDefault();
-      console.log('컨텍스트 메뉴 오픈 시도, 메시지 객체:', message);
+      event.preventDefault()
+      console.log('컨텍스트 메뉴 오픈 시도, 메시지 객체:', message)
       
       // 메시지 객체가 유효한지 자세히 검사
       if (!message || typeof message !== 'object') {
-        console.error('메시지 객체가 유효하지 않습니다:', message);
-        return;
+        console.error('메시지 객체가 유효하지 않습니다:', message)
+        return
       }
       
       // 자신의 메시지는 컨텍스트 메뉴를 열지 않음
       if (message.memberId && this.memberId && message.memberId.toString() === this.memberId.toString()) {
-        console.log('자신의 메시지라 컨텍스트 메뉴를 열지 않습니다.');
-        return;
+        console.log('자신의 메시지라 컨텍스트 메뉴를 열지 않습니다.')
+        return
       }
       
       // messageId가 없는 경우 생성
       if (!message.messageId) {
-        console.warn('메시지 ID가 없어 자동 생성합니다');
-        message.messageId = `menu-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        console.log('자동 생성된 메시지 ID:', message.messageId);
+        console.warn('메시지 ID가 없어 자동 생성합니다')
+        message.messageId = `menu-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+        console.log('자동 생성된 메시지 ID:', message.messageId)
       }
       
-      this.selectedMessage = { ...message };  // 깊은 복사로 참조 문제 방지
-      console.log('선택된 메시지:', this.selectedMessage);
+      // 임시제한 사용자 목록 업데이트 (만료된 항목 제거)
+      const now = new Date()
+      this.tempBannedUsers.forEach((banInfo, userId) => {
+        if (now > new Date(banInfo.expireAt)) {
+          console.log(`사용자 ${userId}의 임시제한이 만료되었습니다.`)
+          this.tempBannedUsers.delete(userId)
+        }
+      })
+      
+      this.selectedMessage = { ...message }  // 깊은 복사로 참조 문제 방지
+      console.log('선택된 메시지:', this.selectedMessage)
       
       // 컨텍스트 메뉴 위치 설정
-      let x = event.clientX;
-      let y = event.clientY;
+      let x = event.clientX
+      let y = event.clientY
       
       // 화면 우측 경계 체크
-      const menuWidth = 150;
+      const menuWidth = 150
       if (x + menuWidth > window.innerWidth) {
-        x = window.innerWidth - menuWidth - 10;
+        x = window.innerWidth - menuWidth - 10
       }
       
       // 화면 하단 경계 체크
-      const menuHeight = 150;
+      const menuHeight = 150
       if (y + menuHeight > window.innerHeight) {
-        y = window.innerHeight - menuHeight - 10;
+        y = window.innerHeight - menuHeight - 10
       }
       
       // 기존 컨텍스트 메뉴를 먼저 닫고 새로 열기
-      this.contextMenu.visible = false;
+      this.contextMenu.visible = false
       
       // 약간의 지연 후 메뉴 표시
       setTimeout(() => {
@@ -842,9 +921,9 @@ export default {
           visible: true,
           x: x,
           y: y
-        };
-        console.log('컨텍스트 메뉴가 표시됨:', this.contextMenu);
-      }, 50);
+        }
+        console.log('컨텍스트 메뉴가 표시됨:', this.contextMenu)
+      }, 50)
     },
 
     async reportMessage(message) {
@@ -1003,7 +1082,110 @@ export default {
         console.error('에러 응답:', error.response?.data);
         return false;
       }
-    }
+    },
+
+    // 임시제한 여부 확인
+    isTempBanned(memberId) {
+      if (!memberId) return false;
+      
+      const bannedInfo = this.tempBannedUsers.get(memberId.toString());
+      if (!bannedInfo) return false;
+      
+      // 만료 시간이 지났는지 확인
+      const now = new Date();
+      const expireAt = new Date(bannedInfo.expireAt);
+      
+      if (now > expireAt) {
+        // 만료된 경우 목록에서 제거
+        this.tempBannedUsers.delete(memberId.toString());
+        return false;
+      }
+      
+      return true;
+    },
+    
+    // 임시제한 모달 표시
+    tempBanUser() {
+      if (this.selectedMessage) {
+        this.tempBanModalVisible = true;
+      }
+      this.contextMenu.visible = false;
+    },
+    
+    // 임시제한 해제 모달 표시
+    releaseTempBan() {
+      if (this.selectedMessage) {
+        this.releaseBanModalVisible = true;
+      }
+      this.contextMenu.visible = false;
+    },
+    
+    // 임시제한 적용 처리
+    async handleTempBan() {
+      if (!this.selectedMessage) {
+        this.tempBanModalVisible = false;
+        return;
+      }
+      
+      try {
+        const response = await axios.post(
+          `${process.env.VUE_APP_STREAMING_API}/chat/ban/temp`,
+          { messageId: this.selectedMessage.messageId },
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('token')}`
+            }
+          }
+        );
+        
+        console.log('임시제한 응답:', response.data);
+        
+        // 성공 시 목록에 추가
+        this.tempBannedUsers.set(this.selectedMessage.memberId.toString(), {
+          expireAt: new Date(Date.now() + 10 * 60 * 1000), // 기본적으로 10분으로 설정 (실제로는 서버에서 계산)
+          nickname: this.selectedMessage.sender
+        });
+        
+        this.showMessageModal('임시제한 적용', `'${this.selectedMessage.sender}'님을 임시제한 했습니다.`, 'success');
+      } catch (error) {
+        console.error('임시제한 적용 실패:', error);
+        this.showMessageModal('임시제한 실패', '임시제한 적용에 실패했습니다: ' + (error.response?.data?.message || error.message), 'error');
+      } finally {
+        this.tempBanModalVisible = false;
+      }
+    },
+    
+    // 임시제한 해제 처리
+    async handleReleaseTempBan() {
+      if (!this.selectedMessage) {
+        this.releaseBanModalVisible = false;
+        return;
+      }
+      
+      try {
+        const response = await axios.delete(
+          `${process.env.VUE_APP_STREAMING_API}/chat/ban/temp/release`,
+          {
+            data: { targetMessageId: this.selectedMessage.messageId },
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('token')}`
+            }
+          }
+        );
+        
+        console.log('임시제한 해제 응답:', response.data);
+        
+        // 성공 시 목록에서 제거
+        this.tempBannedUsers.delete(this.selectedMessage.memberId.toString());
+        
+        this.showMessageModal('임시제한 해제', `'${this.selectedMessage.sender}'님을 임시제한 해제 했습니다.`, 'success');
+      } catch (error) {
+        console.error('임시제한 해제 실패:', error);
+        this.showMessageModal('임시제한 해제 실패', '임시제한 해제에 실패했습니다: ' + (error.response?.data?.message || error.message), 'error');
+      } finally {
+        this.releaseBanModalVisible = false;
+      }
+    },
   },
   onMounted() {
     this.initializeStreaming();
@@ -1013,6 +1195,8 @@ export default {
     if (this.stompClient && this.stompClient.connected) {
       this.stompClient.disconnect();
     }
+    
+    // 타이머 정리 코드 제거
     
     // 이벤트 리스너 제거
     document.removeEventListener('click', this.closeContextMenu);
