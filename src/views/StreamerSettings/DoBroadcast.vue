@@ -439,6 +439,7 @@ export default {
 
         const result = response.data.result;
         console.log('[fetchStreamingInfo] 방송 정보', result); 
+        console.log('[fetchStreamingInfo] thumbnail', result.thumbnail);
         this.title = result.title;
         this.category = result.categoryId;
         this.tags = result.hashTags;
@@ -511,6 +512,9 @@ export default {
 
         if (this.thumbnailFile) {
           formData.append('thumbnail', this.thumbnailFile);
+        }
+        if (this.thumbnailPreview) {
+           formData.append('thumbnailUrl', this.thumbnailPreview);
         }
 
         await axios.post(

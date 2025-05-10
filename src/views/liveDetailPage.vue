@@ -147,7 +147,7 @@
           v-for="message in messages"
           :key="message.messageId"
           class="chat-message"
-          :class="{ 'own-message': message.memberId === memberId }"
+          :class="{ 'own-message': message.memberId === memberId, 'donation-message': message.type === 'CHAT_DONATION' }"
           @contextmenu.prevent="openContextMenu($event, message)"
         >
           <template v-if="blockedUsers.has(message.memberId)">
@@ -158,6 +158,17 @@
           </template>
           <template v-else-if="reportedUsers.has(message.memberId)">
             <span class="reported-message">내가 신고한 작성자의 채팅입니다</span>
+          </template>
+          <template v-else-if="message.type === 'CHAT_DONATION'">
+            <div class="donation-box">
+              <div class="donation-header">
+                <span class="donation-title">{{ message.donationSender || message.sender }}</span>
+                <span class="donation-amount">🍒 {{ formatNumber(message.berryAmount) }}</span>
+              </div>
+              <div class="donation-body">
+                <span class="message-content">{{ message.message }}</span>
+              </div>
+            </div>
           </template>
           <template v-else>
             <span class="sender" :style="getUsernameColor(message.sender)">{{ message.sender }}</span>
@@ -188,7 +199,7 @@
         <button @click="sendMessage" :disabled="!isConnected">전송</button>
       </div>
       <div class="donation-buttons">
-        <button class="donation-button">
+        <button class="donation-button" @click="toggleChatDonation">
           <span class="donation-icon">🗨️ </span>
           <span class="donation-amount">채팅 후원</span>
         </button>
@@ -196,6 +207,68 @@
           <span class="donation-icon">🎯</span>
           <span class="donation-amount">미션 후원</span>
         </button>
+      </div>
+
+      <!-- 채팅 후원 드롭다운 추가 -->
+      <div class="chat-donation-dropdown" v-if="showChatDonation">
+        <div class="dropdown-header">
+          <span class="dropdown-title">채팅 후원하기</span>
+          <button class="close-button" @click="toggleChatDonation">
+            <svg viewBox="0 0 24 24" width="16" height="16">
+              <path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+            </svg>
+          </button>
+        </div>
+        <div class="dropdown-content">
+          <div class="my-berry-info">
+            <div class="berry-icon">🍒</div>
+            <div class="berry-text">
+              <div class="berry-label">내 보유 베리</div>
+              <div class="berry-value">{{ userBerryAmount }} 개</div>
+            </div>
+            <button class="berry-refresh" @click="refreshMyBerry">
+              <svg viewBox="0 0 24 24" width="16" height="16">
+                <path fill="currentColor" d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+              </svg>
+            </button>
+          </div>
+          <div class="donation-input-group">
+            <label>후원 메시지</label>
+            <input 
+              v-model="donationMsg" 
+              type="text" 
+              placeholder="후원 메시지를 입력하세요"
+              maxlength="100"
+            />
+            <div class="char-count">{{ donationMsg.length }}/100</div>
+          </div>
+          <div class="donation-amount-group">
+            <label>후원 베리</label>
+            <div class="amount-input">
+              <input 
+                v-model="donationAmount" 
+                type="number" 
+                min="100"
+                placeholder="후원할 베리 수량"
+              />
+              <span class="berry-unit">베리</span>
+            </div>
+            <div class="amount-presets">
+              <button @click="donationAmount += 1000">1,000</button>
+              <button @click="donationAmount += 5000">5,000</button>
+              <button @click="donationAmount += 10000">10,000</button>
+              <button @click="donationAmount += 50000">50,000</button>
+            </div>
+          </div>
+          <button 
+            class="donate-button"
+            :class="{ 'charge-donate-button': userBerryAmount < donationAmount }"
+            :disabled="donationAmount < 1000 || !donationMsg || !isLogin || loading"
+            @click="userBerryAmount < donationAmount ? chargeAndDonate() : sendDonation()"
+          >
+            {{ loading ? '처리 중...' : userBerryAmount < donationAmount ? '충전하고 후원하기' : '후원하기' }}
+          </button>
+        </div>
       </div>
     </div>
 
@@ -247,6 +320,92 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- 충전 모달 추가 -->
+    <v-dialog v-model="chargeModalOpen" max-width="500" content-class="berry-charge-modal">
+      <div class="modal-container">
+        <div class="modal-header">
+          <div class="modal-title">베리 충전하기</div>
+          <v-btn icon @click="closeChargeModal" class="close-btn">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </div>
+        
+        <div class="modal-content">
+          <div class="charge-input-group">
+            <div class="input-label">충전할 베리</div>
+            <div class="charge-input-container">
+              <div class="charge-icon">
+                <v-icon icon="mdi-fruit-cherries" color="#b084cc" size="large"></v-icon>
+              </div>
+              <div class="charge-amount">{{ formatNumber(chargeAmount) }}</div>
+              <v-btn icon class="clear-btn" @click="clearAmount" v-if="chargeAmount > 0">
+                <v-icon>mdi-close-circle</v-icon>
+              </v-btn>
+            </div>
+          </div>
+          
+          <div class="amount-buttons">
+            <v-btn class="amount-btn" variant="outlined" @click="addAmount(1000)">+1천</v-btn>
+            <v-btn class="amount-btn" variant="outlined" @click="addAmount(5000)">+5천</v-btn>
+            <v-btn class="amount-btn" variant="outlined" @click="addAmount(10000)">+1만</v-btn>
+            <v-btn class="amount-btn" variant="outlined" @click="addAmount(100000)">+10만</v-btn>
+            <v-btn class="amount-btn" variant="outlined" @click="addAmount(1000000)">+100만</v-btn>
+          </div>
+          
+          <div class="total-price-container">
+            <div class="total-price-label">최종 결제금액</div>
+            <div class="total-price-value">{{ formatNumber(Math.round(chargeAmount * 1.1)) }}원</div>
+          </div>
+          
+          <div class="agreement-text">
+            내용을 확인했으며 베리 충전에 동의합니다.
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <v-btn 
+            color="#b084cc" 
+            block 
+            :disabled="loading || !sdkLoaded || chargeAmount < 1000" 
+            @click="startPayment"
+            class="submit-btn"
+          >
+            {{ loading ? "결제 중..." : "베리 충전하기" }}
+          </v-btn>
+        </div>
+      </div>
+    </v-dialog>
+    
+    <!-- 결제 실패 모달 -->
+    <v-dialog v-model="failureModalOpen" max-width="500" content-class="berry-charge-modal">
+      <div class="modal-container">
+        <div class="modal-header">
+          <div class="modal-title">결제 실패</div>
+          <v-btn icon @click="closeFailureModal" class="close-btn">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </div>
+        
+        <div class="modal-content">
+          <div class="failure-message-container">
+            <v-icon icon="mdi-alert-circle" color="#ff5252" size="x-large" class="failure-icon"></v-icon>
+            <div class="failure-message">{{ failureMessage }}</div>
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <v-btn 
+            color="#b084cc" 
+            block 
+            @click="closeFailureModal"
+            class="submit-btn"
+          >
+            확인
+          </v-btn>
+        </div>
+      </div>
+    </v-dialog>
   </div>
 </template>
 
@@ -268,6 +427,7 @@ const video = ref(null)
 const streamId = route.params.streamId
 const streamingApi = process.env.VUE_APP_STREAMING_API
 const memberApi = process.env.VUE_APP_MEMBER_API
+const paymentApi = process.env.VUE_APP_PAYMENT_API
 const selectedMessage = ref(null)
 const contextMenu = ref({ visible: false, x: 0, y: 0 })
 
@@ -324,6 +484,18 @@ const blockedUserDetails = ref([]) // 차단 해제를 위한 상세 정보 저�
 const showAlreadyReportedModal = ref(false)
 const showUnblockModal = ref(false)
 const selectedUserToUnblock = ref(null)
+
+// 추가적인 상태
+const showChatDonation = ref(false)
+const userBerryAmount = ref(0)
+const donationMsg = ref('')
+const donationAmount = ref(1000)
+const loading = ref(false)
+const sdkLoaded = ref(false)
+const chargeModalOpen = ref(false)
+const chargeAmount = ref(1000)
+const failureModalOpen = ref(false)
+const failureMessage = ref('')
 
 // 사용자 이름 색상을 위한 색상 배열 추가
 const colors = ref([
@@ -390,6 +562,20 @@ const getStreamInfo = async () => {
   }
 }
 
+const myBerry = async () => {
+  try {
+    const response = await axios.get(`${paymentApi}/payment/my/berry`, {
+      headers: {
+        'Authorization': `Bearer ${token.value}`
+      }
+    })
+    console.log('내 베리 정보:', response.data.result.balance)
+    userBerryAmount.value = response.data.result.balance
+  } catch (error) {
+    console.error('내 베리 정보 로드 실패:', error)
+  }
+}
+
 const getStreamerInfo = async () => {
   try {
     const response = await axios.get(`${memberApi}/member/info/${streamInfo.value.memberId}`)
@@ -448,9 +634,38 @@ const connectWebsocket = () => {
         console.log('메시지 타입:', parsed.type)
         if (parsed.type==="Adult"){
           handleAdultMessage()
+        }else if(parsed.type==="CHAT_DONATION"){
+          // 메시지 형식: "닉네임님이 1000원을 후원하셨습니다.실제메시지" 파싱
+          const fullMessage = parsed.message;
+          const donationPattern = /(.+)님이 (\d+)원을 후원하셨습니다\.(.*)/;
+          const match = fullMessage.match(donationPattern);
+          
+          let senderName = parsed.sender;
+          let donationAmount = 1000;
+          let actualMessage = fullMessage;
+          
+          if (match && match.length >= 4) {
+            senderName = match[1]; // 닉네임
+            donationAmount = parseInt(match[2]); // 후원 금액
+            actualMessage = match[3]; // 실제 메시지
+          }
+          
+          // 후원 메시지를 채팅에 추가
+          messages.value.push({
+            messageId: parsed.messageId,
+            roomId: parsed.roomId,
+            memberId: parsed.memberId,
+            message: actualMessage, // 실제 메시지 부분만 저장
+            sender: parsed.sender,
+            type: parsed.type,
+            createdTime: parsed.createdTime,
+            berryAmount: donationAmount, // 파싱한 후원 금액
+            donationSender: senderName // 후원자 이름
+          })
+          scrollToBottom()
         }else{
           messages.value.push({
-          messageId: parsed.messageId,  // messageId 추가
+          messageId: parsed.messageId,
           roomId: parsed.roomId,
           memberId: parsed.memberId,
           message: parsed.message,
@@ -478,10 +693,6 @@ const connectWebsocket = () => {
       }, 3000)
   })
 }
-
-
-
-
 
 const sendMessage = () => {
   if (!newMessage.value.trim()) return;
@@ -1043,11 +1254,241 @@ const getUsernameColor = (username) => {
   return { color: colors.value[colorIndex] };
 }
 
+// 채팅 후원 토글 함수
+const toggleChatDonation = () => {
+  showChatDonation.value = !showChatDonation.value
+  if (showChatDonation.value && isLogin.value) {
+    refreshMyBerry()
+  }
+}
+
+// 내 베리 정보 갱신
+const refreshMyBerry = async () => {
+  if (!isLogin.value) return
+  
+  try {
+    const response = await axios.get(`${paymentApi}/payment/my/berry`, {
+      headers: {
+        'Authorization': `Bearer ${token.value}`
+      }
+    })
+    userBerryAmount.value = response.data.result.balance
+  } catch (error) {
+    console.error('내 베리 정보 로드 실패:', error)
+  }
+}
+
+// 숫자 포맷팅 함수
+const formatNumber = (num) => {
+  return new Intl.NumberFormat().format(num)
+}
+
+// 후원 전송 함수
+const sendDonation = async () => {
+  if (!isLogin.value) {
+    alert('로그인이 필요합니다.')
+    return
+  }
+  
+  if (donationAmount.value < 1000) {
+    alert('최소 1000베리 이상 후원해야 합니다.')
+    return
+  }
+  
+  if (!donationMsg.value.trim()) {
+    alert('후원 메시지를 입력해주세요.')
+    return
+  }
+  
+  loading.value = true
+  
+  try {
+    // 후원 API 호출
+    console.log(streamInfo.value.memberId)
+    console.log(donationAmount.value)
+    console.log(donationMsg.value)
+    await axios.post(`${paymentApi}/payment/normal/done`, {
+      toMemberId: streamInfo.value.memberId,
+      useBerry: donationAmount.value,
+      donaMessage: donationMsg.value
+    })
+    
+    // 후원 성공 처리
+    userBerryAmount.value -= donationAmount.value
+    donationMsg.value = ''
+    donationAmount.value = 1000
+    showChatDonation.value = false
+    
+    // 후원 메시지 표시는 웹소켓으로 자동 수신됨
+  } catch (error) {
+    console.error('후원 처리 실패:', error)
+    if (error.response && error.response.status === 400 && 
+        error.response.data.message === '보유한 베리가 부족합니다.') {
+      chargeAndDonate()
+    } else {
+      alert('후원 처리 중 오류가 발생했습니다.')
+    }
+  } finally {
+    loading.value = false
+  }
+}
+
+// 충전하고 후원하기 함수 추가
+const chargeAndDonate = () => {
+  // 충전 모달 열기
+  openChargeModal()
+  
+  // 충전 완료 후 처리를 위한 이벤트 리스너 설정
+  const chargeCompleteListener = () => {
+    // 충전이 성공적으로 완료되면 베리 잔액 새로고침
+    refreshMyBerry()
+  }
+  
+  // 충전 결과 리스너 등록
+  window.addEventListener('chargeComplete', chargeCompleteListener, { once: true })
+}
+
+// 충전 모달 관련 함수
+const openChargeModal = () => {
+  chargeAmount.value = 1000
+  chargeModalOpen.value = true
+  loadPaymentSDK()
+}
+
+const closeChargeModal = () => {
+  chargeModalOpen.value = false
+}
+
+const addAmount = (amount) => {
+  chargeAmount.value += amount
+}
+
+const clearAmount = () => {
+  chargeAmount.value = 0
+}
+
+// 결제 관련 함수
+const loadPaymentSDK = () => {
+  if (!window.IMP) {
+    const script = document.createElement("script")
+    script.src = "https://cdn.iamport.kr/v1/iamport.js"
+    script.onload = () => {
+      console.log("포트원 SDK 로딩 완료")
+      sdkLoaded.value = true
+    }
+    script.onerror = () => {
+      console.error("포트원 SDK 로딩 실패")
+      alert("결제 모듈 로딩에 실패했습니다.")
+    }
+    document.head.appendChild(script)
+  } else {
+    sdkLoaded.value = true
+  }
+}
+
+const closeFailureModal = () => {
+  failureModalOpen.value = false
+}
+
+const showFailureModal = (message) => {
+  failureMessage.value = message
+  failureModalOpen.value = true
+}
+
+const startPayment = async () => {
+  if (chargeAmount.value < 1000) {
+    showFailureModal("최소 1,000개 이상 충전 가능합니다.")
+    return
+  }
+  
+  loading.value = true
+
+  if (!window.IMP) {
+    showFailureModal("결제 모듈이 아직 로딩되지 않았습니다.")
+    loading.value = false
+    return
+  }
+
+  try {
+    // 1. 결제 준비 요청
+    const readyRes = await axios.post(`${paymentApi}/payment/ready`, {
+      quantity: chargeAmount.value
+    }, {
+      headers: {
+        'Authorization': `Bearer ${token.value}`
+      }
+    })
+
+    const merchantUid = readyRes.data?.result?.merchantUid
+    if (!merchantUid) throw new Error("merchantUid가 없습니다.")
+
+    // 2. 결제 요청
+    const IMP = window.IMP
+    IMP.init("imp24077746")
+
+    const nickname = senderNickname.value || "비회원"
+    const email = localStorage.getItem("email") || "unknown@example.com"
+    
+    // 최종 결제 금액 (베리 * 1.1)
+    const totalAmount = Math.round(chargeAmount.value * 1.1)
+
+    IMP.request_pay({
+      pg: "html5_inicis",
+      pay_method: "easy", // 기본값이지만 카카오페이 등 간편결제 허브에서도 사용 가능
+      merchant_uid: merchantUid,
+      name: `베리 ${chargeAmount.value}개`,
+      amount: totalAmount,
+      buyer_name: nickname,
+      buyer_email: email
+    }, async (rsp) => {
+      if (rsp.success) {
+        // 3. 결제 승인 요청
+        const approveRes = await axios.post(`${paymentApi}/payment/approve`, {
+          impUid: rsp.imp_uid,
+          merchantUid: rsp.merchant_uid
+        }, {
+          headers: {
+            'Authorization': `Bearer ${token.value}`
+          }
+        })
+
+        console.log("승인 응답:", approveRes.data)
+        
+        // 모달 닫기
+        closeChargeModal()
+        
+        // 베리 잔액 갱신
+        refreshMyBerry()
+        
+        // 충전 완료 이벤트 발생
+        window.dispatchEvent(new Event('chargeComplete'))
+        
+      } else {
+        // 결제 실패 시
+        showFailureModal(rsp.error_msg || "결제에 실패했습니다.")
+      }
+      loading.value = false
+    })
+  } catch (error) {
+    console.error("결제 처리 중 오류 발생:", error)
+    showFailureModal(error.response?.data?.message || "결제 준비 중 오류가 발생했습니다.")
+    loading.value = false
+  }
+}
+
 onMounted(async () => {
   await initializeStreaming();
   setInterval(calculateUptime, 1000);
   handleVideoEvents();
   document.addEventListener('click', closeContextMenu);
+  
+  // 로그인 상태일 때 베리 정보 로드
+  if (isLogin.value) {
+    await myBerry()
+  }
+  
+  // SDK 로드
+  loadPaymentSDK()
 });
 
 onBeforeUnmount(() => {
@@ -1643,7 +2084,7 @@ video {
 }
 
 .modal-actions {
-  padding: 12px 20px;
+  padding: 12px 20px 20px;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -1651,5 +2092,376 @@ video {
   0% { opacity: 1; }
   50% { opacity: 0.5; }
   100% { opacity: 1; }
+}
+
+/* 채팅 후원 드롭다운 스타일 */
+.chat-donation-dropdown {
+  position: absolute;
+  bottom: 65px; /* 버튼 높이(약 45px) + 마진(20px) */
+  left: 0;
+  right: 0;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 8px;
+  margin: 0 12px;
+  z-index: 100;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  animation: slideUp 0.2s ease;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.dropdown-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: #2d2d2d;
+  border-bottom: 1px solid #333;
+}
+
+.dropdown-title {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  color: #aaa;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.dropdown-content {
+  padding: 16px;
+}
+
+.my-berry-info {
+  display: flex;
+  align-items: center;
+  background: rgba(176, 132, 204, 0.1);
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.berry-icon {
+  font-size: 24px;
+  margin-right: 12px;
+}
+
+.berry-text {
+  flex: 1;
+}
+
+.berry-label {
+  font-size: 12px;
+  color: #aaa;
+}
+
+.berry-value {
+  font-size: 16px;
+  font-weight: 600;
+  color: #b084cc;
+}
+
+.berry-refresh {
+  background: none;
+  border: none;
+  color: #aaa;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.berry-refresh:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.donation-input-group,
+.donation-amount-group {
+  margin-bottom: 16px;
+}
+
+.donation-input-group label,
+.donation-amount-group label {
+  display: block;
+  font-size: 14px;
+  margin-bottom: 8px;
+  color: #aaa;
+}
+
+.donation-input-group input,
+.amount-input input {
+  width: 100%;
+  padding: 10px 12px;
+  background: #2d2d2d;
+  border: 1px solid #444;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 14px;
+}
+
+.donation-input-group input:focus,
+.amount-input input:focus {
+  border-color: #b084cc;
+  outline: none;
+}
+
+.char-count {
+  font-size: 12px;
+  color: #777;
+  text-align: right;
+  margin-top: 4px;
+}
+
+.amount-input {
+  position: relative;
+  margin-bottom: 8px;
+}
+
+.berry-unit {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #777;
+}
+
+.amount-presets {
+  display: flex;
+  gap: 8px;
+}
+
+.amount-presets button {
+  flex: 1;
+  padding: 6px 0;
+  background: #2d2d2d;
+  border: 1px solid #444;
+  border-radius: 4px;
+  color: #ccc;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.amount-presets button:hover {
+  background: #3d3d3d;
+  border-color: #555;
+}
+
+.donate-button {
+  width: 100%;
+  padding: 12px;
+  background: #b084cc;
+  border: none;
+  border-radius: 4px;
+  color: #000;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.donate-button:hover {
+  background: #9e70b9;
+}
+
+.donate-button:disabled {
+  background: #666;
+  color: #aaa;
+  cursor: not-allowed;
+}
+
+/* 충전 모달 스타일 */
+.berry-charge-modal {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.modal-container {
+  background-color: #1a1a1a;
+  border-radius: 12px;
+  overflow: hidden;
+  color: white;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid #333;
+}
+
+.modal-title {
+  font-size: 18px;
+  font-weight: 500;
+  color: white;
+}
+
+.modal-content {
+  padding: 20px;
+}
+
+.charge-input-group {
+  margin-bottom: 20px;
+}
+
+.input-label {
+  font-size: 14px;
+  color: #aaa;
+  margin-bottom: 8px;
+}
+
+.charge-input-container {
+  display: flex;
+  align-items: center;
+  background-color: #333;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.charge-icon {
+  font-size: 20px;
+  margin-right: 10px;
+}
+
+.charge-amount {
+  flex-grow: 1;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.clear-btn {
+  color: #aaa;
+}
+
+.amount-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.amount-btn {
+  flex: 1;
+  min-width: 80px;
+  font-size: 14px;
+  color: #ccc;
+  border-color: #444;
+}
+
+.total-price-container {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.total-price-label {
+  font-size: 14px;
+  color: #aaa;
+}
+
+.total-price-value {
+  font-size: 18px;
+  font-weight: 600;
+  color: #b084cc;
+}
+
+.agreement-text {
+  font-size: 12px;
+  color: #777;
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.modal-footer {
+  padding: 12px 20px 20px;
+}
+
+.submit-btn {
+  font-weight: 500;
+  font-size: 16px;
+}
+
+.failure-message-container {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+}
+
+.failure-icon {
+  flex-shrink: 0;
+}
+
+.failure-message {
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+/* 후원 메시지 스타일 */
+.donation-message {
+  margin-bottom: 16px;
+}
+
+.donation-box {
+  background-color: rgba(176, 132, 204, 0.1);
+  border: 1px solid rgba(176, 132, 204, 0.3);
+  border-radius: 8px;
+  overflow: hidden;
+  margin: 4px 0;
+}
+
+.donation-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: rgba(176, 132, 204, 0.2);
+  padding: 6px 12px;
+  font-size: 12px;
+  color: #b084cc;
+}
+
+.donation-title {
+  font-weight: 600;
+}
+
+.donation-amount {
+  font-weight: 600;
+}
+
+.donation-body {
+  padding: 8px 12px;
+}
+
+.donation-message .sender {
+  margin-right: 6px;
+  font-weight: 500;
+}
+
+.donation-message .message-content {
+  word-break: break-all;
+}
+
+/* 충전하고 후원하기 함수 추가 */
+.charge-donate-button {
+  background: linear-gradient(45deg, #b084cc, #ff9505);
+}
+
+.charge-donate-button:hover {
+  background: linear-gradient(45deg, #9e70b9, #e88600);
 }
 </style>

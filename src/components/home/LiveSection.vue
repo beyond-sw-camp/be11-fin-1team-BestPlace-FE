@@ -47,19 +47,6 @@
                     <span v-for="tag in mainStream.hashTag" :key="tag" class="hashtag">{{ tag }}</span>
                   </div>
                 </div>
-                
-                <!-- 오버레이 내부 추천 스트림 섹션 -->
-                <div class="overlay-recommended-streams" v-if="hasStreams">
-                  <div 
-                    v-for="stream in recommendedStreams" 
-                    :key="stream.streamId" 
-                    class="overlay-recommended-item"
-                    :class="{ 'current-stream': stream.streamId === mainStream.streamId }"
-                    @mouseenter="stream.streamId !== mainStream.streamId && switchMainStream(stream)"
-                  >
-                    <img :src="stream.thumbnailUrl" alt="Stream thumbnail" class="overlay-recommended-thumbnail">
-                  </div>
-                </div>
               </div>
             </div>
           </div>
@@ -87,19 +74,6 @@
   // 스트림 정보 계산 속성
   const hasStreams = computed(() => streams.value.length > 0);
   const mainStream = computed(() => hasStreams.value ? streams.value[currentMainStreamIndex.value] : null);
-  const recommendedStreams = computed(() => {
-    if (!hasStreams.value) return [];
-    
-    // 총 스트림이 1개일 경우 메인 스트림을 그대로 반환
-    if (streams.value.length === 1) {
-      return streams.value;
-    }
-    
-    // 총 스트림이 2개 이상일 경우 기존 로직 유지
-    return streams.value
-      .filter((_, index) => index !== currentMainStreamIndex.value)
-      .slice(0, 4);
-  });
   
   // 스트림 데이터 가져오기
   const fetchStreamData = async () => {
@@ -210,22 +184,6 @@
     if (videoPlayer.value) {
       videoPlayer.value.removeAttribute('src');
       videoPlayer.value.load();
-    }
-  };
-  
-  // 메인 스트림 변경
-  const switchMainStream = (stream) => {
-    if (stream.streamId === mainStream.value.streamId) {
-      return; // 현재 선택된 스트림과 같으면 변경하지 않음
-    }
-    
-    const newIndex = streams.value.findIndex(s => s.streamId === stream.streamId);
-    if (newIndex !== -1) {
-      currentMainStreamIndex.value = newIndex;
-      destroyVideoPlayer();
-      setTimeout(() => {
-        initializeVideoPlayer();
-      }, 300);
     }
   };
   
@@ -440,44 +398,6 @@
     border: 1px solid #bfc2c7;
     display: inline-flex;
     white-space: nowrap;
-  }
-  
-  /* 오버레이 내부 추천 스트림 */
-  .overlay-recommended-streams {
-    position: absolute;
-    bottom: 16px;
-    right: 16px;
-    display: flex;
-    gap: 8px;
-    z-index: 10;
-  }
-  
-  .overlay-recommended-item {
-    width: 100px;
-    height: 56px;
-    border-radius: 6px;
-    overflow: hidden;
-    position: relative;
-    cursor: pointer;
-    border: 2px solid transparent;
-    transition: all 0.3s ease;
-  }
-  
-  .overlay-recommended-item:hover {
-    border-color: #1affac;
-    transform: scale(1.2);
-    z-index: 15;
-  }
-  
-  .overlay-recommended-thumbnail {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-  
-  .current-stream {
-    border-color: #1affac;
-    opacity: 0.7;
   }
   </style>
   
