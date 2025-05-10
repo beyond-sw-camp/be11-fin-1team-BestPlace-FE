@@ -1,19 +1,19 @@
 <template>
     <div class="following-all">
-      <FollowingAllLive @see-all="goToTab('live')" />
+      <FollowingLiveSection @see-all="goToTab('live')" />
       <FollowingAllVideos @see-all="goToTab('videos')" />
       <FollowingAllChannels @see-all="goToTab('channels')" />
     </div>
   </template>
   
   <script>
-  import FollowingAllLive from './sections/FollowingAllLive.vue';
+  import FollowingLiveSection from '@/components/home/FollowingLiveSection.vue';
   import FollowingAllVideos from './sections/FollowingAllVideos.vue';
   import FollowingAllChannels from './sections/FollowingAllChannels.vue';
   
   export default {
     components: {
-      FollowingAllLive,
+      FollowingLiveSection,
       FollowingAllVideos,
       FollowingAllChannels
     },

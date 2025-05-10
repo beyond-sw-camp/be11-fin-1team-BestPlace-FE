@@ -63,8 +63,7 @@ const fetchFollowingStreams = async () => {
 };
 
 const goToAllFollowing = () => {
-    // TODO: 전체보기 페이지로 라우팅
-    console.log('전체보기 페이지로 이동');
+    router.push('/following?tab=live');
 };
 
 const goToCategory = (category) => {
