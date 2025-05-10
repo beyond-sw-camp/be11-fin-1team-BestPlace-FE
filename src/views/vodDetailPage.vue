@@ -1131,6 +1131,12 @@ const goToHome = () => {
   router.push('/')
 }
 
+// Add a computed property to check if the logged-in user is the VOD owner
+const isOwnProfile = computed(() => {
+  if (!memberId.value || !vodInfo.value.memberId) return false
+  return String(memberId.value) === String(vodInfo.value.memberId)
+})
+
 onMounted(() => {
   initializeVod()
   getComments()
