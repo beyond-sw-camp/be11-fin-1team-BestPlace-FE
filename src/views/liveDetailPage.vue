@@ -1217,7 +1217,7 @@ const initializeStreaming = async () => {
     await getStreamerInfo()
     console.log('스트리밍 정보 확인:', streamInfo.value)
 
-    // ✅ 성인 콘텐츠 필터링
+    // 성인 콘텐츠 체크
     if (streamInfo.value.adultYn === 'Y') {
       if (!isLogin.value || !memberId.value) {
         showAdultRestrictionModal()
@@ -1231,18 +1231,20 @@ const initializeStreaming = async () => {
       }
     }
 
-    // ✅ 스트리밍 비디오 초기화
+    // 비디오 초기화
     const el = video.value
     if (!streamInfo.value.streamKey) {
       console.error('스트림키가 없습니다.')
       return
     }
 
-    // ✅ 환경에 따라 HLS URL 선택 (예: 개발 vs 운영)
-    const isLocal = import.meta.env.DEV // Vite 기준
-    const hlsSrc = isLocal
-      ? `http://localhost:8088/hls/${streamInfo.value.streamKey}.m3u8`
-      : `https://hls.bepl.site/hls/${streamInfo.value.streamKey}.m3u8`
+    // HLS 주소 설정 
+    
+    // 운영 서버용 주소
+    const hlsSrc = `https://hls.bepl.site/hls/${streamInfo.value.streamKey}.m3u8`
+
+    // 로컬 개발 시 사용
+    // const hlsSrc = `http://localhost:8088/hls/${streamInfo.value.streamKey}.m3u8`
 
     console.log('HLS 소스:', hlsSrc)
 
@@ -1254,7 +1256,7 @@ const initializeStreaming = async () => {
       el.src = hlsSrc
     }
 
-    // ✅ 로그인된 경우: 차단/신고 목록 + 매니저 목록 + 채팅방 입장
+    // 로그인된 경우: 차단/신고/매니저/채팅 입장 처리
     if (isLogin.value && memberId.value) {
       await Promise.all([
         loadBlockedUsers(),
@@ -1264,8 +1266,9 @@ const initializeStreaming = async () => {
       ])
     }
 
-    // ✅ WebSocket 연결
+    // WebSocket 연결
     connectWebsocket()
+
   } catch (error) {
     console.error('초기화 중 오류 발생:', error)
   }
