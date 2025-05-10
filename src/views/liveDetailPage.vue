@@ -1218,7 +1218,7 @@ const initializeStreaming = async () => {
     console.log('스트리밍 정보 확인:', streamInfo.value)
 
     // 성인 콘텐츠 체크
-    if (streamInfo.value.adultYn === 'Y') {
+    if (streamInfo.value.adult === 'Y') {
       if (!isLogin.value || !memberId.value) {
         showAdultRestrictionModal()
         return
@@ -1241,10 +1241,10 @@ const initializeStreaming = async () => {
     // HLS 주소 설정 
     
     // 배포용
-    const hlsSrc = `https://hls.bepl.site/hls/${streamInfo.value.streamKey}.m3u8`
+    // const hlsSrc = `https://hls.bepl.site/hls/${streamInfo.value.streamKey}.m3u8`
 
     // 로컬용
-    // const hlsSrc = `http://localhost:8088/hls/${streamInfo.value.streamKey}.m3u8`
+    const hlsSrc = `http://localhost:8088/hls/${streamInfo.value.streamKey}.m3u8`
 
     console.log('HLS 소스:', hlsSrc)
 
