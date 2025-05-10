@@ -262,10 +262,11 @@
           </div>
           <button 
             class="donate-button"
+            :class="{ 'charge-donate-button': userBerryAmount < donationAmount }"
             :disabled="donationAmount < 1000 || !donationMsg || !isLogin || loading"
-            @click="sendDonation"
+            @click="userBerryAmount < donationAmount ? chargeAndDonate() : sendDonation()"
           >
-            {{ loading ? '처리 중...' : '후원하기' }}
+            {{ loading ? '처리 중...' : userBerryAmount < donationAmount ? '충전하고 후원하기' : '후원하기' }}
           </button>
         </div>
       </div>
@@ -909,10 +910,6 @@ const handleAdultMessage = () => {
   
 }
 
-const handleChatDonationMessage = () => {
-  console.log('채팅 후원 메시지 처리')
-}
-
 const scrollToBottom = () => {
   const chatContainer = document.querySelector('.chat-messages')
   if (chatContainer) {
@@ -952,9 +949,9 @@ const initializeStreaming = async () => {
     }
     
     // 배포용
-    const hlsSrc = `https://hls.bepl.site/hls/${streamInfo.value.streamKey}.m3u8`
+    // const hlsSrc = `https://hls.bepl.site/hls/${streamInfo.value.streamKey}.m3u8`
     // 로컬용
-    // const hlsSrc = `http://localhost:8088/hls/${streamInfo.value.streamKey}.m3u8`;
+    const hlsSrc = `http://localhost:8088/hls/${streamInfo.value.streamKey}.m3u8`;
     console.log('HLS 소스:', hlsSrc);
 
     if (Hls.isSupported()) {
@@ -1303,13 +1300,6 @@ const sendDonation = async () => {
     return
   }
   
-  // 보유 베리 체크
-  if (userBerryAmount.value < donationAmount.value) {
-    alert('보유한 베리가 부족합니다. 충전 후 이용해주세요.')
-    chargeModalOpen.value = true
-    return
-  }
-  
   loading.value = true
   
   try {
@@ -1334,14 +1324,28 @@ const sendDonation = async () => {
     console.error('후원 처리 실패:', error)
     if (error.response && error.response.status === 400 && 
         error.response.data.message === '보유한 베리가 부족합니다.') {
-      alert('보유한 베리가 부족합니다. 충전 후 이용해주세요.')
-      chargeModalOpen.value = true
+      chargeAndDonate()
     } else {
       alert('후원 처리 중 오류가 발생했습니다.')
     }
   } finally {
     loading.value = false
   }
+}
+
+// 충전하고 후원하기 함수 추가
+const chargeAndDonate = () => {
+  // 충전 모달 열기
+  openChargeModal()
+  
+  // 충전 완료 후 처리를 위한 이벤트 리스너 설정
+  const chargeCompleteListener = () => {
+    // 충전이 성공적으로 완료되면 베리 잔액 새로고침
+    refreshMyBerry()
+  }
+  
+  // 충전 결과 리스너 등록
+  window.addEventListener('chargeComplete', chargeCompleteListener, { once: true })
 }
 
 // 충전 모달 관련 함수
@@ -1455,6 +1459,9 @@ const startPayment = async () => {
         
         // 베리 잔액 갱신
         refreshMyBerry()
+        
+        // 충전 완료 이벤트 발생
+        window.dispatchEvent(new Event('chargeComplete'))
         
       } else {
         // 결제 실패 시
@@ -2090,7 +2097,7 @@ video {
 /* 채팅 후원 드롭다운 스타일 */
 .chat-donation-dropdown {
   position: absolute;
-  bottom: 110px;
+  bottom: 65px; /* 버튼 높이(약 45px) + 마진(20px) */
   left: 0;
   right: 0;
   background: #1a1a1a;
@@ -2447,5 +2454,14 @@ video {
 
 .donation-message .message-content {
   word-break: break-all;
+}
+
+/* 충전하고 후원하기 함수 추가 */
+.charge-donate-button {
+  background: linear-gradient(45deg, #b084cc, #ff9505);
+}
+
+.charge-donate-button:hover {
+  background: linear-gradient(45deg, #9e70b9, #e88600);
 }
 </style>
