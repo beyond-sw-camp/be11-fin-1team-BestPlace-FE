@@ -1,37 +1,49 @@
 <template>
-    <div v-if="followingStreams.length > 0 && !fetchError" class="following-live-section">
-        <div class="section-header">
-            <h2>팔로잉채널 라이브</h2>
-        </div>
-        <div class="stream-list">
-            <div v-for="stream in followingStreams" :key="stream.streamId" class="stream-item">
-                <div class="thumbnail-container" @click="goToLiveDetail(stream.streamId)">
-                    <img :src="stream.thumbnailUrl" :alt="stream.title" class="thumbnail">
-                    <div class="live-badge">LIVE</div>
-                    <div class="viewer-count">
-                        <span class="viewer-icon">👁</span>
-                        {{ stream.viewerCount }}명
-                    </div>
+    <div class="following-live">
+        <EmptyFollowing v-if="isEmpty || hasError" />
+        <template v-else>
+            <div v-if="followingStreams.length > 0 && !fetchError" class="following-live-section">
+                <div class="section-header">
+                    <h2>팔로잉채널 라이브</h2>
                 </div>
-                <div class="stream-info">
-                    <div class="streamer-info">
-                        <img :src="stream.streamerProfileUrl" :alt="stream.streamerNickname" class="profile-image" @click.stop="goToStreamerProfile(stream.streamerId)">
-                        <div class="streamer-details">
-                            <div class="stream-title" @click="goToLiveDetail(stream.streamId)">{{ stream.title }}</div>
-                            <div class="streamer-name" @click.stop="goToStreamerProfile(stream.streamerId)">{{ stream.streamerNickname }}</div>
+                <div class="stream-list">
+                    <div v-for="stream in followingStreams" :key="stream.streamId" class="stream-item">
+                        <div class="thumbnail-container" @click="goToLiveDetail(stream.streamId)">
+                            <img :src="stream.thumbnailUrl" :alt="stream.title" class="thumbnail">
+                            <div class="live-badge">LIVE</div>
+                            <div class="viewer-count">
+                                <span class="viewer-icon">👁</span>
+                                {{ stream.viewerCount }}명
+                            </div>
                         </div>
-                    </div>
-                    <div class="stream-meta">
-                        <div class="tag-container">
-                            <span class="category" @click.stop="goToCategory(stream.category)">{{ stream.category }}</span>
-                            <div class="hashtags" v-if="getVisibleHashtags(stream).length > 0">
-                                <span v-for="(tag, idx) in getVisibleHashtags(stream)" :key="tag + '-' + idx" class="hashtag">{{ tag }}</span>
+                        <div class="stream-info">
+                            <div class="streamer-info">
+                                <img :src="stream.streamerProfileUrl" :alt="stream.streamerNickname" class="profile-image" @click.stop="goToStreamerProfile(stream.streamerId)">
+                                <div class="streamer-details">
+                                    <div class="stream-title" @click="goToLiveDetail(stream.streamId)">{{ stream.title }}</div>
+                                    <div class="streamer-name" @click.stop="goToStreamerProfile(stream.streamerId)">{{ stream.streamerNickname }}</div>
+                                </div>
+                            </div>
+                            <div class="stream-meta">
+                                <div class="tag-container">
+                                    <span class="category" @click.stop="goToCategory(stream.category)">{{ stream.category }}</span>
+                                    <div class="hashtags" v-if="getVisibleHashtags(stream).length > 0">
+                                        <span v-for="(tag, idx) in getVisibleHashtags(stream)" :key="tag + '-' + idx" class="hashtag">{{ tag }}</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
+            <div v-else class="empty-live">
+                <div class="empty-live-content">
+                    <v-icon size="64" color="#B084CC" class="mb-4">mdi-video-box-off</v-icon>
+                    <h3>팔로잉 중인 스트리머의 라이브가 없습니다</h3>
+                    <p>관심있는 스트리머를 팔로우하시면 이곳에서 볼 수 있습니다.</p>
+                </div>
+            </div>
+        </template>
     </div>
 </template>
 
@@ -39,10 +51,29 @@
 import { ref, onMounted } from 'vue';
 import axios from 'axios';
 import { useRouter } from 'vue-router';
+import EmptyFollowing from './EmptyFollowing.vue';
 
 const router = useRouter();
 const followingStreams = ref([]);
 const fetchError = ref(false);
+const isEmpty = ref(false);
+const hasError = ref(false);
+
+// 팔로우 리스트 확인
+const checkFollowingList = async () => {
+    try {
+        const memberApi = process.env.VUE_APP_MEMBER_API;
+        const response = await axios.get(`${memberApi}/follow/list`);
+        if (response.data.status_code === 200) {
+            isEmpty.value = response.data.result.length === 0;
+        } else {
+            hasError.value = true;
+        }
+    } catch (error) {
+        console.error('팔로우 리스트 로딩 중 에러 발생:', error);
+        hasError.value = true;
+    }
+};
 
 const fetchFollowingStreams = async () => {
     try {
@@ -60,7 +91,6 @@ const fetchFollowingStreams = async () => {
         fetchError.value = true;
     }
 };
-
 
 const goToCategory = (category) => {
     router.push(`/category/${category}`);
@@ -99,12 +129,19 @@ function isHashtagTruncated(stream) {
     return false;
 }
 
-onMounted(() => {
-    fetchFollowingStreams();
+onMounted(async () => {
+    await checkFollowingList();
+    if (!isEmpty.value && !hasError.value) {
+        fetchFollowingStreams();
+    }
 });
 </script>
 
 <style scoped>
+.following-live {
+    width: 100%;
+}
+
 .following-live-section {
     padding: 20px;
 }
@@ -279,5 +316,31 @@ onMounted(() => {
     color: #aaa;
     padding: 0 4px;
     margin: 0;
+}
+
+.empty-live {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 48px 0;
+    text-align: center;
+}
+
+.empty-live-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+}
+
+.empty-live-content h3 {
+    color: #ffffff;
+    font-size: 18px;
+    font-weight: 500;
+}
+
+.empty-live-content p {
+    color: #aaaaaa;
+    font-size: 14px;
 }
 </style>
