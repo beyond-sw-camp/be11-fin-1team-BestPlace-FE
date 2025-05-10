@@ -1,93 +1,96 @@
 <template>
     <div class="following-videos-section">
-        <div v-if="videos.length > 0" class="videos-grid">
-            <div 
-                v-for="(video, index) in videos" 
-                :key="video.id"
-                class="video-item"
-                @mouseenter="startPreviewTimer(index)"
-                @mouseleave="stopPreview(index)"
-                @click="goToVideoDetail(video.id)"
-            >
-                <div class="thumbnail-container">
-                    <div class="vod-badge">다시보기</div>
-                    <img 
-                        :src="video.thumbnailUrl" 
-                        alt="Video Thumbnail" 
-                        class="thumbnail"
-                        :class="{
-                            'blur-thumbnail': shouldBlurThumbnail(video),
-                            'hide-thumbnail': shouldHideThumbnail(video)
-                        }"
-                    >
-                    <video 
-                        v-if="video.showPreview && video.url && !shouldHideThumbnail(video) && video.isAdult !== 'Y'" 
-                        :src="video.url" 
-                        class="video-preview" 
-                        autoplay 
-                        muted 
-                        loop
-                    ></video>
-                    <div class="duration">{{ video.duration }}</div>
-                    
-                    <!-- 연령 제한 표시 -->
-                    <div v-if="isAdultContent(video)" class="age-restriction-overlay">
-                        <div class="age-restriction-content">
-                            <div class="age-icon-circle">19</div>
-                            <div class="age-text">연령 제한</div>
+        <EmptyFollowing v-if="isEmpty || hasError" />
+        <template v-else>
+            <div v-if="videos.length > 0" class="videos-grid">
+                <div 
+                    v-for="(video, index) in videos" 
+                    :key="video.id"
+                    class="video-item"
+                    @mouseenter="startPreviewTimer(index)"
+                    @mouseleave="stopPreview(index)"
+                    @click="goToVideoDetail(video.id)"
+                >
+                    <div class="thumbnail-container">
+                        <div class="vod-badge">다시보기</div>
+                        <img 
+                            :src="video.thumbnailUrl" 
+                            alt="Video Thumbnail" 
+                            class="thumbnail"
+                            :class="{
+                                'blur-thumbnail': shouldBlurThumbnail(video),
+                                'hide-thumbnail': shouldHideThumbnail(video)
+                            }"
+                        >
+                        <video 
+                            v-if="video.showPreview && video.url && !shouldHideThumbnail(video) && video.isAdult !== 'Y'" 
+                            :src="video.url" 
+                            class="video-preview" 
+                            autoplay 
+                            muted 
+                            loop
+                        ></video>
+                        <div class="duration">{{ video.duration }}</div>
+                        
+                        <!-- 연령 제한 표시 -->
+                        <div v-if="isAdultContent(video)" class="age-restriction-overlay">
+                            <div class="age-restriction-content">
+                                <div class="age-icon-circle">19</div>
+                                <div class="age-text">연령 제한</div>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div class="video-info">
-                    <div class="profile-row">
-                        <div class="streamer-profile">
-                            <img :src="video.streamerProfileImageUrl || defaultProfileImage" alt="Streamer Profile" class="profile-img">
-                        </div>
-                        <div class="video-details">
-                            <div class="video-title">{{ video.title }}</div>
-                            <div 
-                                class="streamer-nickname"
-                                @click.stop="goToStreamerProfile(video.streamerId)"
-                            >{{ video.streamerNickname }}</div>
-                            <div class="video-meta">
-                                <span class="view-count">조회수 {{ video.views || 0 }}회</span>
-                                <span class="dot-separator">·</span>
-                                <span class="video-time">{{ formatTime(video.createdTime) }}</span>
+                    <div class="video-info">
+                        <div class="profile-row">
+                            <div class="streamer-profile">
+                                <img :src="video.streamerProfileImageUrl || defaultProfileImage" alt="Streamer Profile" class="profile-img">
                             </div>
-                            <!-- 태그 컨테이너 -->
-                            <div class="tags-container">
-                                <!-- 카테고리 태그 -->
-                                <span 
-                                    v-if="video.category" 
-                                    class="category-tag"
-                                    @click.stop="goToCategory(video.category)"
-                                >
-                                    {{ video.category }}
-                                </span>
-                                
-                                <!-- 해시태그 목록 -->
-                                <span 
-                                    v-for="(tag, i) in formatHashtags(video.hashtags)" 
-                                    :key="i" 
-                                    class="hashtag"
-                                >
-                                    {{ tag }}
-                                </span>
+                            <div class="video-details">
+                                <div class="video-title">{{ video.title }}</div>
+                                <div 
+                                    class="streamer-nickname"
+                                    @click.stop="goToStreamerProfile(video.streamerId)"
+                                >{{ video.streamerNickname }}</div>
+                                <div class="video-meta">
+                                    <span class="view-count">조회수 {{ video.views || 0 }}회</span>
+                                    <span class="dot-separator">·</span>
+                                    <span class="video-time">{{ formatTime(video.createdTime) }}</span>
+                                </div>
+                                <!-- 태그 컨테이너 -->
+                                <div class="tags-container">
+                                    <!-- 카테고리 태그 -->
+                                    <span 
+                                        v-if="video.category" 
+                                        class="category-tag"
+                                        @click.stop="goToCategory(video.category)"
+                                    >
+                                        {{ video.category }}
+                                    </span>
+                                    
+                                    <!-- 해시태그 목록 -->
+                                    <span 
+                                        v-for="(tag, i) in formatHashtags(video.hashtags)" 
+                                        :key="i" 
+                                        class="hashtag"
+                                    >
+                                        {{ tag }}
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- 데이터 없음 표시 -->
-        <v-card v-if="videos.length === 0 && !loading" class="empty-card">
-            <v-card-text class="text-center pa-6">
-                <v-icon size="64" color="#B084CC" class="mb-4">mdi-video-box-off</v-icon>
-                <h3 class="mb-2">팔로잉 중인 스트리머의 동영상이 없습니다</h3>
-                <p>관심있는 스트리머를 팔로우하시면 이곳에서 볼 수 있습니다.</p>
-            </v-card-text>
-        </v-card>
+            <!-- 데이터 없음 표시 -->
+            <div v-else class="empty-videos">
+                <div class="empty-videos-content">
+                    <v-icon size="64" color="#B084CC" class="mb-4">mdi-video-box-off</v-icon>
+                    <h3>팔로잉 중인 스트리머의 동영상이 없습니다</h3>
+                    <p>관심있는 스트리머를 팔로우하시면 이곳에서 볼 수 있습니다.</p>
+                </div>
+            </div>
+        </template>
 
         <!-- 로딩 표시 -->
         <div v-if="loading" class="loading-container">
@@ -104,6 +107,7 @@ import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
+import EmptyFollowing from './EmptyFollowing.vue';
 
 const router = useRouter();
 const memberApi = process.env.VUE_APP_MEMBER_API;
@@ -116,6 +120,26 @@ const userIsAdult = ref(false);
 const isLoggedIn = ref(false);
 const observer = ref(null);
 const infiniteScrollTrigger = ref(null);
+const isEmpty = ref(false);
+const hasError = ref(false);
+
+// 팔로우 리스트 확인
+const checkFollowingList = async () => {
+    try {
+        const response = await axios.get(`${memberApi}/follow/list`);
+        console.log('팔로우 리스트 응답:', response.data);
+        if (response.data.status_code === 200) {
+            const followingList = response.data.result;
+            isEmpty.value = !followingList || followingList.length === 0;
+            console.log('팔로우 리스트 상태:', isEmpty.value);
+        } else {
+            hasError.value = true;
+        }
+    } catch (error) {
+        console.error('팔로우 리스트 로딩 중 에러 발생:', error);
+        hasError.value = true;
+    }
+};
 
 // 비디오 데이터 가져오기
 const fetchFollowingVideos = async () => {
@@ -300,10 +324,14 @@ const formatHashtags = (hashtags) => {
     return [];
 };
 
-onMounted(() => {
-    checkLoginStatus();
-    fetchFollowingVideos();
-    setupInfiniteScroll();
+onMounted(async () => {
+    await checkFollowingList();
+    console.log('팔로우 리스트 체크 후 상태:', { isEmpty: isEmpty.value, hasError: hasError.value });
+    if (!isEmpty.value && !hasError.value) {
+        checkLoginStatus();
+        fetchFollowingVideos();
+        setupInfiniteScroll();
+    }
 });
 
 onUnmounted(() => {
@@ -545,18 +573,30 @@ onUnmounted(() => {
     margin-top: 20px;
 }
 
-.empty-card {
-    background-color: #141517;
-    border-radius: 12px;
-    margin-top: 20px;
+.empty-videos {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 48px 0;
+    text-align: center;
 }
 
-.empty-card h3 {
-    color: white;
+.empty-videos-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
 }
 
-.empty-card p {
-    color: #aaa;
+.empty-videos-content h3 {
+    color: #ffffff;
+    font-size: 18px;
+    font-weight: 500;
+}
+
+.empty-videos-content p {
+    color: #aaaaaa;
+    font-size: 14px;
 }
 
 @media (max-width: 1200px) {

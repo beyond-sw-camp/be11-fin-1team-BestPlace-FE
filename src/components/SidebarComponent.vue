@@ -60,6 +60,7 @@
               v-for="(channel, idx) in followedChannels"
               :key="idx"
               class="channel-item"
+              @click="$router.push(`/channel/${channel.userId}`)"
             >
               <div class="profile-wrapper">
                 <div
@@ -133,7 +134,9 @@ export default {
         this.isLoggedIn = true;
         const response = await axios.get(`${this.memberApi}/follow/list`);
         // API 응답에 맞게 매핑
+        console.log(response.data.result);
         this.followedChannels = (response.data.result || []).map(item => ({
+          userId: item.userId,
           name: item.followerNickName,
           profileImage: item.followerImg,
           liveYn: item.liveYn
