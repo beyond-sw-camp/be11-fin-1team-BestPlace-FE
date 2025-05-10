@@ -695,9 +695,10 @@ export default {
         );
 
         const result = response.data.result;
-        console.log('[fetchStreamingInfo] 방송 정보:', result); 
-        
-        // 필요한 정보들을 저장 (streamId는 이미 설정되어 있음)
+
+        console.log('[fetchStreamingInfo] 방송 정보', result); 
+        console.log('[fetchStreamingInfo] thumbnail', result.thumbnail);
+
         this.title = result.title;
         this.category = result.categoryId;
         this.tags = result.hashTags;
@@ -776,9 +777,7 @@ export default {
         return;
       }
 
-      const hlsSrc = process.env.NODE_ENV === 'production'
-        ? `https://hls.배포주소/hls/${this.streamKey}.m3u8`
-        : `http://localhost:8088/hls/${this.streamKey}.m3u8`;
+      const hlsSrc = `https://hls.bepl.site/hls/${this.streamKey}.m3u8`
 
 
       if (Hls.isSupported()) {
@@ -818,6 +817,9 @@ export default {
 
         if (this.thumbnailFile) {
           formData.append('thumbnail', this.thumbnailFile);
+        }
+        if (this.thumbnailPreview) {
+           formData.append('thumbnailUrl', this.thumbnailPreview);
         }
 
         await axios.post(

@@ -7,8 +7,14 @@
             <video
               ref="video"
               controls
+              autoplay
               width="1440"
             ></video>
+            <div v-if="showPlayEffect" class="play-effect">
+              <div class="play-icon">
+                <v-icon icon="mdi-play" size="x-large" color="white"></v-icon>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -392,6 +398,39 @@
         </div>
       </div>
     </v-dialog>
+
+    <!-- 성인 콘텐츠 경고 모달 -->
+    <v-dialog v-model="adultContentModalOpen" max-width="400" content-class="community-modal" persistent>
+      <div class="modal-container">
+        <div class="modal-header">
+          <div class="modal-title">성인 콘텐츠 제한</div>
+        </div>
+        
+        <div class="modal-content">
+          <div class="message-container warning-container">
+            <v-icon icon="mdi-alert" color="#FF5252" size="x-large" class="message-icon"></v-icon>
+            <div class="message-text">
+              <p>이 방송은 성인 전용 콘텐츠입니다.</p>
+              <p class="warning-submessage">회원님의 연령 정보에 따라 시청이 제한되었습니다.</p>
+              <p class="warning-submessage">건전하고 안전한 서비스 이용을 위해 양해 부탁드립니다.</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <div class="button-group">
+            <v-btn 
+              color="#B084CC" 
+              class="confirm-btn" 
+              block
+              @click="goToHome"
+            >
+              확인
+            </v-btn>
+          </div>
+        </div>
+      </div>
+    </v-dialog>
   </div>
 </template>
 
@@ -411,6 +450,9 @@ const isLogin = ref(false)
 
 // 로그인 확인 모달 관련 상태 추가
 const loginConfirmModalOpen = ref(false)
+
+// 성인 콘텐츠 경고 모달 관련 상태 추가
+const adultContentModalOpen = ref(false)
 
 // VOD 정보
 const vodInfo = ref({
@@ -468,6 +510,9 @@ const clipEndTime = ref(0)
 // Add memberId to the data section if not already present
 const memberId = ref(null)
 
+// 재생 이펙트 상태 추가
+const showPlayEffect = ref(false)
+
 // 토큰 준비 및 사용자 정보 추출
 const prepareToken = async () => {
   token.value = localStorage.getItem('token')
@@ -486,6 +531,19 @@ const prepareToken = async () => {
     } catch (error) {
       console.error('토큰 파싱 실패:', error)
     }
+  }
+}
+const memberAdultYn = async () => {
+  try {
+    const response = await axios.get(`${memberApi}/member/detail/${memberId.value}`)
+    if(response.data.result.adultYn === 'Y'){
+      return true
+    }else{
+      return false
+    }
+  } catch (error) {
+    console.error('사용자 정보 로드 실패:', error)
+    return false
   }
 }
 
@@ -561,16 +619,55 @@ const initializeVideo = () => {
 
   el.src = vodInfo.value.url
   
+  // 음소거 상태로 설정하여 자동재생 정책 우회
+  el.muted = true
+  
   // 비디오가 로드되면 초기 메시지 표시
   el.addEventListener('loadedmetadata', () => {
     console.log('비디오 메타데이터 로드 완료')
     updateVisibleMessages()
+    
+    // 자동 재생 시도 (음소거 상태에서는 대부분의 브라우저에서 허용됨)
+    const playPromise = el.play()
+    
+    if (playPromise !== undefined) {
+      playPromise.then(() => {
+        // 재생 성공 시 이펙트 표시
+        showPlayEffect.value = true
+        setTimeout(() => {
+          showPlayEffect.value = false
+        }, 2000)
+      }).catch(error => {
+        console.error('자동 재생 실패:', error)
+      })
+    }
   })
   
   // 시간 업데이트 이벤트 리스너 추가
   el.addEventListener('timeupdate', () => {
     updateVisibleMessages()
   })
+  
+  // 사용자 상호작용(클릭) 시 음소거 해제
+  el.addEventListener('click', () => {
+    // 이미 재생 중이면 음소거만 해제
+    if (!el.paused) {
+      el.muted = false
+    }
+  })
+  
+  // 페이지 로드 후 사용자 상호작용(스크롤, 클릭 등) 감지하여 음소거 해제 시도
+  const tryUnmute = () => {
+    if (!el.paused) {
+      el.muted = false
+      console.log('사용자 상호작용 감지, 음소거 해제 시도')
+    }
+  }
+  
+  // 페이지 내 사용자 상호작용 이벤트 등록
+  document.addEventListener('click', tryUnmute, { once: true })
+  document.addEventListener('scroll', tryUnmute, { once: true })
+  document.addEventListener('keypress', tryUnmute, { once: true })
 }
 
 // VOD 초기화
@@ -585,6 +682,28 @@ const initializeVod = async () => {
       return
     }
     console.log('VOD 정보 로드 완료:', vodInfo.value)
+    
+    // 성인 콘텐츠 확인 로직 추가
+    if (vodInfo.value.isAdult === 'Y') {
+      // 로그인 상태 확인
+      if (!isLogin.value) {
+        adultContentModalOpen.value = true
+        return
+      }
+
+      // 성인 인증 확인
+      try {
+        const isAdultUser = await memberAdultYn()
+        if (!isAdultUser) {
+          adultContentModalOpen.value = true
+          return
+        }
+      } catch (error) {
+        console.error('성인 인증 확인 실패:', error)
+        adultContentModalOpen.value = true
+        return
+      }
+    }
     
     // 2. 비디오 초기화
     initializeVideo()
@@ -713,6 +832,23 @@ const toggleFollow = async () => {
 
 // 댓글 목록 가져오기
 const getComments = async () => {
+  // 성인 콘텐츠 제한 확인
+  if (vodInfo.value.isAdult === 'Y') {
+    if (!isLogin.value) {
+      return
+    }
+    
+    try {
+      const isAdultUser = await memberAdultYn()
+      if (!isAdultUser) {
+        return
+      }
+    } catch (error) {
+      console.error('성인 인증 확인 실패:', error)
+      return
+    }
+  }
+  
   try {
     const response = await axios.get(`${memberApi}/videoComment/list/${vodId}`)
     const allComments = response.data.result.content
@@ -944,6 +1080,11 @@ const closeLoginConfirmModal = () => {
 const goToLogin = () => {
   closeLoginConfirmModal()
   router.push('/member/login')
+}
+
+// 메인 페이지로 이동하는 함수 추가
+const goToHome = () => {
+  router.push('/')
 }
 
 onMounted(() => {
@@ -1975,5 +2116,43 @@ video {
 
 .login-confirm-btn {
   flex: 2;
+}
+
+.play-effect {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  pointer-events: none;
+  z-index: 5;
+  animation: fadeInOut 2s ease-in-out;
+}
+
+.play-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: rgba(176, 132, 204, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  animation: pulse 2s ease-in-out;
+}
+
+@keyframes fadeInOut {
+  0% { opacity: 0; }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes pulse {
+  0% { transform: scale(0.5); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
 }
 </style>

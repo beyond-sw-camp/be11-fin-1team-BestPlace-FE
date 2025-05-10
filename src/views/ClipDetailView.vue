@@ -3,6 +3,18 @@
     <div class="clip-video-flex-row">
       <transition :name="transitionName" mode="out-in">
         <div class="clip-video-container" :key="currentClip.id">
+          <!-- 연령 제한 표시 -->
+          <div v-if="isRestrictedContent" class="age-restriction-overlay">
+            <div class="age-restriction-content">
+              <v-icon icon="mdi-shield-alert" color="#B084CC" size="x-large" class="restriction-icon"></v-icon>
+              <div class="restriction-text">
+                <p>이 방송은 성인 전용 콘텐츠입니다.</p>
+                <p>회원님의 연령 정보에 따라 시청이 제한되었습니다.</p>
+                <p>건전한 서비스 이용을 위해 양해 부탁드립니다.</p>
+              </div>
+            </div>
+          </div>
+          
           <!-- 커스텀 볼륨 컨트롤 -->
           <div class="custom-volume-container" @mouseenter="showVolume = true" @mouseleave="showVolume = false">
             <button class="volume-btn" @click="toggleMute">
@@ -23,6 +35,7 @@
             @volumechange="onVideoVolumeChange"
             @timeupdate="onVideoTimeUpdate"
             @click="handleVideoClick"
+            v-show="!isRestrictedContent"
           ></video>
           <transition name="play-pause-fade">
             <div v-if="showPlayPauseIcon" class="play-pause-overlay">
@@ -230,6 +243,7 @@ const showCommentPanel = ref(false)
 const showMenuModal = ref(false)
 const isCopied = ref(false)
 const loginConfirmModalOpen = ref(false)
+const isRestrictedContent = ref(false)  // 성인 콘텐츠 제한 여부
 
 // 볼륨/음소거 상태
 const showVolume = ref(false)
@@ -267,19 +281,58 @@ async function fetchClips() {
   const idx = clips.value.findIndex(c => String(c.id) === String(route.params.clipId))
   currentIndex.value = idx !== -1 ? idx : 0
   currentClip.value = clips.value[currentIndex.value]
-  console.log(clips.value[currentIndex.value].owner)
-  await getComment()
+  
+  // 성인 콘텐츠 체크
+  isRestrictedContent.value = false
+  if (currentClip.value.isAdult === 'Y') {
+    // 로그인 확인
+    const token = localStorage.getItem('token')
+    if (!token) {
+      isRestrictedContent.value = true
+    } else {
+      // 성인 인증 확인
+      try {
+        const isAdult = await memberAdultYn()
+        if (!isAdult) {
+          isRestrictedContent.value = true
+        }
+      } catch (error) {
+        console.error('성인 인증 확인 실패:', error)
+        isRestrictedContent.value = true
+      }
+    }
+  }
+  
+  // 스트리머 정보는 성인 제한 여부와 상관없이 항상 가져옴
   await fetchStreamerInfo()
-
-  // 비디오가 로드될 때까지 대기 후 재생
-  if (videoRef.value) {
-    videoRef.value.load()
-    await new Promise((resolve) => {
-      videoRef.value.addEventListener('loadeddata', resolve, { once: true })
-    })
-    // 음소거 상태로 재생 시작
-    videoRef.value.muted = true
-    await videoRef.value.play()
+  
+  // 성인 제한이 없는 경우에만 댓글 불러오기 및 비디오 재생
+  if (!isRestrictedContent.value) {
+    await getComment()
+    
+    // 비디오가 로드될 때까지 대기 후 재생
+    if (videoRef.value) {
+      videoRef.value.load()
+      await new Promise((resolve) => {
+        videoRef.value.addEventListener('loadeddata', resolve, { once: true })
+      })
+      // 음소거 상태로 재생 시작
+      videoRef.value.muted = true
+      await videoRef.value.play()
+    }
+  }
+}
+const memberAdultYn = async () => {
+  try {
+    const response = await axios.get(`${memberApi}/member/detail/${memberId.value}`)
+    if(response.data.result.adultYn === 'Y'){
+      return true
+    }else{
+      return false
+    }
+  } catch (error) {
+    console.error('사용자 정보 로드 실패:', error)
+    return false
   }
 }
 // 스트리머 정보
@@ -288,24 +341,64 @@ async function fetchStreamerInfo() {
   streamerInfo.value = response.data.result
 }
 
-function selectClipByIndex(idx) {
+async function selectClipByIndex(idx) {
   if (idx < 0 || idx >= clips.value.length) return
   currentIndex.value = idx
   currentClip.value = clips.value[idx]
   openDropdown.value = null  // 드롭다운 초기화
   // URL도 변경 (SPA 라우팅)
   router.replace({ name: route.name, params: { ...route.params, clipId: currentClip.value.id } })
+  
+  // 클립 변경 시 연령 제한 확인
+  isRestrictedContent.value = false
+  if (currentClip.value.isAdult === 'Y') {
+    // 로그인 확인
+    const token = localStorage.getItem('token')
+    if (!token) {
+      isRestrictedContent.value = true
+    } else {
+      // 성인 인증 확인
+      try {
+        const isAdult = await memberAdultYn()
+        if (!isAdult) {
+          isRestrictedContent.value = true
+        }
+      } catch (error) {
+        console.error('성인 인증 확인 실패:', error)
+        isRestrictedContent.value = true
+      }
+    }
+  }
+  
+  // 스트리머 정보는 성인 제한 여부와 상관없이 항상 가져옴
+  await fetchStreamerInfo()
+  
+  // 성인 제한이 없는 경우에만 댓글 불러오기 및 비디오 재생
+  if (!isRestrictedContent.value) {
+    await getComment()
+    
+    // 비디오가 로드될 때까지 대기 후 재생
+    if (videoRef.value) {
+      videoRef.value.load()
+      await new Promise((resolve) => {
+        videoRef.value.addEventListener('loadeddata', resolve, { once: true })
+      })
+      // 음소거 상태로 재생 시작
+      videoRef.value.muted = true
+      await videoRef.value.play()
+    }
+  }
 }
 
-function prevClip() {
+async function prevClip() {
   if (currentIndex.value <= 0) return
   transitionName.value = 'slide-up'
-  selectClipByIndex(currentIndex.value - 1)
+  await selectClipByIndex(currentIndex.value - 1)
 }
-function nextClip() {
+async function nextClip() {
   if (currentIndex.value >= clips.value.length - 1) return
   transitionName.value = 'slide-down'
-  selectClipByIndex(currentIndex.value + 1)
+  await selectClipByIndex(currentIndex.value + 1)
 }
 
 // 로그인 체크 함수
@@ -361,13 +454,18 @@ function formatDate(date) {
   return `${month}.${day}`
 }
 
-function onWheel(e) {
-  if (e.deltaY > 0) nextClip()
-  else if (e.deltaY < 0) prevClip()
+async function onWheel(e) {
+  if (e.deltaY > 0) await nextClip()
+  else if (e.deltaY < 0) await prevClip()
 }
-function onKeydown(e) {
-  if (e.key === 'ArrowDown') nextClip()
-  else if (e.key === 'ArrowUp') prevClip()
+async function onKeydown(e) {
+  // 입력 필드(input, textarea)가 포커스되어 있는 경우 단축키 처리하지 않음
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+    return;
+  }
+  
+  if (e.key === 'ArrowDown') await nextClip()
+  else if (e.key === 'ArrowUp') await prevClip()
   else if (e.key === ' ' || e.code === 'Space') {
     if (videoRef.value) {
       if (videoRef.value.paused) {
@@ -565,6 +663,9 @@ const orderedComments = computed(() => {
 })
 
 function handleVideoClick(event) {
+  // 연령 제한된 콘텐츠는 클릭해도 반응하지 않음
+  if (isRestrictedContent.value) return
+  
   // 클릭된 요소가 특정 영역에 속하는지 확인
   const target = event.target
   const isOverlay = target.closest('.clip-info-overlay')
@@ -1449,5 +1550,46 @@ onMounted(() => {
 
 .login-confirm-btn {
   flex: 2;
+}
+
+/* 연령 제한 오버레이 스타일 */
+.age-restriction-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+}
+
+.age-restriction-content {
+  text-align: center;
+  background: rgba(30, 30, 32, 0.8);
+  padding: 40px;
+  border-radius: 12px;
+  max-width: 500px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.restriction-icon {
+  font-size: 3rem;
+  margin-bottom: 20px;
+}
+
+.restriction-text {
+  color: white;
+  font-size: 1.1rem;
+  line-height: 1.6;
+}
+
+.restriction-text p {
+  margin-bottom: 10px;
 }
 </style>

@@ -27,12 +27,12 @@ export default {
     return{
       googleUrl: "https://accounts.google.com/o/oauth2/v2/auth",
       googleClientId: "922955916790-2ps4baqsfkd5i1rrd1isscm34g5n7c7s.apps.googleusercontent.com",
-      googleRedirectUrl: "http://localhost:3000/member/google/redirect",
+      googleRedirectUrl: `${process.env.VUE_APP_RedirectUrl}/member/google/redirect`,
       googleScope: "openid email profile https://www.googleapis.com/auth/user.birthday.read https://www.googleapis.com/auth/user.gender.read https://www.googleapis.com/auth/user.phonenumbers.read",
 
       naverUrl: "https://nid.naver.com/oauth2.0/authorize",
       naverClientId: "Aplw9X7yB984ri9fEMr0",
-      naverRedirectUrl: "http://localhost:3000/member/naver/redirect",
+      naverRedirectUrl: `${process.env.VUE_APP_RedirectUrl}/member/naver/redirect`,
       naverScope: "id email gender birthyear birthday age mobile name"
     }
   },

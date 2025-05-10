@@ -28,6 +28,7 @@
   import FollowingLive from '@/components/following/FollowingLive.vue';
   import FollowingVideos from '@/components/following/FollowingVideos.vue';
   import FollowingChannels from '@/components/following/FollowingChannels.vue';
+  import { useRoute } from 'vue-router';
   
   export default {
     components: {
@@ -56,10 +57,42 @@
     methods: {
       updateTab(tab) {
         this.selectedTab = tab;
+        // 탭 변경 시 URL 업데이트
+        this.$router.push({ 
+          path: '/following',
+          query: { tab: tab }
+        });
         // 탭 변경 시 스크롤을 맨 위로 올립니다
         window.scrollTo({
           top: 0,
         });
+      }
+    },
+    mounted() {
+      const route = this.$route;
+      // URL 경로에 따라 탭 설정
+      if (route.path === '/following/live') {
+        this.selectedTab = 'live';
+      } else if (route.path === '/following/videos') {
+        this.selectedTab = 'videos';
+      } else if (route.path === '/following/channels') {
+        this.selectedTab = 'channels';
+      } else if (route.query.tab && ['all', 'live', 'videos', 'channels'].includes(route.query.tab)) {
+        this.selectedTab = route.query.tab;
+      }
+    },
+    watch: {
+      '$route'(to) {
+        // URL 경로 변경 감지
+        if (to.path === '/following/live') {
+          this.selectedTab = 'live';
+        } else if (to.path === '/following/videos') {
+          this.selectedTab = 'videos';
+        } else if (to.path === '/following/channels') {
+          this.selectedTab = 'channels';
+        } else if (to.query.tab && ['all', 'live', 'videos', 'channels'].includes(to.query.tab)) {
+          this.selectedTab = to.query.tab;
+        }
       }
     }
   };

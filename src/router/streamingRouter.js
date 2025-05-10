@@ -9,8 +9,14 @@ import VideosTab from "@/views/channel/VideosTab.vue";
 import ClipsTab from "@/views/channel/ClipsTab.vue";
 import CommunityTab from "@/views/channel/CommunityTab.vue";
 import InfoTab from "@/views/channel/InfoTab.vue";
+import ChatDonation from "@/views/ChatDonation.vue";
 
 export default [
+  {
+    path: '/chat-donation/:streamId',
+    name: 'ChatDonation',
+    component: ChatDonation
+  },
     {
       path: '/live/:streamId',
       name: 'Live',
