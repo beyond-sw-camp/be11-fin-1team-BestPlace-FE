@@ -199,11 +199,11 @@
         <button @click="sendMessage" :disabled="!isConnected">전송</button>
       </div>
       <div class="donation-buttons">
-        <button class="donation-button" @click="toggleChatDonation">
+        <button class="donation-button" @click="toggleChatDonation" :disabled="!isLogin">
           <span class="donation-icon">🗨️ </span>
           <span class="donation-amount">채팅 후원</span>
         </button>
-        <button class="donation-button">
+        <button class="donation-button" :disabled="!isLogin">
           <span class="donation-icon">🎯</span>
           <span class="donation-amount">미션 후원</span>
         </button>
@@ -949,9 +949,9 @@ const initializeStreaming = async () => {
     }
     
     // 배포용
-    const hlsSrc = `https://hls.bepl.site/hls/${streamInfo.value.streamKey}.m3u8`
+    // const hlsSrc = `https://hls.bepl.site/hls/${streamInfo.value.streamKey}.m3u8`
     // 로컬용
-    // const hlsSrc = `http://localhost:8088/hls/${streamInfo.value.streamKey}.m3u8`;
+    const hlsSrc = `http://localhost:8088/hls/${streamInfo.value.streamKey}.m3u8`;
     console.log('HLS 소스:', hlsSrc);
 
     if (Hls.isSupported()) {
@@ -2463,5 +2463,18 @@ video {
 
 .charge-donate-button:hover {
   background: linear-gradient(45deg, #9e70b9, #e88600);
+}
+
+.donation-button:disabled {
+  background: #1A1A1A;
+  color: #555;
+  cursor: not-allowed;
+  opacity: 0.7;
+  border-color: #222;
+}
+
+.donation-button:hover:disabled {
+  background: #1A1A1A;
+  border-color: #222;
 }
 </style>
