@@ -199,11 +199,11 @@
         <button @click="sendMessage" :disabled="!isConnected">전송</button>
       </div>
       <div class="donation-buttons">
-        <button class="donation-button" @click="toggleChatDonation">
+        <button class="donation-button" @click="toggleChatDonation" :disabled="!isLogin">
           <span class="donation-icon">🗨️ </span>
           <span class="donation-amount">채팅 후원</span>
         </button>
-        <button class="donation-button">
+        <button class="donation-button" :disabled="!isLogin">
           <span class="donation-icon">🎯</span>
           <span class="donation-amount">미션 후원</span>
         </button>
@@ -407,6 +407,35 @@
       </div>
     </v-dialog>
   </div>
+
+  <!-- 성인 콘텐츠 제한 모달 추가 -->
+  <v-dialog v-model="adultRestrictionModalOpen" max-width="500" persistent>
+    <div class="modal-container">
+      <div class="modal-header">
+        <div class="modal-title">
+          <v-icon left color="error" class="mr-2">mdi-alert-circle</v-icon>
+          성인 콘텐츠 제한
+        </div>
+      </div>
+      
+      <div class="modal-content adult-restriction-content">
+        <p class="adult-main-text">이 방송은 성인 전용 콘텐츠입니다.</p>
+        <p>회원님의 연령 정보에 따라 시청이 제한되었습니다.</p>
+        <p>건전하고 안전한 서비스 이용을 위해 양해 부탁드립니다.</p>
+      </div>
+      
+      <div class="modal-footer">
+        <v-btn 
+          color="error" 
+          block 
+          @click="handleAdultRestrictionConfirm"
+          class="submit-btn"
+        >
+          확인
+        </v-btn>
+      </div>
+    </div>
+  </v-dialog>
 </template>
 
 <script setup>
@@ -496,6 +525,7 @@ const chargeModalOpen = ref(false)
 const chargeAmount = ref(1000)
 const failureModalOpen = ref(false)
 const failureMessage = ref('')
+const adultRestrictionModalOpen = ref(false)  // 성인 콘텐츠 제한 모달
 
 // 사용자 이름 색상을 위한 색상 배열 추가
 const colors = ref([
@@ -503,6 +533,20 @@ const colors = ref([
   '#7768AE', '#FFB400', '#4AAB95', '#FF7A5A', '#7AC74F',
   '#00A5E0', '#8A4FFF', '#FF9505', '#9A348E', '#0077B6'
 ])
+
+const memberAdultYn = async () => {
+  try {
+    const response = await axios.get(`${memberApi}/member/detail/${memberId.value}`)
+    if(response.data.result.adultYn === 'Y'){
+      return true
+    }else{
+      return false
+    }
+  } catch (error) {
+    console.error('사용자 정보 로드 실패:', error)
+    return false
+  }
+}
 
 // 채팅 관련 함수
 const prepareToken = async () => {
@@ -907,7 +951,8 @@ const unblockUser = async () => {
 };
 
 const handleAdultMessage = () => {
-  
+  // 페이지 새로고침
+  window.location.reload();
 }
 
 const scrollToBottom = () => {
@@ -940,6 +985,22 @@ const initializeStreaming = async () => {
     }
 
     console.log('스트리밍 정보 확인:', streamInfo.value);
+    
+    // 성인 콘텐츠 체크 추가
+    if (streamInfo.value.adultYn === 'Y') {
+      // 1. 로그인 상태 확인
+      if (!isLogin.value || !memberId.value) {
+        showAdultRestrictionModal();
+        return;
+      }
+      
+      // 2. 사용자의 성인 여부 확인
+      const isAdult = await memberAdultYn();
+      if (!isAdult) {
+        showAdultRestrictionModal();
+        return;
+      }
+    }
     
     // 2. 비디오 플레이어 초기화
     const el = video.value;
@@ -1495,6 +1556,17 @@ onBeforeUnmount(() => {
   disconnectWebSocket();
   document.removeEventListener('click', closeContextMenu);
 });
+
+// 성인 제한 모달 표시 함수 추가
+const showAdultRestrictionModal = () => {
+  adultRestrictionModalOpen.value = true;
+}
+
+// 성인 제한 모달 확인 버튼 핸들러 추가
+const handleAdultRestrictionConfirm = () => {
+  adultRestrictionModalOpen.value = false;
+  router.push('/');
+}
 </script>
 
 <style scoped>
@@ -2463,5 +2535,31 @@ video {
 
 .charge-donate-button:hover {
   background: linear-gradient(45deg, #9e70b9, #e88600);
+}
+
+.donation-button:disabled {
+  background: #1A1A1A;
+  color: #555;
+  cursor: not-allowed;
+  opacity: 0.7;
+  border-color: #222;
+}
+
+.donation-button:hover:disabled {
+  background: #1A1A1A;
+  border-color: #222;
+}
+
+/* 성인 콘텐츠 제한 모달 스타일 */
+.adult-restriction-content {
+  text-align: center;
+  padding: 24px 16px;
+}
+
+.adult-main-text {
+  font-size: 18px;
+  font-weight: 500;
+  color: #ff5252;
+  margin-bottom: 16px;
 }
 </style>
