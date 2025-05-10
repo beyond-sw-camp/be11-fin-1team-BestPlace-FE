@@ -267,7 +267,7 @@ async function fetchClips() {
   const idx = clips.value.findIndex(c => String(c.id) === String(route.params.clipId))
   currentIndex.value = idx !== -1 ? idx : 0
   currentClip.value = clips.value[currentIndex.value]
-  console.log(clips.value[currentIndex.value].owner)
+  console.log(clips.value[currentIndex.value])
   await getComment()
   await fetchStreamerInfo()
 
