@@ -50,6 +50,25 @@
             </div>
         </div>
     </div>
+    <div class="broadcast-setting">
+        <h1>채팅후원 URL</h1>
+        
+        <div class="stream-setting-container">
+            <div class="setting-section">
+                <div class="input-group">
+                    <div class="label">채팅후원 URL</div>
+                    <div class="input-container">
+                        <input type="text" v-model="donationUrl" readonly />
+                        <button class="copy-btn" @click="copyToClipboard(donationUrl)">복사</button>
+                    </div>
+                    <div class="url-info">
+                        이 URL을 OBS 브라우저 소스로 추가하여 방송에 채팅후원을 표시할 수 있습니다. <br>
+                        권장 사이즈는 800x800 입니다.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </template>
 
 <script>
@@ -62,7 +81,8 @@ export default {
             actualStreamKey: '',
             showStreamKey: false,
             roomId: '',
-            chattingUrl: ''
+            chattingUrl: '',
+            donationUrl: ''
         }
     },
     computed:{
@@ -72,6 +92,7 @@ export default {
         await this.getStreamKey();
         await this.getRoomId();
         this.updateChattingUrl();
+        this.updateDonationUrl();
     },
     methods: {
         async getStreamKey() {
@@ -115,6 +136,17 @@ export default {
                     ? `https://배포주소` 
                     : `${process.env.VUE_APP_CHATTING_API || 'http://localhost:3000'}`;
                 this.chattingUrl = `${baseUrl}/chatting/${this.roomId}`;
+            }
+        },
+        async updateDonationUrl() {
+            try {
+                const response = await axios.get(
+                    `${process.env.VUE_APP_STREAMING_API}/streaming/find/streamId/${this.$route.params.memberId}`,
+                );
+                const result = response.data.result;
+                this.donationUrl = `${process.env.VUE_APP_RedirectUrl}/chat-donation/${result}`;
+            } catch (error) {
+                console.error('스트리머 ID 가져오는 중 오류 발생:', error);
             }
         },
         async reissueStreamKey() {
@@ -177,8 +209,7 @@ h2 {
 }
 
 .setting-section {
-    margin-bottom: 30px;
-    padding-bottom: 20px;
+    margin-bottom: 10px;
     border-bottom: 1px solid #eee;
 }
 
