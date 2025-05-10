@@ -262,10 +262,23 @@
           v-for="message in visibleMessages"
           :key="message.id"
           class="chat-message"
-          :class="{ 'own-message': message.memberId === userId }"
+          :class="{ 'own-message': message.memberId === userId, 'donation-message': message.type === 'CHAT_DONATION' }"
         >
-          <span class="sender">{{ message.sender }}</span>
-          <span class="message-content">{{ message.message }}</span>
+          <template v-if="message.type === 'CHAT_DONATION'">
+            <div class="donation-box">
+              <div class="donation-header">
+                <span class="donation-title">{{ message.donationSender || message.sender }}</span>
+                <span class="donation-amount">🍒 {{ formatNumber(message.berryAmount) }}</span>
+              </div>
+              <div class="donation-body">
+                <span class="message-content">{{ message.message }}</span>
+              </div>
+            </div>
+          </template>
+          <template v-else>
+            <span class="sender">{{ message.sender }}</span>
+            <span class="message-content">{{ message.message }}</span>
+          </template>
         </div>
       </div>
     </div>
@@ -766,6 +779,32 @@ const updateVisibleMessages = () => {
     const isWithinTimeRange = messageOffset <= currentTime
     
     return isWithinTimeRange
+  }).map(message => {
+    // 기부 메시지 파싱 처리
+    if (message.type === "CHAT_DONATION") {
+      const fullMessage = message.message
+      const donationPattern = /(.+)님이 (\d+)원을 후원하셨습니다\.(.*)/
+      const match = fullMessage.match(donationPattern)
+
+      let senderName = message.sender
+      let donationAmount = 1000
+      let actualMessage = fullMessage
+
+      if (match && match.length >= 4) {
+        senderName = match[1]
+        donationAmount = parseInt(match[2])
+        actualMessage = match[3].trim()
+      }
+
+      return {
+        ...message,
+        message: actualMessage || '',
+        berryAmount: donationAmount,
+        donationSender: senderName
+      }
+    }
+    
+    return message
   })
 
   // 스크롤을 최신 메시지로 이동
@@ -812,6 +851,11 @@ const formatRelativeTime = (dateString) => {
   
   const diffInYears = Math.floor(diffInMonths / 12)
   return `${diffInYears}년 전`
+}
+
+// 숫자 포맷팅 함수 추가
+const formatNumber = (number) => {
+  return number ? number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") : "0"
 }
 
 // 팔로우 토글
@@ -1356,6 +1400,11 @@ video {
 .created-time {
   color: #7B7B7B;
   font-size: 14px;
+}
+
+.donation-body {
+  color: white;
+  word-break: break-word;
 }
 
 ::-webkit-scrollbar {
@@ -2154,5 +2203,45 @@ video {
   0% { transform: scale(0.5); }
   50% { transform: scale(1.2); }
   100% { transform: scale(1); }
+}
+
+.own-message .sender {
+  color: #B084CC;
+}
+
+.donation-message {
+  margin-bottom: 12px;
+  width: 100%;
+}
+
+.donation-box {
+  background: rgba(176, 132, 204, 0.15);
+  border-radius: 8px;
+  padding: 10px;
+  width: 100%;
+  animation: donationPulse 2s ease infinite;
+}
+
+@keyframes donationPulse {
+  0% { box-shadow: 0 0 0 0 rgba(176, 132, 204, 0.4); }
+  70% { box-shadow: 0 0 0 6px rgba(176, 132, 204, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(176, 132, 204, 0); }
+}
+
+.donation-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.donation-title {
+  font-weight: 600;
+  color: #B084CC;
+}
+
+.donation-amount {
+  font-weight: 700;
+  color: #B084CC;
 }
 </style>
