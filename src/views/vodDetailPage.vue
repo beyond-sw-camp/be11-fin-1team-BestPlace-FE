@@ -1125,7 +1125,7 @@ onMounted(() => {
 
 .stream-title {
   font-size: 24px;
-  font-weight: 600;
+  font-weight: 500;
   margin: 0;
   flex: 1;
   font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', '맑은 고딕', 'Noto Sans KR', sans-serif;
@@ -1196,7 +1196,7 @@ onMounted(() => {
 .streamer-name {
   font-size: 18px;
   color: #fff;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
   transition: color 0.2s;
 }
@@ -1208,7 +1208,7 @@ onMounted(() => {
 .follower-count {
   font-size: 16px;
   color: #7B7B7B;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .stream-actions {
@@ -1297,7 +1297,7 @@ video {
 
 .chat-title {
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .chat-info {
@@ -1326,7 +1326,7 @@ video {
 
 .sender {
   color: #B084CC;
-  font-weight: 600;
+  font-weight: 500;
   margin-right: 6px;
 }
 
@@ -1349,7 +1349,7 @@ video {
 
 .viewer-count {
   color: #C9CEDC;
-  font-weight: 800;
+  font-weight: 500;
   font-size: 14px;
 }
 
@@ -1611,7 +1611,7 @@ video {
 
 .modal-title {
   font-size: 18px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .modal-message {
@@ -1647,7 +1647,7 @@ video {
 
 .category {
   color: #B084CC;
-  font-weight: 800;
+  font-weight: 500;
   font-size: 16px;
   text-shadow: 0 0 1px rgba(0, 255, 132, 0.3);
   cursor: pointer;
@@ -1894,7 +1894,7 @@ video {
 .clip-modal-content h2 {
   margin: 0 0 20px 0;
   font-size: 20px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .clip-form {

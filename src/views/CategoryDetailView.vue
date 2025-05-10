@@ -1129,7 +1129,7 @@ export default {
   align-items: center;
   justify-content: center;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 500;
   z-index: 2;
 }
 
@@ -1171,7 +1171,7 @@ export default {
   padding: 1px 4px;
   border-radius: 4px;
   font-size: 8px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .streamer-name {
@@ -1375,7 +1375,6 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: bold;
   font-size: 20px;
   margin-bottom: 10px;
 }
@@ -1574,7 +1573,6 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: bold;
   font-size: 16px;
   margin-bottom: 8px;
 }
@@ -1712,7 +1710,7 @@ export default {
   padding: 2px 6px;
   border-radius: 4px;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 500;
   z-index: 2;
 }
 

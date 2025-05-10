@@ -423,7 +423,6 @@ h1 {
 
 .donation-sender, .donation-amount {
   color: #ffdc5e;
-  font-weight: bold;
 }
 
 @keyframes fadeIn {
@@ -461,7 +460,6 @@ h1 {
 
 .input-group label {
   margin-bottom: 5px;
-  font-weight: bold;
   color: #333;
 }
 

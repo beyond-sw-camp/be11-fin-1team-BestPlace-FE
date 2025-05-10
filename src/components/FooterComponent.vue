@@ -133,6 +133,10 @@ export default {
   color: #ccc;
 }
 
+.footer-section p a {
+  font-weight: normal !important;
+}
+
 @media (max-width: 768px) {
   .footer-content {
     flex-direction: column;

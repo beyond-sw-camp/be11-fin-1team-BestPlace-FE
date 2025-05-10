@@ -2355,7 +2355,6 @@ const handleAdultRestrictionConfirm = () => {
   background-color: #ff3b3b;
   color: white;
   font-size: 12px;
-  font-weight: bold;
   padding: 3px 8px;
   border-radius: 12px;
   text-transform: uppercase;
@@ -2997,7 +2996,7 @@ video {
 .cute-alert-btn {
   border-radius: 30px !important;
   padding: 0 24px !important;
-  font-weight: 600 !important;
+  font-weight: 500 !important;
   letter-spacing: 0.5px;
   text-transform: capitalize !important;
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2) !important;
@@ -3135,7 +3134,7 @@ body .global-temp-ban-modal {
 
 .berry-value {
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 500;
   color: #b084cc;
 }
 
@@ -3306,7 +3305,7 @@ body .global-temp-ban-modal {
 .charge-amount {
   flex-grow: 1;
   font-size: 18px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .clear-btn {
@@ -3345,7 +3344,7 @@ body .global-temp-ban-modal {
 
 .total-price-value {
   font-size: 18px;
-  font-weight: 600;
+  font-weight: 500;
   color: #b084cc;
 }
 
@@ -3405,11 +3404,11 @@ body .global-temp-ban-modal {
 }
 
 .donation-title {
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .donation-amount {
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .donation-body {

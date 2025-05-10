@@ -296,7 +296,6 @@
     background-color: #ff3b3b;
     color: white;
     font-size: 14px;
-    font-weight: bold;
     padding: 4px 14px 4px 10px;
     border-radius: 6px;
     text-transform: uppercase;

@@ -290,14 +290,13 @@ export default {
 /* 활성화 상태 - 색상만 변경 */
 .channel-item.is-active .channel-name {
   color: #B084CC !important;
-  font-weight: 600 !important;
+  font-weight: 500 !important;
 }
 
 /* LIVE 채널 */
 .live-chip {
   background-color: #FF2A46 !important;
   font-size: 10px;
-  font-weight: bold;
   height: 16px !important;
   flex-shrink: 0;
 }
@@ -308,7 +307,7 @@ export default {
 
 .channel-item:has(.live-chip) .channel-name {
   color: #ffffff;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 /* 기타 스타일 */
@@ -342,7 +341,7 @@ export default {
   transform: translateX(-50%);
   background: #FF2A46;
   font-size: 6px;
-  font-weight: 700;
+  font-weight: 500;
   padding: 2px 2px 1px 2px;
   border-radius: 8px;
   z-index: 10;

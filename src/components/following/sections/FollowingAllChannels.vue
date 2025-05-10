@@ -84,7 +84,6 @@ function goToChannel(userId) {
 .nickname {
   margin-top: 14px;
   color: #bfc9db;
-  font-weight: bold;
   font-size: 1rem;
   word-break: break-all;
   max-width: 100%;

@@ -173,7 +173,6 @@
 }
 .title {
   font-size: 24px;
-  font-weight: bold;
   margin-bottom: 16px;
 }
 .follower-summary {
@@ -199,7 +198,6 @@
   border: none;
   border-radius: 6px;
   padding: 8px 20px;
-  font-weight: bold;
   cursor: pointer;
 }
 .follower-table-wrapper {
@@ -220,7 +218,7 @@
 .follower-table th {
   background: #23242a;
   color: #b0b3c0;
-  font-weight: 600;
+  font-weight: 500;
   border-bottom: 1px solid #2c2e36;
 }
 .follower-table td {
@@ -245,7 +243,7 @@
   border: none;
   border-radius: 6px;
   padding: 6px 18px;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
   transition: background 0.2s;
 }
@@ -279,7 +277,7 @@
   border: 1px solid #3538ff;
   border-radius: 6px;
   padding: 4px 12px;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
   transition: background 0.2s, color 0.2s;
 }

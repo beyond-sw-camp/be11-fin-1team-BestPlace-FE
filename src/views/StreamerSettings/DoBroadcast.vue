@@ -1271,7 +1271,7 @@ export default {
 
 .placeholder-text {
   font-size: 24px;
-  font-weight: 600;
+  font-weight: 500;
   margin-bottom: 8px;
 }
 
@@ -1286,7 +1286,7 @@ export default {
 
 .settings-title {
   font-size: 20px;
-  font-weight: 600;
+  font-weight: 500;
   margin-bottom: 24px;
 }
 
@@ -1363,7 +1363,7 @@ export default {
 
 .chat-title {
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .chat-count {
@@ -1408,7 +1408,7 @@ export default {
 
 .sender {
   color: #727cf5;
-  font-weight: 600;
+  font-weight: 500;
   margin-right: 6px;
   transition: text-shadow 0.2s ease;
 }
@@ -1449,7 +1449,7 @@ export default {
   color: #fff;
   border: none;
   border-radius: 4px;
-  font-weight: 600;
+  font-weight: 500;
   font-size: 13px;
   cursor: pointer;
   transition: background 0.2s;
@@ -1494,7 +1494,7 @@ export default {
   align-items: center;
   color: #fff;
   font-size: 1.25rem;
-  font-weight: 600;
+  font-weight: 500;
   padding: 16px 20px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }

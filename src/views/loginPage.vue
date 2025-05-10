@@ -75,7 +75,7 @@ export default {
   font-size: 2rem;
   color: #ffffff; /* 제목 색상 변경 */
   margin-bottom: 10px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .login-subtitle {

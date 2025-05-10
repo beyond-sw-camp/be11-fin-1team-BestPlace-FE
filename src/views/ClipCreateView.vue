@@ -329,7 +329,7 @@ onMounted(() => {
 
 .clip-header h1 {
   font-size: 1.5em;
-  font-weight: 600;
+  font-weight: 500;
   margin: 0;
 }
 

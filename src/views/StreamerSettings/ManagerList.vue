@@ -298,7 +298,6 @@ export default {
 <style scoped>
 .title {
   font-size: 28px;
-  font-weight: bold;
   margin-bottom: 30px;
   color: #fff;
 }
@@ -319,7 +318,6 @@ export default {
 
 .title-section {
   font-size: 20px;
-  font-weight: bold;
   color: #fff;
 }
 
@@ -366,7 +364,7 @@ export default {
   color: #fff;
   border: none;
   border-radius: 8px;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
 }
 
@@ -414,7 +412,6 @@ export default {
 
 .list-header {
   font-size: 16px;
-  font-weight: bold;
   margin-bottom: 16px;
   color: #fff;
   display: flex;
@@ -441,7 +438,7 @@ export default {
 
 .manager-table th {
   color: #aaa;
-  font-weight: 600;
+  font-weight: 500;
   font-size: 14px;
 }
 
@@ -484,7 +481,7 @@ export default {
   border: 1px solid #ff3b30;
   border-radius: 8px;
   padding: 8px 16px;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -512,7 +509,7 @@ export default {
   border: none;
   padding: 12px 24px;
   border-radius: 24px;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -545,7 +542,7 @@ export default {
 .modal-content h3 {
   margin-bottom: 24px;
   color: #fff;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .modal-form {
@@ -578,7 +575,7 @@ export default {
   padding: 10px 20px;
   border-radius: 8px;
   cursor: pointer;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .modal-actions button:last-child {
@@ -588,7 +585,7 @@ export default {
   padding: 10px 20px;
   border-radius: 8px;
   cursor: pointer;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .dropdown-select {
