@@ -1,5 +1,5 @@
 <template>
-  <div class="live-detail-container">
+  <div class="live-detail-container" v-bind="$attrs">
     <div class="stream-content">
       <div class="live-main">
         <div class="video-section">
@@ -186,6 +186,9 @@
             <li v-else @click="promptUnblock(selectedMessage?.memberId)">🔓 차단 해제</li>
             <li v-if="!reportedUsers.has(selectedMessage?.memberId)" @click="showReportModal = true">🚨 신고하기</li>
             <li v-else @click="showAlreadyReportedModal = true">🚨 신고 내역 보기</li>
+            <!-- 매니저인 경우에만 임시제한 버튼 표시 -->
+            <li v-if="isManagerHere && !isTempBannedUser(selectedMessage?.memberId)" @click="tempBanUser">⛔ 임시제한</li>
+            <li v-if="isManagerHere && isTempBannedUser(selectedMessage?.memberId)" @click="releaseTempBan">✅ 임시제한 해제</li>
           </ul>
         </div>
       </div>
@@ -321,6 +324,113 @@
       </v-card>
     </v-dialog>
 
+    <!-- 임시제한 모달 추가 -->
+    <v-dialog v-model="tempBanModalVisible" max-width="400">
+      <v-card class="custom-modal">
+        <v-card-title class="modal-title">
+          <v-icon left color="warning">mdi-account-cancel</v-icon>
+          임시제한 설정
+        </v-card-title>
+        <v-card-text class="modal-content">
+          <div class="reported-message mb-4" v-if="selectedMessage">
+            <p class="mb-1 text-caption text-grey">제한할 사용자의 메시지:</p>
+            <v-card class="pa-2 reported-message-card">
+              <p class="mb-0"><strong>{{ selectedMessage.sender }}</strong>: {{ selectedMessage.message }}</p>
+            </v-card>
+  </div>
+          
+          <p>이 사용자의 채팅을 임시적으로 제한하시겠습니까?</p>
+          <p class="text-caption text-grey mt-2">
+            제한 이력에 따라 시간이 자동으로 설정됩니다:<br>
+            첫 번째: 30초 / 두 번째: 1분 / 세 번째: 5분 / 네 번째 이상: 10분
+          </p>
+        </v-card-text>
+        <v-card-actions class="modal-actions">
+          <v-spacer></v-spacer>
+          <v-btn color="grey-darken-1" variant="text" @click="tempBanModalVisible = false">취소</v-btn>
+          <v-btn color="warning" variant="flat" @click="handleTempBan">
+            임시제한 적용
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- 임시제한 해제 모달 추가 -->
+    <v-dialog v-model="releaseBanModalVisible" max-width="400">
+      <v-card class="custom-modal">
+        <v-card-title class="modal-title">
+          <v-icon left color="success">mdi-account-check</v-icon>
+          임시제한 해제
+        </v-card-title>
+        <v-card-text class="modal-content">
+          <div class="reported-message mb-4" v-if="selectedMessage">
+            <p class="mb-1 text-caption text-grey">임시제한을 해제할 사용자:</p>
+            <v-card class="pa-2 reported-message-card">
+              <p class="mb-0"><strong>{{ selectedMessage.sender }}</strong></p>
+            </v-card>
+          </div>
+          
+          <p>이 사용자의 임시제한을 해제하시겠습니까?</p>
+        </v-card-text>
+        <v-card-actions class="modal-actions">
+          <v-spacer></v-spacer>
+          <v-btn color="grey-darken-1" variant="text" @click="releaseBanModalVisible = false">취소</v-btn>
+          <v-btn color="success" variant="flat" @click="handleReleaseTempBan">
+            임시제한 해제
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- 귀여운 알림 모달 -->
+    <v-dialog v-model="cuteAlertModal.show" max-width="400">
+      <v-card class="cute-alert-modal">
+        <div class="cute-alert-bubble">
+          <div class="cute-alert-icon" :class="cuteAlertModal.type">
+            <v-icon v-if="cuteAlertModal.type === 'success'" size="36">mdi-check-circle</v-icon>
+            <v-icon v-else-if="cuteAlertModal.type === 'error'" size="36">mdi-alert-circle</v-icon>
+            <v-icon v-else-if="cuteAlertModal.type === 'warning'" size="36">mdi-alert</v-icon>
+            <v-icon v-else-if="cuteAlertModal.type === 'info'" size="36">mdi-information</v-icon>
+            <v-icon v-else size="36">mdi-emoticon</v-icon>
+          </div>
+          <div class="cute-alert-content">
+            <h3 class="cute-alert-title">{{ cuteAlertModal.title }}</h3>
+            <p class="cute-alert-message">{{ cuteAlertModal.message }}</p>
+          </div>
+        </div>
+        <v-card-actions class="cute-alert-actions">
+          <v-spacer></v-spacer>
+          <v-btn 
+            :color="cuteAlertModal.btnColor" 
+            class="cute-alert-btn" 
+            @click="cuteAlertModal.show = false"
+          >
+            {{ cuteAlertModal.btnText }}
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+  </div>
+  
+  <!-- Teleport를 사용하여 body에 직접 렌더링 -->
+  <Teleport to="body">
+    <div 
+      v-if="showTempBanModal" 
+      class="global-temp-ban-modal"
+    >
+      <div class="temp-ban-content">
+        <div class="temp-ban-icon">⚠️</div>
+        <div class="temp-ban-message">
+          <div class="temp-ban-title">채팅 임시제한</div>
+          <div class="temp-ban-info">
+            운영정책 위반으로 채팅이 임시제한되었습니다.<br>
+            만료시간까지 <span class="temp-ban-time">{{ formattedRemainingTime }}</span> 남았습니다.
+          </div>
+        </div>
+      </div>
+    </div>
+  </Teleport>
+
     <!-- 충전 모달 추가 -->
     <v-dialog v-model="chargeModalOpen" max-width="500" content-class="berry-charge-modal">
       <div class="modal-container">
@@ -406,7 +516,7 @@
         </div>
       </div>
     </v-dialog>
-  </div>
+  
 
   <!-- 성인 콘텐츠 제한 모달 추가 -->
   <v-dialog v-model="adultRestrictionModalOpen" max-width="500" persistent>
@@ -436,10 +546,11 @@
       </div>
     </div>
   </v-dialog>
+
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import Hls from 'hls.js'
 import SockJS from 'sockjs-client'
@@ -449,6 +560,11 @@ import ReportModal from '@/components/ReportModal.vue'
 import BlockModal from '@/components/BlockModal.vue'
 import StreamerClips from '@/components/StreamerClips.vue'
 import StreamerVideos from '@/components/StreamerVideos.vue'
+
+// 속성 상속 경고 비활성화
+defineOptions({
+  inheritAttrs: false
+})
 
 const route = useRoute()
 const router = useRouter()
@@ -513,6 +629,15 @@ const blockedUserDetails = ref([]) // 차단 해제를 위한 상세 정보 저�
 const showAlreadyReportedModal = ref(false)
 const showUnblockModal = ref(false)
 const selectedUserToUnblock = ref(null)
+
+
+// 임시제한 관련 변수 추가
+const isTempBanned = ref(false)
+const tempBanExpireTime = ref(null)
+const remainingTime = ref(0)
+const showTempBanModal = ref(false)
+const tempBanTimerId = ref(null)
+const formattedRemainingTime = ref('')
 
 // 추가적인 상태
 const showChatDonation = ref(false)
@@ -671,75 +796,88 @@ const connectWebsocket = () => {
       try {
         const parsed = JSON.parse(message.body)
         console.log('수신된 메시지:', parsed)
-        
-        // messageId가 있는지 확인하고 로그 출력
-        console.log('메시지 ID:', parsed.messageId)
-        console.log('메시지 내용:', parsed.message)
+
         console.log('메시지 타입:', parsed.type)
-        if (parsed.type==="Adult"){
+        console.log('메시지 타입 타입:', typeof parsed.type)
+        console.log('메시지 타입 문자열 변환:', String(parsed.type))
+
+        const isTemp = isTempBanType(parsed.type)
+        const isRelease = isBanReleaseType(parsed.type)
+
+        console.log('임시제한 메시지 여부:', isTemp)
+        console.log('임시제한 해제 메시지 여부:', isRelease)
+
+        if (parsed.type === "Adult") {
           handleAdultMessage()
-        }else if(parsed.type==="CHAT_DONATION"){
-          // 메시지 형식: "닉네임님이 1000원을 후원하셨습니다.실제메시지" 파싱
-          const fullMessage = parsed.message;
-          const donationPattern = /(.+)님이 (\d+)원을 후원하셨습니다\.(.*)/;
-          const match = fullMessage.match(donationPattern);
-          
-          let senderName = parsed.sender;
-          let donationAmount = 1000;
-          let actualMessage = fullMessage;
-          
+        } else if (isTemp) {
+          console.log('임시제한 메시지 감지됨!')
+          handleTempBanMessage(parsed)
+        } else if (isRelease) {
+          console.log('임시제한 해제 메시지 감지됨!')
+          handleTempBanReleaseMessage(parsed)
+        } else if (parsed.type === "CHAT_DONATION") {
+          const fullMessage = parsed.message
+          const donationPattern = /(.+)님이 (\d+)원을 후원하셨습니다\.(.*)/
+          const match = fullMessage.match(donationPattern)
+
+          let senderName = parsed.sender
+          let donationAmount = 1000
+          let actualMessage = fullMessage
+
           if (match && match.length >= 4) {
-            senderName = match[1]; // 닉네임
-            donationAmount = parseInt(match[2]); // 후원 금액
-            actualMessage = match[3]; // 실제 메시지
+            senderName = match[1]
+            donationAmount = parseInt(match[2])
+            actualMessage = match[3]
           }
-          
-          // 후원 메시지를 채팅에 추가
+
           messages.value.push({
             messageId: parsed.messageId,
             roomId: parsed.roomId,
             memberId: parsed.memberId,
-            message: actualMessage, // 실제 메시지 부분만 저장
+            message: actualMessage,
             sender: parsed.sender,
             type: parsed.type,
             createdTime: parsed.createdTime,
-            berryAmount: donationAmount, // 파싱한 후원 금액
-            donationSender: senderName // 후원자 이름
+            berryAmount: donationAmount,
+            donationSender: senderName
           })
           scrollToBottom()
-        }else{
+        } else {
           messages.value.push({
-          messageId: parsed.messageId,
-          roomId: parsed.roomId,
-          memberId: parsed.memberId,
-          message: parsed.message,
-          sender: parsed.sender,
-          type: parsed.type,
-          createdTime: parsed.createdTime
+            messageId: parsed.messageId,
+            roomId: parsed.roomId,
+            memberId: parsed.memberId,
+            message: parsed.message,
+            sender: parsed.sender,
+            type: parsed.type,
+            createdTime: parsed.createdTime
           })
           scrollToBottom()
         }
-        
       } catch (err) {
         console.error('메시지 파싱 실패:', err)
+        console.error('원본 메시지:', message.body)
       }
-    },{
-        streamId: streamInfo.value.streamId
     })
   }, (err) => {
     console.error('WebSocket 연결 실패:', err)
     isConnected.value = false
 
-      // 🔁 3초 뒤 재연결
-      setTimeout(() => {
-        console.log('WebSocket 재연결 시도 중...')
-        connectWebsocket()
-      }, 3000)
+    setTimeout(() => {
+      console.log('WebSocket 재연결 시도 중...')
+      connectWebsocket()
+    }, 3000)
   })
 }
 
 const sendMessage = () => {
   if (!newMessage.value.trim()) return;
+  
+  console.log('메시지 전송 시도', { 
+    임시제한상태: isTempBanned.value,
+    만료시간: tempBanExpireTime.value
+  });
+  
   if (!stompClient.value || !stompClient.value.connected || !isConnected.value) {
     console.warn('stompClient 미연결 상태');
     return;
@@ -750,12 +888,48 @@ const sendMessage = () => {
     return;
   }
 
+  // ✅ 임시제한 상태 검사
+  if (isTempBanned.value && tempBanExpireTime.value) {
+    const now = new Date();
+    console.log('임시제한 확인', { 
+      현재시간: now,
+      만료시간: tempBanExpireTime.value,
+      남은시간: tempBanExpireTime.value - now,
+      조건결과: tempBanExpireTime.value > now
+    });
+
+    if (tempBanExpireTime.value > now) {
+      // 아직 제한 시간 남아있는 경우
+      console.log('임시제한 모달 표시 시작');
+      console.warn('임시제한 상태에서는 메시지를 보낼 수 없습니다.');
+ 
+      calculateRemainingTime(); // 남은 시간 갱신
+      console.log('남은 시간 갱신 후:', formattedRemainingTime.value);
+      
+      showTempBanModal.value = true; // 모달 표시
+      console.log('모달 표시 상태 설정 후:', showTempBanModal.value);
+
+      // ✅ 3초 후 자동으로 모달 숨기기
+      setTimeout(() => {
+        showTempBanModal.value = false;
+        console.log('3초 후 모달 숨김');
+      }, 3000);
+
+      return;
+    } else {
+      // 제한 만료됨 → 상태 초기화
+      console.log('임시제한 만료됨, 상태 초기화');
+      isTempBanned.value = false;
+      showTempBanModal.value = false;
+    }
+  }
+
+  // ✅ 메시지 전송
   const messagePayload = {
     message: newMessage.value,
     type: 'TALK'
   };
 
-  // webstomp-client의 send 메서드 사용
   stompClient.value.send(
     `/publish/${streamInfo.value.roomId}`,
     JSON.stringify(messagePayload),
@@ -766,7 +940,7 @@ const sendMessage = () => {
   );
 
   newMessage.value = '';
-}
+};
 
 const showReportModal = ref(false)
 const showBlockModal = ref(false)
@@ -850,7 +1024,26 @@ const handleReport = async (reportData) => {
       return;
     }
     
-    const response = await axios.post(`${streamingApi}/chat/report`, reportData, {
+    console.log('신고 처리 시작 - 원본 데이터:', reportData);
+    console.log('메시지 ID 타입:', typeof reportData.reportedChatMessageId);
+    
+    // messageId가 있는지 확인하고 정수로 변환 시도
+    if (!reportData.reportedChatMessageId) {
+      console.error('신고할 메시지 ID가 없습니다');
+      showCuteAlert('신고할 메시지 ID가 없어 처리할 수 없습니다.', '신고 실패', 'error');
+      return;
+    }
+    
+    // 서버로 전송할 데이터 준비
+    const payload = {
+      reportedChatMessageId: Number(reportData.reportedChatMessageId) || reportData.reportedChatMessageId,
+      reportType: reportData.reportType,
+      reportReason: reportData.reportReason
+    };
+    
+    console.log('서버로 전송할 최종 신고 데이터:', payload);
+    
+    const response = await axios.post(`${streamingApi}/chat/report`, payload, {
       headers: {
         'Authorization': `Bearer ${token.value}`
       }
@@ -862,10 +1055,14 @@ const handleReport = async (reportData) => {
     reportedUsers.value.add(selectedMessage.value.memberId);
     
     showReportModal.value = false;
-    alert('신고가 접수되었습니다.');
+    showCuteAlert('신고가 접수되었습니다.', '신고 완료', 'success');
   } catch (error) {
     console.error('신고 처리 중 오류 발생:', error);
-    alert('신고 처리 중 오류가 발생했습니다.');
+    if (error.response) {
+      console.error('오류 응답:', error.response.data);
+      console.error('오류 상태:', error.response.status);
+    }
+    showCuteAlert('신고 처리 중 오류가 발생했습니다.', '신고 실패', 'error');
   }
 };
 
@@ -889,10 +1086,10 @@ const handleBlock = async (message) => {
     await loadBlockedUsers();
     
     showBlockModal.value = false;
-    alert('사용자가 차단되었습니다.');
+    showCuteAlert('사용자가 차단되었습니다.', '차단 완료', 'success');
   } catch (error) {
     console.error('차단 처리 중 오류 발생:', error);
-    alert('차단 처리 중 오류가 발생했습니다.');
+    showCuteAlert('차단 처리 중 오류가 발생했습니다.', '차단 실패', 'error');
   }
 };
 
@@ -913,7 +1110,7 @@ const unblockUser = async () => {
     if (!blockInfo) {
       console.error('차단 정보를 찾을 수 없습니다.', '선택된 사용자 ID:', selectedUserToUnblock.value);
       console.log('차단 목록 상세 정보:', blockedUserDetails.value);
-      alert('차단 정보를 찾을 수 없습니다. 페이지를 새로고침하고 다시 시도해주세요.');
+      showCuteAlert('차단 정보를 찾을 수 없습니다. 페이지를 새로고침하고 다시 시도해주세요.', '차단 해제 실패', 'error');
       return;
     }
     
@@ -939,14 +1136,14 @@ const unblockUser = async () => {
     );
     
     showUnblockModal.value = false;
-    alert('차단이 해제되었습니다.');
+    showCuteAlert('차단이 해제되었습니다.', '차단 해제 완료', 'success');
   } catch (error) {
     console.error('차단 해제 중 오류 발생:', error);
     if (error.response) {
       console.error('오류 상태:', error.response.status);
       console.error('오류 응답:', error.response.data);
     }
-    alert('차단 해제 중 오류가 발생했습니다.');
+    showCuteAlert('차단 해제 중 오류가 발생했습니다.', '차단 해제 실패', 'error');
   }
 };
 
@@ -971,87 +1168,223 @@ const disconnectWebSocket = () => {
   }
 }
 
-const initializeStreaming = async () => {
+// 상태 변수 추가 (script setup 내부)
+const isManagerHere = ref(false)
+const managerList = ref([])
+const tempBannedUsers = ref(new Map()) // 임시제한된 사용자 관리
+const tempBanModalVisible = ref(false)
+const releaseBanModalVisible = ref(false)
+
+// 매니저 리스트 가져오는 함수 추가
+const getManagerList = async () => {
+  if (!streamInfo.value || !streamInfo.value.memberId) {
+    console.log('스트리머 정보가 없어 매니저 리스트를 불러올 수 없습니다.')
+    return
+  }
+
   try {
-    // 토큰 준비 및 사용자 정보 설정
-    await prepareToken();
-    console.log('초기화 시 로그인 상태:', isLogin.value, '사용자 ID:', memberId.value);
-    
-    // 1. 스트리밍 정보 가져오기
-    const streamInfoLoaded = await getStreamInfo();
-    if (!streamInfoLoaded) {
-      console.error('스트리밍 정보를 불러오지 못했습니다.');
-      return;
-    }
-
-    console.log('스트리밍 정보 확인:', streamInfo.value);
-    
-    // 성인 콘텐츠 체크 추가
-    if (streamInfo.value.adultYn === 'Y') {
-      // 1. 로그인 상태 확인
-      if (!isLogin.value || !memberId.value) {
-        showAdultRestrictionModal();
-        return;
+    const response = await axios.get(`${streamingApi}/manager/managerList/${streamInfo.value.memberId}`, {
+      headers: {
+        'Authorization': `Bearer ${token.value}`
       }
+    })
+
+    console.log('매니저 리스트 응답:', response.data)
+    
+    if (response.data && response.data.result) {
+      managerList.value = response.data.result
       
-      // 2. 사용자의 성인 여부 확인
-      const isAdult = await memberAdultYn();
-      if (!isAdult) {
-        showAdultRestrictionModal();
-        return;
+      // 현재 사용자가 매니저인지 확인
+      if (memberId.value) {
+        isManagerHere.value = managerList.value.some(manager => 
+          String(manager.managerId) === String(memberId.value)
+        )
+        console.log('현재 사용자 매니저 여부:', isManagerHere.value)
       }
     }
-    
-    // 2. 비디오 플레이어 초기화
-    const el = video.value;
-    if (!streamInfo.value.streamKey) {
-      console.error('스트림키가 없습니다.');
-      return;
-    }
-    
-    // 배포용
-    const hlsSrc = `https://hls.bepl.site/hls/${streamInfo.value.streamKey}.m3u8`
-    // 로컬용
-    // const hlsSrc = `http://localhost:8088/hls/${streamInfo.value.streamKey}.m3u8`;
-    console.log('HLS 소스:', hlsSrc);
-
-    if (Hls.isSupported()) {
-      const hls = new Hls();
-      hls.loadSource(hlsSrc);
-      hls.attachMedia(el);
-    } else if (el.canPlayType('application/vnd.apple.mpegurl')) {
-      el.src = hlsSrc;
-    }
-
-    // 3. 채팅 관련 초기화
-    if (!streamInfo.value.roomId) {
-      console.error('룸 ID가 없습니다.');
-      return;
-    }
-    
-    getStreamerInfo();
-    
-    // 4. 로그인한 경우에만 차단/신고 목록 불러오기
-    if (isLogin.value && memberId.value) {
-      try {
-        await Promise.all([
-          loadBlockedUsers(),
-          loadReportedUsers()
-        ]);
-      } catch (err) {
-        console.error('차단/신고 목록 불러오기 실패:', err);
-      }
-      
-      // 로그인한 경우에만 채팅방 입장
-      await joinChatRoom();
-    }
-    
-    // 로그인 상태와 관계없이 웹소켓 연결 (메시지 수신은 가능)
-    connectWebsocket();
   } catch (error) {
-    console.error('초기화 중 오류 발생:', error);
+    console.error('매니저 리스트 불러오기 실패:', error)
   }
 }
+
+// 기존 initializeStreaming 함수의 Promise.all 부분에 매니저 목록 로드 추가
+const initializeStreaming = async () => {
+  try {
+    await prepareToken()
+    const streamInfoLoaded = await getStreamInfo()
+    if (!streamInfoLoaded) return
+
+    await getStreamerInfo()
+    console.log('스트리밍 정보 확인:', streamInfo.value)
+
+    // ✅ 성인 콘텐츠 필터링
+    if (streamInfo.value.adultYn === 'Y') {
+      if (!isLogin.value || !memberId.value) {
+        showAdultRestrictionModal()
+        return
+      }
+
+      const isAdult = await memberAdultYn()
+      if (!isAdult) {
+        showAdultRestrictionModal()
+        return
+      }
+    }
+
+    // ✅ 스트리밍 비디오 초기화
+    const el = video.value
+    if (!streamInfo.value.streamKey) {
+      console.error('스트림키가 없습니다.')
+      return
+    }
+
+    // ✅ 환경에 따라 HLS URL 선택 (예: 개발 vs 운영)
+    const isLocal = import.meta.env.DEV // Vite 기준
+    const hlsSrc = isLocal
+      ? `http://localhost:8088/hls/${streamInfo.value.streamKey}.m3u8`
+      : `https://hls.bepl.site/hls/${streamInfo.value.streamKey}.m3u8`
+
+    console.log('HLS 소스:', hlsSrc)
+
+    if (Hls.isSupported()) {
+      const hls = new Hls()
+      hls.loadSource(hlsSrc)
+      hls.attachMedia(el)
+    } else if (el.canPlayType('application/vnd.apple.mpegurl')) {
+      el.src = hlsSrc
+    }
+
+    // ✅ 로그인된 경우: 차단/신고 목록 + 매니저 목록 + 채팅방 입장
+    if (isLogin.value && memberId.value) {
+      await Promise.all([
+        loadBlockedUsers(),
+        loadReportedUsers(),
+        getManagerList(),
+        joinChatRoom()
+      ])
+    }
+
+    // ✅ WebSocket 연결
+    connectWebsocket()
+  } catch (error) {
+    console.error('초기화 중 오류 발생:', error)
+  }
+}
+
+
+// 임시제한 여부 확인 함수 - isTempBanned.value는 전역 상태이므로 다른 함수명 사용
+const isTempBannedUser = (userId) => {
+  if (!userId) return false
+  
+  const bannedInfo = tempBannedUsers.value.get(userId.toString())
+  if (!bannedInfo) return false
+  
+  // 만료 시간이 지났는지 확인
+  const now = new Date()
+  const expireAt = new Date(bannedInfo.expireAt)
+  
+  if (now > expireAt) {
+    // 만료된 경우 목록에서 제거
+    tempBannedUsers.value.delete(userId.toString())
+    return false
+  }
+  
+  return true
+}
+
+// 임시제한 만료 확인 함수 추가
+const checkBanExpiration = () => {
+  const now = new Date()
+  tempBannedUsers.value.forEach((banInfo, userId) => {
+    if (now > new Date(banInfo.expireAt)) {
+      console.log(`사용자 ${userId}의 임시제한이 만료되었습니다.`)
+      tempBannedUsers.value.delete(userId)
+    }
+  })
+}
+
+// 임시제한 모달 표시 함수
+const tempBanUser = () => {
+  if (selectedMessage.value) {
+    tempBanModalVisible.value = true
+  }
+  contextMenu.value.visible = false
+}
+
+// 임시제한 해제 모달 표시
+const releaseTempBan = () => {
+  if (selectedMessage.value) {
+    releaseBanModalVisible.value = true
+  }
+  contextMenu.value.visible = false
+}
+
+// 임시제한 적용 처리
+const handleTempBan = async () => {
+  if (!selectedMessage.value) {
+    tempBanModalVisible.value = false;
+    return;
+  }
+  
+  try {
+    const response = await axios.post(
+      `${streamingApi}/chat/ban/temp`,
+      { messageId: selectedMessage.value.messageId },
+      {
+        headers: {
+          Authorization: `Bearer ${token.value}`
+        }
+      }
+    );
+    
+    console.log('임시제한 응답:', response.data);
+    
+    // 성공 시 목록에 추가
+    tempBannedUsers.value.set(selectedMessage.value.memberId.toString(), {
+      expireAt: new Date(Date.now() + 10 * 60 * 1000), // 기본적으로 10분으로 설정 (실제로는 서버에서 계산)
+      nickname: selectedMessage.value.sender
+    });
+    
+    showCuteAlert(`'${selectedMessage.value.sender}'님을 임시제한 했습니다.`, '임시제한 적용', 'success');
+  } catch (error) {
+    console.error('임시제한 적용 실패:', error);
+    showCuteAlert('임시제한 적용에 실패했습니다: ' + (error.response?.data?.message || error.message), '임시제한 실패', 'error');
+  } finally {
+    tempBanModalVisible.value = false;
+  }
+};
+
+// 임시제한 해제 처리
+const handleReleaseTempBan = async () => {
+  if (!selectedMessage.value) {
+    releaseBanModalVisible.value = false;
+    return;
+  }
+  
+  try {
+    const response = await axios.delete(
+      `${streamingApi}/chat/ban/temp/release`,
+      {
+        data: { targetMessageId: selectedMessage.value.messageId },
+        headers: {
+          Authorization: `Bearer ${token.value}`
+        }
+      }
+    );
+    
+    console.log('임시제한 해제 응답:', response.data);
+    
+    // 성공 시 목록에서 제거
+    tempBannedUsers.value.delete(selectedMessage.value.memberId.toString());
+    
+    showCuteAlert(`'${selectedMessage.value.sender}'님을 임시제한 해제 했습니다.`, '임시제한 해제', 'success');
+  } catch (error) {
+    console.error('임시제한 해제 실패:', error);
+    showCuteAlert('임시제한 해제에 실패했습니다: ' + (error.response?.data?.message || error.message), '임시제한 해제 실패', 'error');
+  } finally {
+    releaseBanModalVisible.value = false;
+  }
+};
 
 // 방송 시작 시간 계산 함수
 const calculateUptime = () => {
@@ -1315,6 +1648,278 @@ const getUsernameColor = (username) => {
   return { color: colors.value[colorIndex] };
 }
 
+// Enum 타입 체크를 위한 임시제한 메시지 타입 확인 로직 강화
+const isTempBanType = (type) => {
+  if (!type) {
+    console.log('타입이 없음:', type);
+    return false;
+  }
+  
+  // 직접 타입 확인 로깅
+  console.log('타입 확인 중:', type);
+  console.log('타입의 종류:', typeof type);
+  
+  // 1. 문자열인 경우 직접 비교
+  if (typeof type === 'string') {
+    const isMatch = type === 'BAN_TEMP';
+    console.log('문자열 타입 비교 결과:', isMatch);
+    return isMatch;
+  }
+  
+  // 2. 객체인 경우 여러 속성 확인
+  if (typeof type === 'object') {
+    // null 체크
+    if (type === null) {
+      console.log('타입이 null임');
+      return false;
+    }
+    
+    // Enum의 경우 name 속성이나 value 속성 확인
+    if (type.name === 'BAN_TEMP') {
+      console.log('객체 name 속성 일치');
+      return true;
+    }
+    if (type.value === 'BAN_TEMP') {
+      console.log('객체 value 속성 일치');
+      return true;
+    }
+    
+    // toString 메서드가 있는 경우
+    if (typeof type.toString === 'function') {
+      const strType = type.toString();
+      console.log('객체 toString 결과:', strType);
+      const isMatch = strType.includes('BAN_TEMP');
+      console.log('toString 비교 결과:', isMatch);
+      return isMatch;
+    }
+  }
+  
+  // 3. 숫자나 다른 타입인 경우 문자열로 변환 후 비교
+  const strType = String(type);
+  console.log('문자열 변환 결과:', strType);
+  const isMatch = strType.includes('BAN_TEMP');
+  console.log('최종 비교 결과:', isMatch);
+  return isMatch;
+}
+
+// 임시제한 해제 타입 확인 로직
+const isBanReleaseType = (type) => {
+  if (!type) return false;
+  
+  if (typeof type === 'string') {
+    return type === 'BAN_RELEASE';
+  }
+  
+  if (typeof type === 'object') {
+    // Enum의 경우 name 속성이나 value 속성 확인
+    if (type.name === 'BAN_RELEASE') return true;
+    if (type.value === 'BAN_RELEASE') return true;
+    
+    // toString 메서드가 있는 경우
+    if (typeof type.toString === 'function') {
+      const strType = type.toString();
+      return strType.includes('BAN_RELEASE');
+    }
+  }
+  
+  // 모든 경우에 해당하지 않으면 문자열 변환 후 비교
+  return String(type).includes('BAN_RELEASE');
+}
+
+// handleTempBanMessage 함수 전체 수정
+const handleTempBanMessage = (banData) => {
+  console.log('임시제한 메시지 수신 (전체 데이터):', banData)
+  console.log('메시지 타입:', typeof banData.type, banData.type)
+  console.log('현재 사용자 ID:', memberId.value, '타입:', typeof memberId.value)
+  console.log('제한 대상 ID:', banData.memberId, '타입:', typeof banData.memberId)
+  
+  // ID 비교 전에 둘 다 존재하는지 확인
+  if (!memberId.value || !banData.memberId) {
+    console.error('ID 값이 없어 비교할 수 없습니다:', { 
+      현재사용자ID: memberId.value, 
+      대상ID: banData.memberId 
+    })
+    return
+  }
+  
+  // 문자열로 변환하여 비교 (가장 안전한 방법)
+  const currentIdStr = String(memberId.value).trim()
+  const targetIdStr = String(banData.memberId).trim()
+  
+  console.log('문자열 변환 후 - 현재 ID:', currentIdStr)
+  console.log('문자열 변환 후 - 대상 ID:', targetIdStr)
+  
+  // 엄격한 비교와 함께 디버깅
+  const isMatch = currentIdStr === targetIdStr
+  console.log('ID 일치 여부 (엄격비교):', isMatch)
+  
+  // 현재 사용자가 해당 제한의 대상인지 확인
+  if (isMatch) {
+    console.log('✅ 현재 사용자에게 임시제한이 적용됨')
+    
+    // additionalData가 있는 경우 파싱
+    let expireAt = null
+    let durationSeconds = 0
+    
+    try {
+      if (banData.additionalData) {
+        console.log('추가 데이터 원본:', banData.additionalData)
+        console.log('추가 데이터 타입:', typeof banData.additionalData)
+        
+        // 문자열이면 파싱, 객체면 그대로 사용
+        const additionalInfo = typeof banData.additionalData === 'string' 
+          ? JSON.parse(banData.additionalData)
+          : banData.additionalData
+        
+        console.log('파싱된 추가 정보:', additionalInfo)
+        
+        if (additionalInfo.expireAt) {
+          expireAt = new Date(additionalInfo.expireAt)
+          console.log('만료 시간 설정:', expireAt)
+        }
+        
+        if (additionalInfo.durationSeconds) {
+          durationSeconds = parseInt(additionalInfo.durationSeconds)
+          console.log('지속 시간(초):', durationSeconds)
+        }
+      } else {
+        console.log('추가 데이터 없음, 기본값 사용')
+        // 추가 데이터가 없어도 기본값으로 설정
+        durationSeconds = 30 // 기본 30초
+      }
+    } catch (error) {
+      console.error('추가 정보 처리 중 오류:', error)
+      // 오류 발생 시 기본값 설정
+      durationSeconds = 30
+    }
+    
+    // 만료 시간이 없으면 현재 시간 + 지속 시간으로 설정
+    if (!expireAt && durationSeconds > 0) {
+      expireAt = new Date(Date.now() + durationSeconds * 1000)
+      console.log('계산된 만료 시간:', expireAt)
+    }
+    
+    // 임시제한 정보 설정
+    isTempBanned.value = true
+    tempBanExpireTime.value = expireAt || new Date(Date.now() + 30000) // 최소 30초
+    
+    console.log('임시제한 설정 완료:', {
+      isTempBanned: isTempBanned.value,
+      expireAt: tempBanExpireTime.value,
+      남은시간_밀리초: tempBanExpireTime.value - Date.now()
+    })
+    
+    // 기존 타이머 제거 후 새로 설정
+    if (tempBanTimerId.value) {
+      clearInterval(tempBanTimerId.value)
+      tempBanTimerId.value = null
+    }
+    
+    // 알림 모달로 변경
+    showCuteAlert(`채팅이 임시 제한되었습니다. 만료 시간: ${expireAt ? expireAt.toLocaleTimeString() : '알 수 없음'}`, '채팅 제한', 'warning');
+    
+    // 강제로 모달 표시 업데이트 (Vue의 반응성 트리거)
+    nextTick(() => {
+      showTempBanModal.value = true
+      console.log('모달 표시 상태 (nextTick 후):', showTempBanModal.value)
+      
+      // 남은 시간 계산 시작
+      calculateRemainingTime()
+      
+      // 1초마다 남은 시간 업데이트
+      tempBanTimerId.value = setInterval(() => {
+        const stillBanned = calculateRemainingTime()
+        console.log('임시제한 남은 시간:', formattedRemainingTime.value)
+        if (!stillBanned) {
+          console.log('임시제한 시간 만료됨')
+          clearInterval(tempBanTimerId.value)
+          isTempBanned.value = false
+          showTempBanModal.value = false
+        }
+      }, 1000)
+    })
+  } else {
+    console.log('현재 사용자는 임시제한 대상이 아님')
+  }
+}
+
+// 임시제한 해제 메시지 처리
+const handleTempBanReleaseMessage = (releaseData) => {
+  console.log('임시제한 해제 메시지 수신:', releaseData)
+  
+  // 현재 사용자가 해당 해제의 대상인지 확인
+  if (memberId.value && releaseData.memberId && releaseData.memberId.toString() === memberId.value.toString()) {
+    console.log('현재 사용자의 임시제한이 해제됨')
+    
+    // 타이머 정리
+    if (tempBanTimerId.value) {
+      clearInterval(tempBanTimerId.value)
+      tempBanTimerId.value = null
+    }
+    
+    // 상태 초기화
+    isTempBanned.value = false
+    tempBanExpireTime.value = null
+    showTempBanModal.value = false
+  }
+}
+
+// 남은 시간 계산 함수
+const calculateRemainingTime = () => {
+  console.log('남은 시간 계산 중...');
+  console.log('만료 시간:', tempBanExpireTime.value);
+  
+  if (!tempBanExpireTime.value) {
+    console.log('만료 시간이 없음');
+    formattedRemainingTime.value = '0초';
+    return false;
+  }
+  
+  const now = new Date();
+  const diff = tempBanExpireTime.value - now;
+  
+  console.log('현재 시간:', now);
+  console.log('시간 차이 (밀리초):', diff);
+  
+  if (diff <= 0) {
+    console.log('시간이 만료됨');
+    remainingTime.value = 0;
+    formattedRemainingTime.value = '0초';
+    return false;
+  }
+  
+  remainingTime.value = Math.floor(diff / 1000);
+  
+  // 분과 초로 변환
+  const minutes = Math.floor(remainingTime.value / 60);
+  const seconds = remainingTime.value % 60;
+  
+  if (minutes > 0) {
+    formattedRemainingTime.value = `${minutes}분 ${seconds}초`;
+  } else {
+    formattedRemainingTime.value = `${seconds}초`;
+  }
+  
+  console.log('계산된 남은 시간:', formattedRemainingTime.value);
+  return true;
+}
+
+onMounted(async () => {
+  await initializeStreaming();
+  setInterval(calculateUptime, 1000);
+  handleVideoEvents();
+  document.addEventListener('click', closeContextMenu);
+  setInterval(() => {
+    checkBanExpiration();
+  }, 10000);
+
+  if (isLogin.value) {
+    await myBerry();
+  }
+
+  loadPaymentSDK();
+});
+
 // 채팅 후원 토글 함수
 const toggleChatDonation = () => {
   showChatDonation.value = !showChatDonation.value
@@ -1537,26 +2142,73 @@ const startPayment = async () => {
   }
 }
 
-onMounted(async () => {
-  await initializeStreaming();
-  setInterval(calculateUptime, 1000);
-  handleVideoEvents();
-  document.addEventListener('click', closeContextMenu);
-  
-  // 로그인 상태일 때 베리 정보 로드
-  if (isLogin.value) {
-    await myBerry()
-  }
-  
-  // SDK 로드
-  loadPaymentSDK()
-});
-
 onBeforeUnmount(() => {
   disconnectWebSocket();
   document.removeEventListener('click', closeContextMenu);
+  
+  // 임시제한 타이머 정리
+  if (tempBanTimerId.value) {
+    clearInterval(tempBanTimerId.value)
+  }
 });
 
+// 귀여운 알림 모달 상태 추가
+const cuteAlertModal = ref({
+  show: false,
+  title: '',
+  message: '',
+  type: 'info', // success, error, warning, info
+  btnText: '확인',
+  btnColor: 'primary'
+})
+
+// alert 대신 사용할 함수
+const showCuteAlert = (message, title = '', type = 'info') => {
+  // 타입에 따른 버튼 색상 설정
+  let btnColor = 'primary'
+  switch(type) {
+    case 'success':
+      btnColor = 'success'
+      break
+    case 'error':
+      btnColor = 'error'
+      break
+    case 'warning':
+      btnColor = 'warning'
+      break
+    case 'info':
+      btnColor = 'primary'
+      break
+  }
+  
+  // 기본 타이틀이 없는 경우 타입에 따라 설정
+  let defaultTitle = title
+  if (!title) {
+    switch(type) {
+      case 'success':
+        defaultTitle = '성공!'
+        break
+      case 'error':
+        defaultTitle = '오류 발생'
+        break
+      case 'warning':
+        defaultTitle = '주의'
+        break
+      case 'info':
+        defaultTitle = '알림'
+        break
+    }
+  }
+  
+  cuteAlertModal.value = {
+    show: true,
+    title: defaultTitle,
+    message: message,
+    type: type,
+    btnText: '확인',
+    btnColor: btnColor
+  }
+}
 // 성인 제한 모달 표시 함수 추가
 const showAdultRestrictionModal = () => {
   adultRestrictionModalOpen.value = true;
@@ -1567,6 +2219,7 @@ const handleAdultRestrictionConfirm = () => {
   adultRestrictionModalOpen.value = false;
   router.push('/');
 }
+
 </script>
 
 <style scoped>
@@ -2166,6 +2819,250 @@ video {
   100% { opacity: 1; }
 }
 
+/* 임시제한 모달 스타일 수정 */
+.temp-ban-modal,
+.global-temp-ban-modal {
+  position: fixed;
+  top: 70px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(40, 40, 40, 0.95);
+  border-radius: 8px;
+  padding: 16px 20px;
+  z-index: 100000; /* 매우 높은 z-index 값 설정 */
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  animation: slideDown 0.3s ease-out, pulse 2s infinite ease-in-out;
+  max-width: 90%;
+  width: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-left: 4px solid #ff3b3b;
+  pointer-events: auto; /* 포인터 이벤트 허용 */
+}
+
+.temp-ban-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.temp-ban-icon {
+  font-size: 24px;
+  margin-top: 2px;
+}
+
+.temp-ban-message {
+  color: white;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.temp-ban-title {
+  font-weight: 600;
+  font-size: 16px;
+  color: #ff3b3b;
+}
+
+.temp-ban-info {
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.temp-ban-time {
+  font-weight: 600;
+  color: #ff3b3b;
+}
+
+@keyframes slideDown {
+  from { transform: translateX(-50%) translateY(-20px); opacity: 0; }
+  to { transform: translateX(-50%) translateY(0); opacity: 1; }
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(255, 59, 59, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(255, 59, 59, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 59, 59, 0); }
+}
+
+/* 귀여운 알림 모달 스타일 */
+.cute-alert-modal {
+  background-color: #1e2029;
+  color: #fff;
+  border-radius: 20px !important;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(176, 132, 204, 0.1) !important;
+  border: none !important;
+  transform: scale(1.03);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.cute-alert-modal:hover {
+  transform: scale(1.05);
+}
+
+.cute-alert-bubble {
+  position: relative;
+  display: flex;
+  padding: 24px;
+  align-items: center;
+  gap: 16px;
+  overflow: hidden;
+}
+
+.cute-alert-bubble::before {
+  content: '';
+  position: absolute;
+  top: -80px;
+  left: -80px;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  filter: blur(30px);
+  z-index: 0;
+  opacity: 0.3;
+}
+
+.cute-alert-icon {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.cute-alert-icon.success {
+  background: linear-gradient(135deg, #4CAF50, #8BC34A);
+}
+
+.cute-alert-icon.error {
+  background: linear-gradient(135deg, #FF5252, #FF8A80);
+}
+
+.cute-alert-icon.warning {
+  background: linear-gradient(135deg, #FFC107, #FFEB3B);
+}
+
+.cute-alert-icon.info {
+  background: linear-gradient(135deg, #2196F3, #4FC3F7);
+}
+
+.cute-alert-bubble:has(.success)::before {
+  background: radial-gradient(circle, #4CAF50, transparent);
+}
+
+.cute-alert-bubble:has(.error)::before {
+  background: radial-gradient(circle, #FF5252, transparent);
+}
+
+.cute-alert-bubble:has(.warning)::before {
+  background: radial-gradient(circle, #FFC107, transparent);
+}
+
+.cute-alert-bubble:has(.info)::before {
+  background: radial-gradient(circle, #2196F3, transparent);
+}
+
+.cute-alert-content {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+}
+
+.cute-alert-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  color: #fff;
+}
+
+.cute-alert-message {
+  font-size: 16px;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.5;
+}
+
+.cute-alert-actions {
+  padding: 0 24px 24px 24px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.cute-alert-btn {
+  border-radius: 30px !important;
+  padding: 0 24px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.5px;
+  text-transform: capitalize !important;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2) !important;
+  transition: all 0.2s ease !important;
+}
+
+.cute-alert-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 12px rgba(0, 0, 0, 0.3) !important;
+}
+
+.cute-alert-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* 전역 스타일 (Teleport에 사용되는 스타일) */
+.global-temp-ban-modal {
+  position: fixed;
+  top: 70px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(40, 40, 40, 0.95);
+  border-radius: 8px;
+  padding: 16px 20px;
+  z-index: 999999; /* 최대한 높은 z-index 값 설정 */
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5), 0 0 0 4px rgba(255, 59, 59, 0.3);
+  animation: global-pulse 2s infinite ease-in-out;
+  max-width: 90%;
+  width: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-left: 4px solid #ff3b3b;
+  pointer-events: auto; /* 포인터 이벤트 허용 */
+  font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', '맑은 고딕', 'Noto Sans KR', sans-serif !important;
+  
+  /* 부드러운 애니메이션 효과 추가 */
+  opacity: 0;
+  transform: translateX(-50%) translateY(-20px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+/* 페이드 슬라이드 애니메이션 */
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.fade-slide-enter-from,
+.fade-slide-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-30px);
+}
+
+/* 다른 Vue 컴포넌트가 모달을 가리지 않도록 합니다 */
+body .global-temp-ban-modal {
+  z-index: 999999 !important;
+}
+
+@keyframes global-pulse {
+  0% { box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5), 0 0 0 0 rgba(255, 59, 59, 0.4); }
+  70% { box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5), 0 0 0 10px rgba(255, 59, 59, 0); }
+  100% { box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5), 0 0 0 0 rgba(255, 59, 59, 0); }
+}
 /* 채팅 후원 드롭다운 스타일 */
 .chat-donation-dropdown {
   position: absolute;

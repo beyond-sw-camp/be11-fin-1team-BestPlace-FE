@@ -127,9 +127,33 @@
             v-for="message in messages"
             :key="message.messageId"
             class="chat-message"
+            :class="{ 'own-message': message.memberId === memberId }"
+            @contextmenu.prevent="openContextMenu($event, message)"
           >
             <span class="sender" :style="getUsernameColor(message.sender)">{{ message.sender }}</span>
             <span class="message-content">{{ message.message }}</span>
+          </div>
+          
+          <!-- 컨텍스트 메뉴 추가 -->
+          <div
+            v-if="contextMenu.visible"
+            class="context-menu"
+            :style="{ top: `${contextMenu.y}px`, left: `${contextMenu.x}px` }"
+          >
+            <ul>
+              <li v-if="!reportedUsers.has(selectedMessage?.memberId)" @click="showReportModal">
+                🚨 신고하기
+              </li>
+              <li v-else @click="showAlreadyReportedModal">
+                🚨 이미 신고한 사용자입니다
+              </li>
+              <li v-if="!isTempBanned(selectedMessage?.memberId)" @click="tempBanUser">
+                ⛔ 임시제한
+              </li>
+              <li v-else @click="releaseTempBan">
+                ✅ 임시제한 해제
+              </li>
+            </ul>
           </div>
         </div>
         <div class="chat-input">
@@ -173,6 +197,126 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+    
+    <!-- 신고 모달 -->
+    <v-dialog v-model="reportModalVisible" max-width="400" persistent>
+      <v-card class="custom-modal">
+        <v-card-title class="modal-title">
+          <v-icon left color="error" class="mr-2">mdi-flag</v-icon>
+          채팅 신고하기
+        </v-card-title>
+        <v-card-text class="modal-content">
+          <div class="reported-message mb-4" v-if="selectedMessage">
+            <p class="mb-1 text-caption text-grey">신고할 메시지:</p>
+            <v-card class="pa-2 reported-message-card">
+              <p class="mb-0"><strong>{{ selectedMessage.sender }}</strong>: {{ selectedMessage.message }}</p>
+            </v-card>
+          </div>
+          
+          <p class="mb-4">이 메시지를 신고하는 이유를 선택해주세요.</p>
+          
+          <v-radio-group v-model="reportReason" density="compact">
+            <v-radio value="욕설/비하" label="욕설/비하"></v-radio>
+            <v-radio value="스팸/광고" label="스팸/광고"></v-radio>
+            <v-radio value="성적 콘텐츠" label="성적 콘텐츠"></v-radio>
+            <v-radio value="개인정보 유출" label="개인정보 유출"></v-radio>
+            <v-radio value="기타" label="기타"></v-radio>
+          </v-radio-group>
+          
+          <v-textarea
+            v-if="reportReason === '기타'"
+            v-model="reportDescription"
+            label="구체적인 신고 내용을 작성해주세요"
+            rows="4"
+            variant="outlined"
+            class="mt-3"
+          ></v-textarea>
+        </v-card-text>
+        <v-card-actions class="modal-actions">
+          <v-spacer></v-spacer>
+          <v-btn color="grey-darken-1" variant="text" @click="cancelReport">취소</v-btn>
+          <v-btn color="error" variant="flat" @click="handleReport" :disabled="!reportReason">
+            신고하기
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+    
+    <!-- 이미 신고한 사용자에 대한 안내 모달 -->
+    <v-dialog v-model="alreadyReportedModalVisible" max-width="400">
+      <v-card class="custom-modal">
+        <v-card-title class="modal-title">
+          <v-icon left color="warning" class="mr-2">mdi-alert-circle</v-icon>
+          신고 내역 안내
+        </v-card-title>
+        <v-card-text class="modal-content">
+          <p>이미 신고한 사용자입니다.</p>
+          <p class="modal-sub-text">해당 사용자에 대한 신고가 접수되었으며, 처리 중입니다.</p>
+        </v-card-text>
+        <v-card-actions class="modal-actions">
+          <v-spacer></v-spacer>
+          <v-btn color="primary" text @click="alreadyReportedModalVisible = false">확인</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- 임시제한 모달 추가 -->
+    <v-dialog v-model="tempBanModalVisible" max-width="400">
+      <v-card class="custom-modal">
+        <v-card-title class="modal-title">
+          <v-icon left color="warning" class="mr-2">mdi-account-cancel</v-icon>
+          임시제한 설정
+        </v-card-title>
+        <v-card-text class="modal-content">
+          <div class="reported-message mb-4" v-if="selectedMessage">
+            <p class="mb-1 text-caption text-grey">제한할 사용자의 메시지:</p>
+            <v-card class="pa-2 reported-message-card">
+              <p class="mb-0"><strong>{{ selectedMessage.sender }}</strong>: {{ selectedMessage.message }}</p>
+            </v-card>
+          </div>
+          
+          <p>이 사용자의 채팅을 임시적으로 제한하시겠습니까?</p>
+          <p class="text-caption text-grey mt-2">
+            제한 이력에 따라 시간이 자동으로 설정됩니다:<br>
+            첫 번째: 30초 / 두 번째: 1분 / 세 번째: 5분 / 네 번째 이상: 10분
+          </p>
+        </v-card-text>
+        <v-card-actions class="modal-actions">
+          <v-spacer></v-spacer>
+          <v-btn color="grey-darken-1" variant="text" @click="tempBanModalVisible = false">취소</v-btn>
+          <v-btn color="warning" variant="flat" @click="handleTempBan">
+            임시제한 적용
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- 임시제한 해제 모달 추가 -->
+    <v-dialog v-model="releaseBanModalVisible" max-width="400">
+      <v-card class="custom-modal">
+        <v-card-title class="modal-title">
+          <v-icon left color="success" class="mr-2">mdi-account-check</v-icon>
+          임시제한 해제
+        </v-card-title>
+        <v-card-text class="modal-content">
+          <div class="reported-message mb-4" v-if="selectedMessage">
+            <p class="mb-1 text-caption text-grey">임시제한을 해제할 사용자:</p>
+            <v-card class="pa-2 reported-message-card">
+              <p class="mb-0"><strong>{{ selectedMessage.sender }}</strong></p>
+            </v-card>
+          </div>
+          
+          <p>이 사용자의 임시제한을 해제하시겠습니까?</p>
+        </v-card-text>
+        <v-card-actions class="modal-actions">
+          <v-spacer></v-spacer>
+          <v-btn color="grey-darken-1" variant="text" @click="releaseBanModalVisible = false">취소</v-btn>
+          <v-btn color="success" variant="flat" @click="handleReleaseTempBan">
+            임시제한 해제
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
@@ -182,8 +326,15 @@ import { jwtDecode } from 'jwt-decode';
 import SockJS from 'sockjs-client';
 import Stomp from 'webstomp-client';
 import Hls from 'hls.js'
+import { useRoute } from 'vue-router';
 
 export default {
+  setup() {
+    const route = useRoute();
+    return {
+      route
+    };
+  },
   data() {
     return {
       isStreaming: false,
@@ -191,6 +342,7 @@ export default {
       streamKey: '',
       streamId: null,
       roomId: null,
+      routeMemberId: null,
       
       title: '',
       category: null, // id 저장
@@ -221,21 +373,87 @@ export default {
         '#FF5E5B', '#D8315B', '#1EA896', '#3E92CC', '#C3BD78', 
         '#7768AE', '#FFB400', '#4AAB95', '#FF7A5A', '#7AC74F',
         '#00A5E0', '#8A4FFF', '#FF9505', '#9A348E', '#0077B6'
-      ]
+      ],
+      
+      // 컨텍스트 메뉴 관련
+      contextMenu: {
+        visible: false,
+        x: 0,
+        y: 0
+      },
+      selectedMessage: null,
+      
+      // 신고 관련
+      reportedUsers: new Set(),
+      reportModalVisible: false,
+      alreadyReportedModalVisible: false,
+      reportReason: null,
+      reportDescription: '',
+
+      // 임시제한 관련
+      tempBannedUsers: new Map(), // 사용자 ID를 키로, 제한 정보를 값으로 저장
+      tempBanModalVisible: false,
+      releaseBanModalVisible: false,
+      banCheckTimer: null, // 임시제한 상태 체크 타이머
     };
   },
+  
+  computed: {
+    // 자신의 메시지인지 확인하는 computed 속성
+    isOwnMessage() {
+      return (memberId) => {
+        return this.memberId === memberId;
+      };
+    }
+  },
+  
   async created() {
+    console.log('DoBroadcast 컴포넌트 created 호출');
+    // 라우트에서 memberId 가져오기
+    this.routeMemberId = this.route.params.memberId;
+    console.log('라우트에서 추출한 memberId:', this.routeMemberId);
+    
+    // 토큰에서 사용자 정보 가져오기
     const token = localStorage.getItem('token');
     if (token) {
       const payload = jwtDecode(token);
       this.memberId = payload.sub;
       this.userNickname = payload.nickname;
+      console.log('토큰에서 추출한 사용자 정보:', {
+        memberId: this.memberId,
+        nickname: this.userNickname
+      });
+    } else {
+      console.warn('토큰이 없습니다.');
     }
 
-    await Promise.all([
-      this.fetchCategories(),
-      this.fetchStreamingInfo()
-    ]);
+    console.log('초기화 작업 시작');
+    
+    try {
+      // 1. 스트리밍 ID 가져오기
+      await this.fetchStreamingId();
+      console.log('스트리밍 ID 로드 완료:', this.streamId);
+      
+      // 2. 카테고리 가져오기
+      await this.fetchCategories();
+      console.log('카테고리 로드 완료');
+      
+      // 3. 스트리밍 정보 가져오기
+      await this.fetchStreamingInfo();
+      console.log('방송 정보 로드 완료');
+      
+      // 4. 신고 목록 가져오기
+      if (this.memberId) {
+        await this.loadReportedUsers();
+        console.log('신고 목록 로드 완료');
+      }
+    } catch (error) {
+      console.error('초기화 중 오류 발생:', error);
+    }
+    
+    // 컨텍스트 메뉴 외부 클릭 시 닫기 이벤트 리스너 추가
+    document.addEventListener('click', this.closeContextMenu);
+    console.log('초기화 작업 완료');
   },
   methods: {
     // 파일 업로드 함수
@@ -253,21 +471,6 @@ export default {
       // 색상 배열에서 사용자 이름에 해당하는 색상 선택
       const colorIndex = hash % this.colors.length;
       return { color: this.colors[colorIndex] };
-    },
-
-    async getChatHistory() {
-      try {
-        const response = await axios.get(`${process.env.VUE_APP_STREAMING_API}/chat/history/${this.roomId}`);
-        if (Array.isArray(response.data)) {
-          this.messages = response.data;
-          // 메시지 로드 후 맨 아래로 스크롤
-          this.$nextTick(() => {
-            this.scrollToBottom();
-          });
-        }
-      } catch (error) {
-        console.error('채팅 기록 불러오기 실패:', error);
-      }
     },
 
     handleFileUpload(event) {
@@ -306,6 +509,7 @@ export default {
         formData.append('title', this.title);
         formData.append('category', this.category);
         formData.append('adultYn', this.adultYn);
+        formData.append('streamId', this.streamId); // streamId 추가
         
         if (this.tags.length > 0) {
           this.tags.forEach(tag => {
@@ -331,12 +535,18 @@ export default {
         
         // 응답에서 필요한 정보 추출
         const result = response.data.result;
-        this.streamId = result.streamId;
+        // streamId는 이미 설정되어 있으므로 덮어쓰지 않음
         this.streamKey = result.streamKey;
         this.roomId = result.roomId;
         
+        console.log('방송 시작 성공:', {
+          streamId: this.streamId,
+          streamKey: this.streamKey,
+          roomId: this.roomId
+        });
+        
         // 채팅방 연결
-        this.connectWebsocket();
+        await this.connectWebsocket();
         
         // 스트리밍 상태 변경
         this.isStreaming = true;
@@ -354,8 +564,15 @@ export default {
     
     // 웹소켓 연결 함수
     async connectWebsocket() {
+      console.log('connectWebsocket 시작: roomId =', this.roomId, 'streamId =', this.streamId);
       if (!this.roomId) {
         console.error('룸 ID가 없습니다.');
+        return;
+      }
+
+      // 이미 연결된 경우 중복 연결 방지
+      if (this.stompClient && this.stompClient.connected) {
+        console.log('이미 WebSocket에 연결되어 있습니다.');
         return;
       }
 
@@ -367,18 +584,54 @@ export default {
         console.log('WebSocket 연결 성공');
         this.isConnected = true;
 
+        const subscribeOptions = {};
+        // streamId가 있는 경우에만 옵션에 추가
+        if (this.streamId) {
+          subscribeOptions.streamId = this.streamId;
+          console.log('WebSocket 구독 시 streamId 전달:', this.streamId);
+        }
+
         this.stompClient.subscribe(`/topic/${this.roomId}`, (message) => {
+          console.log('✅ 메시지 수신:', message);
           try {
             const parsed = JSON.parse(message.body);
-            this.messages.push(parsed);
+            console.log('파싱된 메시지 데이터:', parsed);
+            
+            // 메시지 유효성 검사
+            if (!parsed) {
+              console.error('메시지 데이터가 null/undefined입니다');
+              return;
+            }
+            
+            // 메시지 객체를 명시적으로 구성하여 저장
+            const newMessage = {
+              messageId: parsed.messageId || `live-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+              roomId: parsed.roomId || this.roomId,
+              memberId: parsed.memberId,
+              message: parsed.message || '',
+              sender: parsed.sender || '익명',
+              type: parsed.type || 'TALK',
+              createdTime: parsed.createdTime || new Date().toISOString()
+            };
+            
+            console.log('최종 구성된 메시지:', newMessage);
+            
+            // 메시지 저장 및 스크롤 처리
+            this.messages.push(newMessage);
             this.scrollToBottom();
           } catch (err) {
             console.error('메시지 파싱 실패:', err);
           }
-        });
+        }, subscribeOptions);
       }, (err) => {
         console.error('WebSocket 연결 실패:', err);
         this.isConnected = false;
+        
+        // 연결 재시도
+        setTimeout(() => {
+          console.log('WebSocket 재연결 시도...');
+          this.connectWebsocket();
+        }, 3000);
       });
     },
     
@@ -428,8 +681,12 @@ export default {
     },
     async fetchStreamingInfo() {
       try {
+        // 스트리머 ID 기반으로 방송 정보 가져오기
+        const memberId = this.routeMemberId || this.memberId;
+        console.log('방송 정보 조회할 memberId:', memberId);
+        
         const response = await axios.get(
-          `${process.env.VUE_APP_STREAMING_API}/streaming/getStreaming/${this.memberId}`,
+          `${process.env.VUE_APP_STREAMING_API}/streaming/getStreaming/${memberId}`,
           {
             headers: {
               Authorization: `Bearer ${localStorage.getItem('token')}`
@@ -438,15 +695,24 @@ export default {
         );
 
         const result = response.data.result;
+
         console.log('[fetchStreamingInfo] 방송 정보', result); 
         console.log('[fetchStreamingInfo] thumbnail', result.thumbnail);
+
         this.title = result.title;
         this.category = result.categoryId;
         this.tags = result.hashTags;
         this.adultYn = result.adultYn || 'N';
         this.thumbnailPreview = result.thumbnail;
         this.streamKey = result.streamKey; 
-        this.roomId = result.roomId;       
+        this.roomId = result.roomId;
+        
+        console.log('fetchStreamingInfo에서 설정된 값:', {
+          streamKey: this.streamKey,
+          roomId: this.roomId,
+          streamId: this.streamId
+        });
+        
         if (this.streamKey && this.roomId) {
           this.isStreaming = true;
         } else {
@@ -454,10 +720,49 @@ export default {
         }
 
         this.initializeStreamingVideo();   // streamKey 설정 후 video 초기화
-        await this.getChatHistory();
-        await this.connectWebsocket();      // roomId로 채팅 연결
+        
+        // 채팅 기록 가져오기
+        if (this.roomId) {
+          try {
+            const chatResponse = await axios.get(`${process.env.VUE_APP_STREAMING_API}/chat/history/${this.roomId}`);
+            console.log('채팅 기록 API 응답:', chatResponse);
+            
+            if (Array.isArray(chatResponse.data)) {
+              console.log('채팅 기록 데이터 배열 길이:', chatResponse.data.length);
+              
+              // 메시지 객체 생성 및 저장
+              this.messages = chatResponse.data.map(item => ({
+                messageId: item.messageId || `history-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+                roomId: item.roomId || this.roomId,
+                memberId: item.memberId,
+                message: item.message || '',
+                sender: item.sender || '익명',
+                type: item.type || 'TALK',
+                createdTime: item.createdTime || new Date().toISOString()
+              }));
+              
+              // 메시지 로드 후 맨 아래로 스크롤
+              this.$nextTick(() => {
+                this.scrollToBottom();
+              });
+            }
+          } catch (chatError) {
+            console.error('채팅 기록 불러오기 실패:', chatError);
+          }
+        }
+        
+        // roomId와 streamId가 모두 있을 때만 WebSocket 연결
+        if (this.roomId && this.streamId) {
+          console.log('WebSocket 연결 시작 - roomId와 streamId 확인:', this.roomId, this.streamId);
+          await this.connectWebsocket();
+        } else {
+          console.error('WebSocket 연결 실패 - roomId 또는 streamId가 없음:', {
+            roomId: this.roomId,
+            streamId: this.streamId
+          });
+        }
       } catch (error) {
-        console.error('방송 정보 불러오기 실패', error);
+        console.error('방송 정보 불러오기 실패:', error);
         this.showMessageModal('방송 정보 로드 실패', '방송 정보를 불러오는 데 실패했습니다.', 'error');
       }
     },
@@ -557,6 +862,332 @@ export default {
         this.modalAction = null;
       }
     },
+
+    openContextMenu(event, message) {
+      event.preventDefault()
+      console.log('컨텍스트 메뉴 오픈 시도, 메시지 객체:', message)
+      
+      // 메시지 객체가 유효한지 자세히 검사
+      if (!message || typeof message !== 'object') {
+        console.error('메시지 객체가 유효하지 않습니다:', message)
+        return
+      }
+      
+      // 자신의 메시지는 컨텍스트 메뉴를 열지 않음
+      if (message.memberId && this.memberId && message.memberId.toString() === this.memberId.toString()) {
+        console.log('자신의 메시지라 컨텍스트 메뉴를 열지 않습니다.')
+        return
+      }
+      
+      // messageId가 없는 경우 생성
+      if (!message.messageId) {
+        console.warn('메시지 ID가 없어 자동 생성합니다')
+        message.messageId = `menu-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+        console.log('자동 생성된 메시지 ID:', message.messageId)
+      }
+      
+      // 임시제한 사용자 목록 업데이트 (만료된 항목 제거)
+      const now = new Date()
+      this.tempBannedUsers.forEach((banInfo, userId) => {
+        if (now > new Date(banInfo.expireAt)) {
+          console.log(`사용자 ${userId}의 임시제한이 만료되었습니다.`)
+          this.tempBannedUsers.delete(userId)
+        }
+      })
+      
+      this.selectedMessage = { ...message }  // 깊은 복사로 참조 문제 방지
+      console.log('선택된 메시지:', this.selectedMessage)
+      
+      // 컨텍스트 메뉴 위치 설정
+      let x = event.clientX
+      let y = event.clientY
+      
+      // 화면 우측 경계 체크
+      const menuWidth = 150
+      if (x + menuWidth > window.innerWidth) {
+        x = window.innerWidth - menuWidth - 10
+      }
+      
+      // 화면 하단 경계 체크
+      const menuHeight = 150
+      if (y + menuHeight > window.innerHeight) {
+        y = window.innerHeight - menuHeight - 10
+      }
+      
+      // 기존 컨텍스트 메뉴를 먼저 닫고 새로 열기
+      this.contextMenu.visible = false
+      
+      // 약간의 지연 후 메뉴 표시
+      setTimeout(() => {
+        this.contextMenu = {
+          visible: true,
+          x: x,
+          y: y
+        }
+        console.log('컨텍스트 메뉴가 표시됨:', this.contextMenu)
+      }, 50)
+    },
+
+    async reportMessage(message) {
+      console.log('reportMessage 호출됨, 메시지 객체:', message);
+      console.log('메시지 ID 존재 여부:', !!message.messageId);
+      
+      try {
+        // reportReason을 ReportType enum 값으로 변환
+        let reportType = 'OTHER';
+        if (this.reportReason === '욕설/비하') reportType = 'ABUSE';
+        else if (this.reportReason === '스팸/광고') reportType = 'SPAMMING'; 
+        else if (this.reportReason === '성적 콘텐츠') reportType = 'SEXUAL';
+        
+        const reportData = {
+          reportedChatMessageId: message.messageId,
+          reportReason: this.reportReason === '기타' ? this.reportDescription : this.reportReason,
+          reportType: reportType
+        };
+        
+        console.log('신고 데이터:', reportData);
+        
+        const response = await axios.post(
+          `${process.env.VUE_APP_STREAMING_API}/chat/report`,
+          reportData,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('token')}`
+            }
+          }
+        );
+
+        console.log('신고 API 응답:', response);
+        
+        this.showMessageModal('신고 완료', '해당 메시지가 성공적으로 신고되었습니다.', 'success');
+        this.reportedUsers.add(message.memberId);
+        console.log('신고된 사용자 목록에 추가됨:', message.memberId);
+        console.log('현재 신고된 사용자 목록 크기:', this.reportedUsers.size);
+        
+        // 신고 관련 상태 초기화
+        this.reportReason = null;
+        this.reportDescription = '';
+      } catch (error) {
+        console.error('메시지 신고 실패:', error);
+        console.error('에러 세부 정보:', error.response?.data);
+        this.showMessageModal('신고 실패', '메시지 신고에 실패했습니다: ' + (error.response?.data?.message || error.message), 'error');
+      }
+    },
+
+    async showReportModal() {
+      if (this.selectedMessage) {
+        this.reportModalVisible = true;
+      }
+      this.contextMenu.visible = false;
+    },
+
+    async showAlreadyReportedModal() {
+      this.alreadyReportedModalVisible = true;
+      this.contextMenu.visible = false;
+    },
+
+    async handleReport() {
+      if (this.selectedMessage) {
+        await this.reportMessage(this.selectedMessage);
+        this.selectedMessage = null;
+        this.reportModalVisible = false;
+      }
+    },
+
+    async cancelReport() {
+      this.selectedMessage = null;
+      this.reportModalVisible = false;
+    },
+
+    // 컨텍스트 메뉴 외부 클릭 시 닫기 이벤트 리스너
+    closeContextMenu(event) {
+      // 컨텍스트 메뉴가 보이는 상태에서만 처리
+      if (!this.contextMenu.visible) return;
+      
+      // 컨텍스트 메뉴나 해당 항목 클릭이 아닌 경우에만 닫기
+      if (!event.target.closest('.context-menu') && !event.target.closest('.chat-message')) {
+        this.contextMenu.visible = false;
+      }
+    },
+
+    // 신고한 사용자 목록 로드 메서드
+    async loadReportedUsers() {
+      console.log('loadReportedUsers 호출됨');
+      try {
+        const response = await axios.get(
+          `${process.env.VUE_APP_STREAMING_API}/chat/report/mylist`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('token')}`
+            }
+          }
+        );
+
+        console.log('신고 목록 API 응답 형식:', typeof response.data);
+        
+        // 응답 데이터 구조에 따라 처리
+        let reportList = [];
+        
+        if (response.data?.result && Array.isArray(response.data.result)) {
+          // result 필드에 배열이 있는 경우
+          reportList = response.data.result;
+        } else if (Array.isArray(response.data)) {
+          // 직접 배열인 경우
+          reportList = response.data;
+        } else {
+          console.warn('예상과 다른 응답 형식:', response.data);
+        }
+        
+        console.log('처리할 신고 목록:', reportList);
+        
+        // 신고된 사용자 ID 추출 및 Set에 추가
+        reportList.forEach(item => {
+          const reportedId = item?.reportedMemberId || item?.memberId || item;
+          
+          if (reportedId) {
+            this.reportedUsers.add(reportedId.toString());
+            console.log('신고된 사용자 ID 추가:', reportedId);
+          }
+        });
+        
+        console.log('최종 신고된 사용자 목록 크기:', this.reportedUsers.size);
+      } catch (error) {
+        console.error('신고한 사용자 목록 로드 실패:', error);
+        console.error('에러 응답:', error.response?.data);
+      }
+    },
+
+    // 스트리밍 ID 가져오기
+    async fetchStreamingId() {
+      try {
+        const response = await axios.get(
+          `${process.env.VUE_APP_STREAMING_API}/streaming/get/streamingId`,
+          {
+            params: { memberId: this.routeMemberId || this.memberId },
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('token')}`
+            }
+          }
+        );
+
+        if (response.data && response.data.result) {
+          this.streamId = response.data.result;
+          console.log('스트리밍 ID API 응답:', response.data);
+          console.log('설정된 스트리밍 ID:', this.streamId);
+          return true;
+        } else {
+          console.error('스트리밍 ID를 가져오지 못했습니다:', response.data);
+          return false;
+        }
+      } catch (error) {
+        console.error('스트리밍 ID 조회 실패:', error);
+        console.error('에러 응답:', error.response?.data);
+        return false;
+      }
+    },
+
+    // 임시제한 여부 확인
+    isTempBanned(memberId) {
+      if (!memberId) return false;
+      
+      const bannedInfo = this.tempBannedUsers.get(memberId.toString());
+      if (!bannedInfo) return false;
+      
+      // 만료 시간이 지났는지 확인
+      const now = new Date();
+      const expireAt = new Date(bannedInfo.expireAt);
+      
+      if (now > expireAt) {
+        // 만료된 경우 목록에서 제거
+        this.tempBannedUsers.delete(memberId.toString());
+        return false;
+      }
+      
+      return true;
+    },
+    
+    // 임시제한 모달 표시
+    tempBanUser() {
+      if (this.selectedMessage) {
+        this.tempBanModalVisible = true;
+      }
+      this.contextMenu.visible = false;
+    },
+    
+    // 임시제한 해제 모달 표시
+    releaseTempBan() {
+      if (this.selectedMessage) {
+        this.releaseBanModalVisible = true;
+      }
+      this.contextMenu.visible = false;
+    },
+    
+    // 임시제한 적용 처리
+    async handleTempBan() {
+      if (!this.selectedMessage) {
+        this.tempBanModalVisible = false;
+        return;
+      }
+      
+      try {
+        const response = await axios.post(
+          `${process.env.VUE_APP_STREAMING_API}/chat/ban/temp`,
+          { messageId: this.selectedMessage.messageId },
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('token')}`
+            }
+          }
+        );
+        
+        console.log('임시제한 응답:', response.data);
+        
+        // 성공 시 목록에 추가
+        this.tempBannedUsers.set(this.selectedMessage.memberId.toString(), {
+          expireAt: new Date(Date.now() + 10 * 60 * 1000), // 기본적으로 10분으로 설정 (실제로는 서버에서 계산)
+          nickname: this.selectedMessage.sender
+        });
+        
+        this.showMessageModal('임시제한 적용', `'${this.selectedMessage.sender}'님을 임시제한 했습니다.`, 'success');
+      } catch (error) {
+        console.error('임시제한 적용 실패:', error);
+        this.showMessageModal('임시제한 실패', '임시제한 적용에 실패했습니다: ' + (error.response?.data?.message || error.message), 'error');
+      } finally {
+        this.tempBanModalVisible = false;
+      }
+    },
+    
+    // 임시제한 해제 처리
+    async handleReleaseTempBan() {
+      if (!this.selectedMessage) {
+        this.releaseBanModalVisible = false;
+        return;
+      }
+      
+      try {
+        const response = await axios.delete(
+          `${process.env.VUE_APP_STREAMING_API}/chat/ban/temp/release`,
+          {
+            data: { targetMessageId: this.selectedMessage.messageId },
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('token')}`
+            }
+          }
+        );
+        
+        console.log('임시제한 해제 응답:', response.data);
+        
+        // 성공 시 목록에서 제거
+        this.tempBannedUsers.delete(this.selectedMessage.memberId.toString());
+        
+        this.showMessageModal('임시제한 해제', `'${this.selectedMessage.sender}'님을 임시제한 해제 했습니다.`, 'success');
+      } catch (error) {
+        console.error('임시제한 해제 실패:', error);
+        this.showMessageModal('임시제한 해제 실패', '임시제한 해제에 실패했습니다: ' + (error.response?.data?.message || error.message), 'error');
+      } finally {
+        this.releaseBanModalVisible = false;
+      }
+    },
   },
   onMounted() {
     this.initializeStreaming();
@@ -566,6 +1197,11 @@ export default {
     if (this.stompClient && this.stompClient.connected) {
       this.stompClient.disconnect();
     }
+    
+    // 타이머 정리 코드 제거
+    
+    // 이벤트 리스너 제거
+    document.removeEventListener('click', this.closeContextMenu);
   }
 };
 </script>
@@ -878,6 +1514,57 @@ export default {
   padding: 12px 20px;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
+
+/* 컨텍스트 메뉴 스타일 */
+.context-menu {
+  position: fixed;
+  background-color: #1e2029;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 8px 0;
+  z-index: 9999;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+  min-width: 150px;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.context-menu ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.context-menu li {
+  padding: 10px 16px;
+  cursor: pointer;
+  color: #fff;
+  font-size: 14px;
+  transition: all 0.2s;
+  margin: 0 4px;
+  border-radius: 4px;
+}
+
+.context-menu li:hover {
+  background-color: rgba(114, 124, 245, 0.3);
+}
+
+/* 신고 관련 스타일 */
+.reported-message-card {
+  background-color: #2a2a2a !important;
+  border-left: 3px solid #ff5252;
+}
+
+.own-message {
+  background-color: rgba(114, 124, 245, 0.1);
+  margin-left: auto;
+  border-radius: 8px;
+  max-width: 80%;
+}
 </style>
 
 <style>
@@ -912,4 +1599,5 @@ export default {
   scrollbar-color: rgba(255, 255, 255, 0.7) transparent; /* Firefox */
 }
 </style>
+  
   

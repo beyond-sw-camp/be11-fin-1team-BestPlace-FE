@@ -3,6 +3,16 @@
     <v-card class="report-modal">
       <v-card-title class="text-h6">채팅 신고하기</v-card-title>
       <v-card-text>
+        <div class="message-preview" v-if="props.message">
+          <p class="preview-title">신고할 메시지:</p>
+          <div class="message-content">
+            <strong>{{ props.message.sender }}:</strong> {{ props.message.message }}
+          </div>
+          <div class="message-meta">
+            메시지 ID: {{ props.message.messageId }}
+          </div>
+        </div>
+
         <v-form @submit.prevent="submitReport">
           <v-select
             v-model="reportData.reportType"
@@ -30,7 +40,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watchEffect } from 'vue'
 import { defineProps, defineEmits } from 'vue'
 
 const props = defineProps({
@@ -46,9 +56,18 @@ const dialog = computed({
 })
 
 const reportData = ref({
-  reportedChatMessageId: props.message?.messageId || null,
+  reportedChatMessageId: null,
   reportType: null,
   reportReason: ''
+})
+
+// props.message가 변경될 때마다 reportData의 reportedChatMessageId를 업데이트
+watchEffect(() => {
+  if (props.message) {
+    console.log('메시지 ID 설정:', props.message.messageId);
+    // reportedChatMessageId가 항상 최신 상태로 유지되도록 함
+    reportData.value.reportedChatMessageId = props.message.messageId;
+  }
 })
 
 const reportTypes = [
@@ -61,7 +80,8 @@ const reportTypes = [
 const isValid = computed(() => {
   return reportData.value.reportType && 
          reportData.value.reportReason && 
-         reportData.value.reportReason.length <= 300
+         reportData.value.reportReason.length <= 300 &&
+         reportData.value.reportedChatMessageId
 })
 
 const close = () => {
@@ -78,9 +98,23 @@ const resetForm = () => {
 }
 
 const submitReport = () => {
+  if (!reportData.value.reportedChatMessageId) {
+    console.error('메시지 ID가 없습니다:', props.message);
+    alert('메시지 ID가 없어 신고할 수 없습니다.');
+    return;
+  }
+  
+  console.log('신고 데이터 전송:', reportData.value);
+  
   if (isValid.value) {
-    emit('submit', reportData.value)
-    close()
+    const reportPayload = {
+      ...reportData.value,
+      // messageId가 문자열인 경우 숫자로 변환 시도
+      reportedChatMessageId: Number(reportData.value.reportedChatMessageId) || reportData.value.reportedChatMessageId
+    };
+    
+    emit('submit', reportPayload);
+    close();
   }
 }
 </script>
@@ -89,6 +123,30 @@ const submitReport = () => {
 .report-modal {
   background-color: #1e2029;
   color: #fff;
+}
+
+.message-preview {
+  margin-bottom: 16px;
+  padding: 12px;
+  background-color: rgba(45, 45, 45, 0.5);
+  border-radius: 4px;
+  border-left: 3px solid #B084CC;
+}
+
+.preview-title {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 4px;
+}
+
+.message-content {
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.message-meta {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .report-modal :deep(.v-card-title) {
