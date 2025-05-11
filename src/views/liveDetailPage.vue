@@ -144,7 +144,7 @@
       </div>
       <div class="chat-messages" ref="chatContainer">
         <div
-          v-for="message in messages"
+          v-for="message in filteredMessages"
           :key="message.messageId"
           class="chat-message"
           :class="{ 'own-message': message.memberId === memberId, 'donation-message': message.type === 'CHAT_DONATION' }"
@@ -171,7 +171,7 @@
             </div>
           </template>
           <template v-else>
-            <span class="sender" :style="getUsernameColor(message.sender)">{{ message.sender }}</span>
+            <span class="sender" :style="message.type === 'TALK' ? getUsernameColor(message.sender) : ''">{{ message.sender }}</span>
             <span class="message-content">{{ message.message }}</span>
           </template>
         </div>
@@ -206,7 +206,7 @@
           <span class="donation-icon">🗨️ </span>
           <span class="donation-amount">채팅 후원</span>
         </button>
-        <button class="donation-button" :disabled="!isLogin">
+        <button class="donation-button" @click="toggleMissionDonation" :disabled="!isLogin">
           <span class="donation-icon">🎯</span>
           <span class="donation-amount">미션 후원</span>
         </button>
@@ -241,9 +241,9 @@
               v-model="donationMsg" 
               type="text" 
               placeholder="후원 메시지를 입력하세요"
-              maxlength="100"
+              maxlength="30"
             />
-            <div class="char-count">{{ donationMsg.length }}/100</div>
+            <div class="char-count">{{ donationMsg.length }}/30</div>
           </div>
           <div class="donation-amount-group">
             <label>후원 베리</label>
@@ -270,6 +270,81 @@
             @click="userBerryAmount < donationAmount ? chargeAndDonate() : sendDonation()"
           >
             {{ loading ? '처리 중...' : userBerryAmount < donationAmount ? '충전하고 후원하기' : '후원하기' }}
+          </button>
+        </div>
+      </div>
+
+      <!-- 미션 후원 드롭다운 추가 -->
+      <div class="chat-donation-dropdown mission-donation-dropdown" v-if="showMissionDonation">
+        <div class="dropdown-header">
+          <span class="dropdown-title">미션 후원하기</span>
+          <button class="close-button" @click="toggleMissionDonation">
+            <svg viewBox="0 0 24 24" width="16" height="16">
+              <path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+            </svg>
+          </button>
+        </div>
+        <div class="dropdown-content">
+          <div class="my-berry-info">
+            <div class="berry-icon">🍒</div>
+            <div class="berry-text">
+              <div class="berry-label">내 보유 베리</div>
+              <div class="berry-value">{{ userBerryAmount }} 개</div>
+            </div>
+            <button class="berry-refresh" @click="refreshMyBerry">
+              <svg viewBox="0 0 24 24" width="16" height="16">
+                <path fill="currentColor" d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+              </svg>
+            </button>
+          </div>
+          <div class="donation-input-group">
+            <label>미션 내용</label>
+            <input 
+              v-model="missionMsg" 
+              type="text" 
+              placeholder="스트리머에게 요청할 미션을 입력하세요"
+              maxlength="30"
+            />
+            <div class="char-count">{{ missionMsg.length }}/30</div>
+          </div>
+          <div class="donation-input-group">
+            <label>제한 시간</label>
+            <input 
+              v-model="missionDeadlineFormatted" 
+              type="text" 
+              placeholder="제한 시간 형식: 00:30:00"
+              @input="validateTimeFormat"
+              :class="{ 'invalid': !isValidDeadline }"
+            />
+            <div class="time-hint" :class="{ 'time-error': !isValidDeadline }">
+              {{ isValidDeadline ? 'HH:MM:SS 형식으로 입력해주세요' : 'HH:MM:SS 형식으로 입력해주세요 (최대 3시간)' }}
+            </div>
+          </div>
+          <div class="donation-amount-group">
+            <label>후원 베리</label>
+            <div class="amount-input">
+              <input 
+                v-model="missionAmount" 
+                type="number" 
+                min="1000"
+                placeholder="후원할 베리 수량 (최소 1,000베리)"
+              />
+              <span class="berry-unit">베리</span>
+            </div>
+            <div class="amount-presets">
+              <button @click="missionAmount += 1000">1,000</button>
+              <button @click="missionAmount += 5000">5,000</button>
+              <button @click="missionAmount += 10000">10,000</button>
+              <button @click="missionAmount += 50000">50,000</button>
+            </div>
+          </div>
+          <button 
+            class="donate-button"
+            :class="{ 'charge-donate-button': userBerryAmount < missionAmount }"
+            :disabled="missionAmount < 1000 || !missionMsg || !isLogin || missionLoading || !isValidDeadline"
+            @click="userBerryAmount < missionAmount ? chargeAndMissionDonate() : sendMissionDonation()"
+          >
+            {{ missionLoading ? '처리 중...' : userBerryAmount < missionAmount ? '충전하고 미션 후원하기' : '미션 후원하기' }}
           </button>
         </div>
       </div>
@@ -651,6 +726,13 @@ const chargeAmount = ref(1000)
 const failureModalOpen = ref(false)
 const failureMessage = ref('')
 const adultRestrictionModalOpen = ref(false)  // 성인 콘텐츠 제한 모달
+const showMissionDonation = ref(false)
+const missionMsg = ref('')
+const missionAmount = ref(1000) // 최소 1,000베리로 변경
+const missionLoading = ref(false)
+const missionDeadline = ref(1800) // 기본값 30분(초 단위로 계산: 30분 = 1800초)
+const missionDeadlineFormatted = ref('00:30:00') // 포맷팅된 시간
+const isValidDeadline = ref(true) // 시간 형식 유효성
 
 // 사용자 이름 색상을 위한 색상 배열 추가
 const colors = ref([
@@ -1929,6 +2011,11 @@ const toggleChatDonation = () => {
   if (showChatDonation.value && isLogin.value) {
     refreshMyBerry()
   }
+  
+  // 미션 후원 드롭다운이 열려있으면 닫기
+  if (showChatDonation.value && showMissionDonation.value) {
+    showMissionDonation.value = false
+  }
 }
 
 // 내 베리 정보 갱신
@@ -2222,6 +2309,136 @@ const handleAdultRestrictionConfirm = () => {
   adultRestrictionModalOpen.value = false;
   router.push('/');
 }
+
+// 미션 후원 토글 함수
+const toggleMissionDonation = () => {
+  showMissionDonation.value = !showMissionDonation.value
+  if (showMissionDonation.value && isLogin.value) {
+    refreshMyBerry()
+  }
+  
+  // 채팅 후원 드롭다운이 열려있으면 닫기
+  if (showMissionDonation.value && showChatDonation.value) {
+    showChatDonation.value = false
+  }
+}
+
+// 미션 후원 전송 함수
+const sendMissionDonation = async () => {
+  if (!isLogin.value) {
+    alert('로그인이 필요합니다.')
+    return
+  }
+  
+  if (missionAmount.value < 1000) { // 최소 베리 1,000으로 변경
+    alert('최소 1000베리 이상 후원해야 합니다.')
+    return
+  }
+  
+  if (!missionMsg.value.trim()) {
+    alert('미션 내용을 입력해주세요.')
+    return
+  }
+  
+  if (!isValidDeadline.value) {
+    alert('유효한 제한 시간을 입력해주세요.')
+    return
+  }
+  
+  missionLoading.value = true
+  
+  try {
+    // 미션 후원 API 호출
+    await axios.post(`${paymentApi}/payment/mission/done/register`, {
+      toMemberId: streamInfo.value.memberId,
+      berryAmount: missionAmount.value,
+      donationMessage: missionMsg.value,
+      deadLine: missionDeadline.value
+    }, {
+      headers: {
+        'Authorization': `Bearer ${token.value}`
+      }
+    })
+    
+    // 후원 성공 처리
+    userBerryAmount.value -= missionAmount.value
+    missionMsg.value = ''
+    missionAmount.value = 1000 // 초기값 1,000으로 변경
+    missionDeadlineFormatted.value = '00:30:00' // 기본 시간으로 초기화
+    showMissionDonation.value = false
+    
+    // 성공 메시지 표시
+    showCuteAlert('미션 후원이 성공적으로 등록되었습니다.', '미션 후원 완료', 'success')
+    
+  } catch (error) {
+    console.error('미션 후원 처리 실패:', error)
+    if (error.response && error.response.status === 400 && 
+        error.response.data.message === '보유한 베리가 부족합니다.') {
+      chargeAndMissionDonate()
+    } else {
+      showCuteAlert('미션 후원 처리 중 오류가 발생했습니다.', '미션 후원 실패', 'error')
+    }
+  } finally {
+    missionLoading.value = false
+  }
+}
+
+// 충전하고 미션 후원하기 함수
+const chargeAndMissionDonate = () => {
+  // 충전 모달 열기
+  openChargeModal()
+  
+  // 충전 완료 후 처리를 위한 이벤트 리스너 설정
+  const chargeCompleteListener = () => {
+    // 충전이 성공적으로 완료되면 베리 잔액 새로고침 후 미션 후원 시도
+    refreshMyBerry()
+    // 베리가 충분한지 재확인 후 후원 시도
+    if (userBerryAmount.value >= missionAmount.value) {
+      sendMissionDonation()
+    }
+  }
+  
+  // 충전 결과 리스너 등록
+  window.addEventListener('chargeComplete', chargeCompleteListener, { once: true })
+}
+
+// 시간 형식 검증 함수
+const validateTimeFormat = () => {
+  const timeRegex = /^(\d{1,2}):(\d{2}):(\d{2})$/
+  const match = missionDeadlineFormatted.value.match(timeRegex)
+  
+  if (!match) {
+    isValidDeadline.value = false
+    return
+  }
+  
+  const hours = parseInt(match[1])
+  const minutes = parseInt(match[2])
+  const seconds = parseInt(match[3])
+  
+  // 유효한 시간인지 검증 (최대 3시간)
+  if (hours < 0 || hours > 3 || minutes < 0 || minutes > 59 || seconds < 0 || seconds > 59 || 
+     (hours === 3 && (minutes > 0 || seconds > 0))) {
+    isValidDeadline.value = false
+    return
+  }
+  
+  isValidDeadline.value = true
+  
+  // 초 단위로 계산하여 저장
+  missionDeadline.value = hours * 3600 + minutes * 60 + seconds
+}
+
+// Add a computed property for better handling
+const filteredMessages = computed(() => {
+  return messages.value.filter(message => {
+    // MISSION으로 시작하는 type을 가진 메시지는 표시하지 않음
+    if (message.type && message.type.toString().startsWith('MISSION')) {
+      return false;
+    }
+    return true;
+  });
+});
 
 </script>
 
@@ -3461,5 +3678,262 @@ body .global-temp-ban-modal {
   font-weight: 500;
   color: #ff5252;
   margin-bottom: 16px;
+}
+
+/* 미션 후원 드롭다운 스타일 */
+.chat-donation-dropdown.mission-donation-dropdown {
+  position: absolute;
+  bottom: 65px; /* 버튼 높이(약 45px) + 마진(20px) */
+  left: 0;
+  right: 0;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 8px;
+  margin: 0 12px;
+  z-index: 100;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  animation: slideUp 0.2s ease;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.dropdown-header.mission-donation-dropdown {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: #2d2d2d;
+  border-bottom: 1px solid #333;
+}
+
+.dropdown-title.mission-donation-dropdown {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.close-button.mission-donation-dropdown {
+  background: none;
+  border: none;
+  color: #aaa;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.dropdown-content.mission-donation-dropdown {
+  padding: 16px;
+}
+
+.my-berry-info.mission-donation-dropdown {
+  display: flex;
+  align-items: center;
+  background: rgba(176, 132, 204, 0.1);
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.berry-icon.mission-donation-dropdown {
+  font-size: 24px;
+  margin-right: 12px;
+}
+
+.berry-text.mission-donation-dropdown {
+  flex: 1;
+}
+
+.berry-label.mission-donation-dropdown {
+  font-size: 12px;
+  color: #aaa;
+}
+
+.berry-value.mission-donation-dropdown {
+  font-size: 16px;
+  font-weight: 600;
+  color: #b084cc;
+}
+
+.berry-refresh.mission-donation-dropdown {
+  background: none;
+  border: none;
+  color: #aaa;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.berry-refresh.mission-donation-dropdown:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.donation-input-group.mission-donation-dropdown,
+.donation-amount-group.mission-donation-dropdown {
+  margin-bottom: 16px;
+}
+
+.donation-input-group.mission-donation-dropdown label,
+.donation-amount-group.mission-donation-dropdown label {
+  display: block;
+  font-size: 14px;
+  margin-bottom: 8px;
+  color: #aaa;
+}
+
+.donation-input-group.mission-donation-dropdown input,
+.amount-input.mission-donation-dropdown input {
+  width: 100%;
+  padding: 10px 12px;
+  background: #2d2d2d;
+  border: 1px solid #444;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 14px;
+}
+
+.donation-input-group.mission-donation-dropdown input:focus,
+.amount-input.mission-donation-dropdown input:focus {
+  border-color: #b084cc;
+  outline: none;
+}
+
+.char-count.mission-donation-dropdown {
+  font-size: 12px;
+  color: #777;
+  text-align: right;
+  margin-top: 4px;
+}
+
+.amount-input.mission-donation-dropdown {
+  position: relative;
+  margin-bottom: 8px;
+}
+
+.berry-unit.mission-donation-dropdown {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #777;
+}
+
+.amount-presets.mission-donation-dropdown {
+  display: flex;
+  gap: 8px;
+}
+
+.amount-presets.mission-donation-dropdown button {
+  flex: 1;
+  padding: 6px 0;
+  background: #2d2d2d;
+  border: 1px solid #444;
+  border-radius: 4px;
+  color: #ccc;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.amount-presets.mission-donation-dropdown button:hover {
+  background: #3d3d3d;
+  border-color: #555;
+}
+
+.donate-button.mission-donation-dropdown {
+  width: 100%;
+  padding: 12px;
+  background: #b084cc;
+  border: none;
+  border-radius: 4px;
+  color: #000;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.donate-button.mission-donation-dropdown:hover {
+  background: #9e70b9;
+}
+
+.donate-button.mission-donation-dropdown:disabled {
+  background: #666;
+  color: #aaa;
+  cursor: not-allowed;
+}
+
+/* 충전하고 미션 후원하기 함수 추가 */
+.charge-donate-button.mission-donation-dropdown {
+  background: linear-gradient(45deg, #b084cc, #ff9505);
+}
+
+.charge-donate-button.mission-donation-dropdown:hover {
+  background: linear-gradient(45deg, #9e70b9, #e88600);
+}
+
+.donate-button.mission-donation-dropdown:disabled {
+  background: #1A1A1A;
+  color: #555;
+  cursor: not-allowed;
+  opacity: 0.7;
+  border-color: #222;
+}
+
+.donate-button.mission-donation-dropdown:hover:disabled {
+  background: #1A1A1A;
+  border-color: #222;
+}
+
+/* 성인 콘텐츠 제한 모달 스타일 */
+.adult-restriction-content.mission-donation-dropdown {
+  text-align: center;
+  padding: 24px 16px;
+}
+
+.adult-main-text.mission-donation-dropdown {
+  font-size: 18px;
+  font-weight: 500;
+  color: #ff5252;
+  margin-bottom: 16px;
+}
+
+/* 제한 시간 선택 스타일 */
+.time-presets {
+  display: none; /* 더 이상 사용하지 않음 */
+}
+
+/* 시간 입력 필드에 대한 스타일 추가 */
+.donation-input-group input[type="text"] {
+  width: 100%;
+  padding: 10px 12px;
+  background: #2D2D2D;
+  border: 1px solid #444;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 14px;
+}
+
+.donation-input-group input[type="text"]:focus {
+  border-color: #B084CC;
+  outline: none;
+}
+
+.donation-input-group input[type="text"].invalid {
+  border-color: #ff5252;
+}
+
+.time-hint {
+  font-size: 12px;
+  color: #777;
+  text-align: right;
+  margin-top: 4px;
+}
+
+.time-error {
+  color: #ff5252;
 }
 </style>
