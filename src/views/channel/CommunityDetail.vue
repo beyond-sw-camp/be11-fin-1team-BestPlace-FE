@@ -1659,7 +1659,7 @@ onUnmounted(() => {
 }
 
 .comment-author {
-  font-weight: 700 !important;
+  font-weight: 500 !important;
   font-size: 14px !important;
   color: #B084CC !important;
 }
@@ -1696,7 +1696,7 @@ onUnmounted(() => {
 
 .comments-header h3 {
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 500;
   color: #fff;
 }
 

@@ -380,7 +380,7 @@ onUnmounted(() => {
     background: #4b53e1;
     color: #fff;
     font-size: 10px;
-    font-weight: 700;
+    font-weight: 500;
     padding: 2px 6px;
     border-radius: 3px;
     z-index: 2;
@@ -458,7 +458,6 @@ onUnmounted(() => {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: bold;
     font-size: 16px;
     margin-bottom: 8px;
 }
@@ -475,7 +474,7 @@ onUnmounted(() => {
 
 .video-title {
     font-size: 16px;
-    font-weight: 600;
+    font-weight: 500;
     color: #ffffff;
     overflow: hidden;
     text-overflow: ellipsis;

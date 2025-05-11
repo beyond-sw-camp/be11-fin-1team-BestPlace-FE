@@ -1,11 +1,11 @@
 <template>
 
-  <v-app style="background-color: #141517;" :class="{ 'transparent-bg': isTransparent || isChatDonationRoute }">
-    <HeaderComponent v-if="!isChatDonationRoute && !isStreamerRoute && !isClipCreateRoute && !(isTransparent || hideNav)" @toggle-mini="toggleMini"/>
-    <SidebarComponent v-if="!isChatDonationRoute && !isStreamerRoute && !isClipCreateRoute && !(isTransparent || hideNav)" :mini="mini" />
+  <v-app style="background-color: #141517;" :class="{ 'transparent-bg': isTransparent || isChatDonationRoute || isMissionDonationRoute }">
+    <HeaderComponent v-if="!isChatDonationRoute && !isStreamerRoute && !isClipCreateRoute && !isMissionDonationRoute && !(isTransparent || hideNav)" @toggle-mini="toggleMini"/>
+    <SidebarComponent v-if="!isChatDonationRoute && !isStreamerRoute && !isClipCreateRoute && !isMissionDonationRoute && !(isTransparent || hideNav)" :mini="mini" />
     <v-main :style="mainStyle" class="main-content">
       <router-view class="full-width"/>
-      <FooterComponent v-if="!isChatDonationRoute && !isStreamerRoute && !isClipCreateRoute && !isClipDetailRoute && !isTransparent && !hideNav"/>
+      <FooterComponent v-if="!isChatDonationRoute && !isStreamerRoute && !isClipCreateRoute && !isClipDetailRoute && !isMissionDonationRoute && !isTransparent && !hideNav"/>
     </v-main>
   </v-app>
 </template>
@@ -28,6 +28,9 @@ export default {
     };
   },
   computed: {
+    isMissionDonationRoute() {
+      return this.$route.path.startsWith("/mission-donation/");
+    },
     isChatDonationRoute() {
       return this.$route.path.startsWith("/chat-donation/");
     },

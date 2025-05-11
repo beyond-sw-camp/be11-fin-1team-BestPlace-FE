@@ -94,7 +94,7 @@ const getFavicon = (url) => {
   font-size: 18px;
   padding: 10px 20px;
   color: #fff;
-  font-weight: 600;
+  font-weight: 500;
   margin: 0;
 }
 

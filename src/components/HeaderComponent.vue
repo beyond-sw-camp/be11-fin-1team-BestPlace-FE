@@ -811,7 +811,7 @@ export default {
 .notification-title {
   font-size: 15px;
   color: #B084CC;
-  font-weight: 600;
+  font-weight: 500;
   margin-bottom: 2px;
   word-break: break-all;
   width: 315px;

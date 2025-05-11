@@ -520,7 +520,6 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: bold;
   font-size: 16px;
   margin-bottom: 8px;
 }

@@ -122,7 +122,6 @@ onMounted(() => {
 
 .section-header h2 {
     font-size: 1.5rem;
-    font-weight: bold;
 }
 
 .view-all-btn {

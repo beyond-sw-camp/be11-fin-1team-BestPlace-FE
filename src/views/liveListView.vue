@@ -115,7 +115,7 @@
             }"
           >
           <video 
-            v-if="video.showPreview && video.url && !shouldHideThumbnail(video) && video.isAdult !== 'Y'" 
+            v-if="video.showPreview && video.url && !shouldHideThumbnail(video) && !isAdultContent(video)" 
             :src="video.url" 
             class="video-preview" 
             autoplay 
@@ -251,7 +251,8 @@ const fetchVideos = async () => {
       const newVideos = result.content.map(video => ({
         ...video,
         showPreview: false,
-        hoverTimer: null
+        hoverTimer: null,
+        isAdult: video.isAdult || video.adultYn
       }));
       videos.value = [...videos.value, ...newVideos];
       hasMoreVideos.value = videoPage.value < result.totalPages - 1;
@@ -344,7 +345,7 @@ const checkLoginStatus = () => {
 
 // 성인 컨텐츠 관련 함수
 const isAdultContent = (video) => {
-  return video.isAdult === 'Y';
+  return video.adultYn === 'Y' || video.isAdult === 'Y';
 }
 
 const shouldBlurThumbnail = (video) => {
@@ -386,7 +387,7 @@ const startPreviewTimer = (index) => {
   if (!video || !video.url) return;
   
   // 성인 컨텐츠인 경우 미리보기 시작하지 않음
-  if (video.isAdult === 'Y') return;
+  if (isAdultContent(video)) return;
   
   // 기존 타이머가 있으면 클리어
   if (video.hoverTimer) {
