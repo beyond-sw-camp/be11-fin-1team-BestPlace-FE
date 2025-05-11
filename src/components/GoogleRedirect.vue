@@ -1,6 +1,6 @@
 <template>
     <div class="loading-container">
-        <v-img src="@/assets/홈페이지 로그인 중 화면.gif" alt="로딩 중..." class="loading-gif" />
+        <v-img src="@/assets/BEST_PLACE_logo.gif" alt="로딩 중..." class="loading-gif" />
         <p>구글 로그인 진행중...</p>
     </div>
 </template>
@@ -40,8 +40,8 @@ export default{
   height: 100vh;
 }
 .loading-gif {
-  width: 1200px;
-  height: 1000px;
+  width: 90px;
+  height: 30px;
   margin-bottom: 1rem;
 }
 </style>

@@ -69,6 +69,25 @@
             </div>
         </div>
     </div>
+    <div class="broadcast-setting">
+        <h1>미션후원 URL</h1>
+        
+        <div class="stream-setting-container">
+            <div class="setting-section">
+                <div class="input-group">
+                    <div class="label">미션후원 URL</div>
+                    <div class="input-container">
+                        <input type="text" v-model="missionDonationUrl" readonly />
+                        <button class="copy-btn" @click="copyToClipboard(missionDonationUrl)">복사</button>
+                    </div>
+                    <div class="url-info">
+                        이 URL을 OBS 브라우저 소스로 추가하여 방송에 채팅후원을 표시할 수 있습니다. <br>
+                        권장 사이즈는 600x1000 입니다.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </template>
 
 <script>
@@ -145,6 +164,7 @@ export default {
                 );
                 const result = response.data.result;
                 this.donationUrl = `${process.env.VUE_APP_RedirectUrl}/chat-donation/${result}`;
+                this.missionDonationUrl = `${process.env.VUE_APP_RedirectUrl}/mission-donation/${result}`;
             } catch (error) {
                 console.error('스트리머 ID 가져오는 중 오류 발생:', error);
             }

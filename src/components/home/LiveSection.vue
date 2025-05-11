@@ -113,8 +113,10 @@
       return;
     }
     
-    // HLS 소스 URL
+    // 배포용
     const hlsSrc = `https://hls.bepl.site/hls/${mainStream.value.streamKey}.m3u8`;
+    //  로컬용
+  // const hlsSrc = `http://localhost:8088/hls/${mainStream.value.streamKey}.m3u8`;
     
     // HLS.js 지원 확인
     if (Hls.isSupported()) {
