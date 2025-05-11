@@ -152,7 +152,7 @@ export default {
             if (this.roomId) {
                 // 환경에 따라 적절한 호스트 URL 사용
                 const baseUrl = process.env.NODE_ENV === 'production' 
-                    ? `https://배포주소` 
+                    ? `${process.env.VUE_APP_CHATTING_API}` 
                     : `${process.env.VUE_APP_CHATTING_API || 'http://localhost:3000'}`;
                 this.chattingUrl = `${baseUrl}/chatting/${this.roomId}`;
             }
