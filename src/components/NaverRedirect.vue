@@ -1,6 +1,6 @@
 <template>
   <div class="loading-container">
-    <v-dialog v-model="showNicknameDialog" persistent max-width="500">
+    <v-dialog v-model="showNicknameDialog" persistent max-width="500" :retain-focus="false">
       <v-card>
         <v-card-title class="headline">닉네임 설정</v-card-title>
         <v-card-text>
@@ -22,8 +22,10 @@
       </v-card>
     </v-dialog>
 
-    <v-img src="@/assets/BEST_PLACE_logo.gif" alt="로딩 중..." class="loading-gif"/>
-    <p>네이버 로그인 진행중...</p>
+    <div v-if="!showNicknameDialog">
+      <v-img src="@/assets/BEST_PLACE_logo.gif" alt="로딩 중..." class="loading-gif"/>
+      <p>네이버 로그인 진행중...</p>
+    </div>
   </div>
 </template>
 
@@ -36,11 +38,15 @@ export default {
       nickname: '',
       nicknameError: '',
       showNicknameDialog: true,
-      code: null
+      code: null,
+      isLoading: false
     }
   },
-  created() {
+  mounted() {
     this.code = new URL(window.location.href).searchParams.get("code");
+    if (!this.code) {
+      window.location.href = "/"; // 코드가 없으면 홈으로 리다이렉트
+    }
   },
   methods: {
     validateNickname() {
@@ -53,6 +59,7 @@ export default {
     skipNickname() {
       this.nickname = '';
       this.showNicknameDialog = false;
+      this.isLoading = true;
       this.sendCodeToServer(this.code, '');
     },
     continueWithNickname() {
@@ -61,22 +68,30 @@ export default {
         return;
       }
       this.showNicknameDialog = false;
+      this.isLoading = true;
       this.sendCodeToServer(this.code, this.nickname);
     },
     async sendCodeToServer(code, registerNickname) {
-      const response = await axios.post(`${process.env.VUE_APP_MEMBER_API}/member/naver/doLogin`, {
-        code,
-        registerNickname
-      });
-      const token = response.data.token;
-      const refreshToken = response.data.refreshToken;
-      const userId = response.data.id;
-      localStorage.setItem("token", token);
-      localStorage.setItem("refreshToken", refreshToken);
-      localStorage.setItem("userId", userId);
-      setTimeout(() => {
+      try {
+        console.log('Sending code to server with nickname:', registerNickname);
+        const response = await axios.post(`${process.env.VUE_APP_MEMBER_API}/member/naver/doLogin`, {
+          code,
+          registerNickname
+        });
+        const token = response.data.token;
+        const refreshToken = response.data.refreshToken;
+        const userId = response.data.id;
+        localStorage.setItem("token", token);
+        localStorage.setItem("refreshToken", refreshToken);
+        localStorage.setItem("userId", userId);
+        setTimeout(() => {
+          window.location.href = "/";
+        }, 3000);
+      } catch (error) {
+        console.error('Login error:', error);
+        alert('로그인 중 오류가 발생했습니다.');
         window.location.href = "/";
-      }, 3000);
+      }
     }
   }
 }
