@@ -437,9 +437,9 @@ const initializeVideoPlayer = () => {
   
   // HLS 소스 URL
   // 배포용
-  // const hlsSrc = `https://hls.bepl.site/hls/${streamInfo.value.streamKey}.m3u8`;
+  const hlsSrc = `https://hls.bepl.site/hls/${streamInfo.value.streamKey}.m3u8`;
   // 로컬용
-  const hlsSrc = `http://localhost:8088/hls/${streamInfo.value.streamKey}.m3u8`;
+  // const hlsSrc = `http://localhost:8088/hls/${streamInfo.value.streamKey}.m3u8`;
   console.log('HLS 소스:', hlsSrc);
   
   // HLS.js 지원 확인
