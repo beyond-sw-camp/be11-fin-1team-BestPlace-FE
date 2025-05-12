@@ -116,6 +116,7 @@
         <div class="chat-header">
           <span class="chat-title">실시간 채팅</span>
           <div class="chat-info">
+            <button class="mission-donation-btn" @click="openMissionDonation">미션 후원 리모컨</button>
           </div>
         </div>
         <div class="chat-messages" ref="chatContainer">
@@ -407,6 +408,9 @@ export default {
       tempBanModalVisible: false,
       releaseBanModalVisible: false,
       banCheckTimer: null, // 임시제한 상태 체크 타이머
+
+      // 미션 후원 창 관련 상태
+      missionDonationWindow: null,
     };
   },
   
@@ -479,6 +483,54 @@ export default {
     console.log('초기화 작업 완료');
   },
   methods: {
+    // 스트리밍 ID를 사용하여 미션 후원 URL 생성
+    async updateDonationUrl() {
+      try {
+        // 스트리밍 ID를 가져오는 방법 개선
+        // 1. 먼저 이미 로드된 streamId 사용 시도
+        if (this.streamId) {
+            console.log('기존 streamId 사용:', this.streamId);
+            return `${process.env.VUE_APP_RedirectUrl}/mission-donation/${this.streamId}`;
+        }
+        
+        // 2. 라우트 파라미터에서 memberId 가져오기
+        const memberId = this.$route.params.memberId || this.routeMemberId || this.memberId;
+        if (!memberId) {
+            console.error('미션 후원 URL 생성 실패: memberId를 찾을 수 없습니다.');
+            return null;
+        }
+        
+        console.log('미션 후원 URL 생성을 위한 memberId:', memberId);
+        
+        // 3. API 호출하여 streamId 가져오기
+        const response = await axios.get(
+            `${process.env.VUE_APP_STREAMING_API}/streaming/find/streamId/${memberId}`,
+            {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            }
+        );
+        
+        // 4. 응답 확인 및 URL 생성
+        if (!response.data || !response.data.result) {
+            console.error('미션 후원 URL 생성 실패: API 응답에 streamId가 없습니다', response.data);
+            return null;
+        }
+        
+        const streamId = response.data.result;
+        console.log('API에서 가져온 streamId:', streamId);
+        
+        // 5. 최종 URL 생성 및 반환
+        const missionDonationUrl = `${process.env.VUE_APP_RedirectUrl}/mission-donation/${streamId}`;
+        console.log('생성된 미션 후원 URL:', missionDonationUrl);
+        return missionDonationUrl;
+      } catch (error) {
+        console.error('스트리머 ID 가져오는 중 오류 발생:', error);
+        return null;
+      }
+    },
+    
     // 파일 업로드 함수
     triggerFileUpload() {
       this.$refs.fileInput.click();
@@ -1286,6 +1338,48 @@ export default {
     formatNumber(number) {
       return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
     },
+
+    // 미션 후원 창 열기
+    async openMissionDonation() {
+      try {
+        // 기존 창이 열려있고 닫히지 않았다면 포커스
+        if (this.missionDonationWindow && !this.missionDonationWindow.closed) {
+          this.missionDonationWindow.focus();
+          return;
+        }
+        
+        // 미션 후원 URL 가져오기
+        const missionDonationUrl = await this.updateDonationUrl();
+        if (!missionDonationUrl) {
+          this.showMessageModal('오류', '미션 후원 URL을 가져오는데 실패했습니다.', 'error');
+          return;
+        }
+        
+        // 화면 크기 계산 - 화면 가로 길이의 35%, 화면 세로 길이의 90%
+        const width = Math.floor(window.innerWidth * 0.35);  // 화면 가로 길이의 40%
+        const height = Math.floor(window.innerHeight * 0.9); // 화면 세로 길이의 90%
+        
+        // 화면 중앙에 위치하도록 좌표 계산
+        const left = Math.floor((window.innerWidth - width));
+        const top = Math.floor((window.innerHeight - height));
+        
+        // 새 창 열기
+        this.missionDonationWindow = window.open(
+          missionDonationUrl,
+          'MissionDonation',
+          `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`
+        );
+        
+        // 창이 열렸는지 확인
+        if (!this.missionDonationWindow || this.missionDonationWindow.closed || typeof this.missionDonationWindow.closed === 'undefined') {
+          this.showMessageModal('알림', '팝업 차단이 활성화되어 있습니다. 이 사이트에서 팝업을 허용해주세요.', 'info');
+          return;
+        }
+      } catch (error) {
+        console.error('미션 후원 창 열기 실패:', error);
+        this.showMessageModal('오류', '미션 후원 창을 여는 데 실패했습니다.', 'error');
+      }
+    },
   },
   onMounted() {
     this.initializeStreaming();
@@ -1295,8 +1389,6 @@ export default {
     if (this.stompClient && this.stompClient.connected) {
       this.stompClient.disconnect();
     }
-    
-    // 타이머 정리 코드 제거
     
     // 이벤트 리스너 제거
     document.removeEventListener('click', this.closeContextMenu);
@@ -1703,6 +1795,28 @@ export default {
 
 .donation-body {
   padding: 8px 0 4px;
+}
+
+/* 미션 후원 버튼 스타일 */
+.mission-donation-btn {
+  background-color: #B084CC;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.mission-donation-btn:hover {
+  background-color: #9e70b9;
+}
+
+.chat-info {
+  display: flex;
+  align-items: center;
 }
 </style>
 
