@@ -246,7 +246,7 @@
   .video-container {
     position: relative;
     width: 100%;
-    padding-top: 56.25%; /* 16:9 비율 */
+    padding-top: 33.75%; /* 56.25% * 0.6 = 33.75%, 원래 비율의 60% */
     background-color: #000;
     overflow: hidden;
     cursor: pointer;
@@ -279,7 +279,7 @@
   .overlay-content {
     width: 100%;
     height: 100%;
-    padding: 24px 32px 16px 32px;
+    padding: 8px 16px 8px 16px; /* 패딩 조정 */
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -288,25 +288,25 @@
   .overlay-top {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px; /* 간격 줄임 */
   }
   
   .live-badge {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: 3px; /* 1.5배 증가 */
     background-color: #ff3b3b;
     color: white;
-    font-size: 14px;
-    padding: 4px 14px 4px 10px;
-    border-radius: 6px;
+    font-size: 18px; /* 1.5배 증가 */
+    padding: 3px 15px 3px 9px; /* 1.5배 증가 */
+    border-radius: 6px; /* 1.5배 증가 */
     text-transform: uppercase;
     letter-spacing: 1px;
   }
   
   .live-dot {
-    width: 8px;
-    height: 8px;
+    width: 9px; /* 1.5배 증가 */
+    height: 9px; /* 1.5배 증가 */
     background: #fff;
     border-radius: 50%;
     animation: pulse 1.5s ease-in-out infinite;
@@ -319,7 +319,7 @@
   }
   
   .viewer-count {
-    font-size: 16px;
+    font-size: 21px; /* 1.5배 증가 */
     font-weight: 500;
     color: #ff3b3b;
     letter-spacing: -1px;
@@ -328,11 +328,11 @@
   .overlay-bottom {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px; /* 1.5배 증가 */
   }
   
   .live-title {
-    font-size: 24px;
+    font-size: 27px; /* 1.5배 증가 */
     font-weight: 500;
     margin: 0;
     color: #fff;
@@ -341,60 +341,60 @@
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
-    line-height: 1.25;
+    line-height: 1.3; /* 약간 증가 */
     word-break: keep-all;
   }
   
   .stream-meta {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     flex-wrap: wrap;
   }
   
   .category {
     color: #B084CC;
     font-weight: 500;
-    font-size: 16px;
+    font-size: 21px; /* 1.5배 증가 */
     cursor: pointer;
   }
   
   .streamer-info {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-top: 4px;
+    gap: 9px; /* 1.5배 증가 */
+    margin-top: 3px; /* 1.5배 증가 */
   }
   
   .streamer-profile {
-    width: 24px;
-    height: 24px;
+    width: 27px; /* 1.5배 증가 */
+    height: 27px; /* 1.5배 증가 */
     border-radius: 50%;
     object-fit: cover;
   }
   
   .streamer-name {
     color: #fff;
-    font-size: 14px;
+    font-size: 18px; /* 1.5배 증가 */
     font-weight: 500;
   }
   
   .hashtags {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 6px; /* 1.5배 증가 */
     flex-wrap: wrap;
-    margin-top: 2px;
+    margin-top: 3px; /* 1.5배 증가 */
     max-width: 100%;
   }
   
   .hashtag {
     color: #bfc2c7;
-    font-size: 12px;
+    font-size: 15px; /* 1.5배 증가 */
     font-weight: 500;
-    padding: 2px 10px;
+    padding: 1.5px 9px; /* 1.5배 증가 */
     background: rgba(0, 0, 0, 0.6);
-    border-radius: 4px;
+    border-radius: 4.5px; /* 1.5배 증가 */
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
     border: 1px solid #bfc2c7;
     display: inline-flex;
