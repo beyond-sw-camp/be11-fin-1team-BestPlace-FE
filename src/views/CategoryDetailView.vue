@@ -130,9 +130,7 @@
         <div class="video-info">
           <div class="video-title">{{ video.title }}</div>
           <div class="streamer-info">
-            <div class="streamer-profile">
-              <img :src="video.streamerProfileImageUrl || defaultProfileImage" alt="Streamer Profile" class="profile-img">
-            </div>
+            <img :src="video.streamerProfileImageUrl || defaultProfileImage" alt="Streamer Profile" class="profile-image">
             <div class="streamer-detail">
               <div class="streamer-name">{{ video.streamerNickname }}</div>
               <div class="video-time">{{ formatTime(video.createdTime) }}</div>
@@ -1742,6 +1740,16 @@ export default {
 
 /* 라이브 탭 프로필 이미지 스타일 */
 .broadcast-item .profile-image {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* 동영상 탭 프로필 이미지 스타일 */
+.video-item .profile-image {
   width: 48px;
   height: 48px;
   border-radius: 50%;
