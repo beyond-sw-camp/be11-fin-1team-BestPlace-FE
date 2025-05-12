@@ -914,6 +914,8 @@ const formatHashtags = (hashtags) => {
 
 .streamer-profile {
   flex-shrink: 0;
+  overflow: hidden;
+  border-radius: 50%;
 }
 
 .profile-img {
