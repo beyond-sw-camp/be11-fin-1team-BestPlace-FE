@@ -641,7 +641,6 @@ h1 {
 .mission-card.accepted .mission-amount,
 .mission-card.accepted .timer-display {
   background-color: rgba(40, 60, 40, 0.9);
-  border: 1px solid rgba(76, 175, 80, 0.3);
 }
 
 .mission-card.failed {
@@ -652,7 +651,6 @@ h1 {
 .mission-card.failed .mission-amount,
 .mission-card.failed .timer-display {
   background-color: rgba(60, 40, 40, 0.9);
-  border: 1px solid rgba(244, 67, 54, 0.3);
 }
 
 .mission-card.done {
@@ -663,7 +661,6 @@ h1 {
 .mission-card.done .mission-amount,
 .mission-card.done .timer-display {
   background-color: rgba(40, 80, 40, 0.9);
-  border: 1px solid rgba(76, 175, 80, 0.3);
 }
 
 .mission-header {
