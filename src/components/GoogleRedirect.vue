@@ -4,7 +4,7 @@
             <v-card>
                 <v-card-title class="headline">닉네임 설정</v-card-title>
                 <v-card-text>
-                    <p>사용하실 닉네임을 입력해주세요. (8자 이상)</p>
+                    <p>사용하실 닉네임을 입력해주세요. (2자 이상)</p>
                     <v-text-field
                         v-model="nickname"
                         label="닉네임"
@@ -17,7 +17,7 @@
                 <v-card-actions>
                     <v-spacer></v-spacer>
                     <v-btn color="primary" text @click="skipNickname">건너뛰기</v-btn>
-                    <v-btn color="primary" @click="continueWithNickname" :disabled="nickname && nickname.length < 8">계속하기</v-btn>
+                    <v-btn color="primary" @click="continueWithNickname" :disabled="nickname && nickname.length < 2">계속하기</v-btn>
                 </v-card-actions>
             </v-card>
         </v-dialog>
