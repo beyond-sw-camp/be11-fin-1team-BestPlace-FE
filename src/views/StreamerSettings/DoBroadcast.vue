@@ -116,7 +116,6 @@
         <div class="chat-header">
           <span class="chat-title">실시간 채팅</span>
           <div class="chat-info">
-            <span class="chat-count">{{ messages.length }}</span>
           </div>
         </div>
         <div class="chat-messages" ref="chatContainer">
@@ -124,14 +123,27 @@
             <div class="empty-chat-text">방송이 시작되면 채팅이 표시됩니다.</div>
           </div>
           <div
-            v-for="message in messages"
+            v-for="message in filteredMessages"
             :key="message.messageId"
             class="chat-message"
-            :class="{ 'own-message': message.memberId === memberId }"
+            :class="{ 'own-message': message.memberId === memberId, 'donation-message': message.type === 'CHAT_DONATION' }"
             @contextmenu.prevent="openContextMenu($event, message)"
           >
-            <span class="sender" :style="getUsernameColor(message.sender)">{{ message.sender }}</span>
-            <span class="message-content">{{ message.message }}</span>
+            <template v-if="message.type === 'CHAT_DONATION'">
+              <div class="donation-box">
+                <div class="donation-header">
+                  <span class="donation-title">{{ message.donationSender || message.sender }}</span>
+                  <span class="donation-amount">🍒 {{ formatNumber(message.berryAmount || 0) }}</span>
+                </div>
+                <div class="donation-body">
+                  <span class="message-content">{{ message.parsedMessage || message.message }}</span>
+                </div>
+              </div>
+            </template>
+            <template v-else>
+              <span class="sender" :style="getUsernameColor(message.sender)">{{ message.sender }}</span>
+              <span class="message-content">{{ message.message }}</span>
+            </template>
           </div>
           
           <!-- 컨텍스트 메뉴 추가 -->
@@ -404,6 +416,17 @@ export default {
       return (memberId) => {
         return this.memberId === memberId;
       };
+    },
+    
+    // adult나 donation이 포함된 메시지를 필터링하는 computed 속성
+    filteredMessages() {
+      return this.messages.filter(message => {
+        if (!message.type) return true;
+        const type = message.type.toLowerCase();
+        // Allow CHAT_DONATION type but filter out adult and MISSION_ types
+        if (type === 'chat_donation') return true;
+        return !type.includes('adult') && !type.includes('mission_');
+      });
     }
   },
   
@@ -603,21 +626,58 @@ export default {
               return;
             }
             
-            // 메시지 객체를 명시적으로 구성하여 저장
-            const newMessage = {
-              messageId: parsed.messageId,
-              roomId: parsed.roomId || this.roomId,
-              memberId: parsed.memberId,
-              message: parsed.message || '',
-              sender: parsed.sender || '익명',
-              type: parsed.type || 'TALK',
-              createdTime: parsed.createdTime || new Date().toISOString()
-            };
+            // CHAT_DONATION 타입 메시지 처리
+            if (parsed.type === "CHAT_DONATION") {
+              const fullMessage = parsed.message;
+              const donationPattern = /(.+)님이 (\d+)원을 후원하셨습니다\.(.*)/;
+              const match = fullMessage.match(donationPattern);
+              
+              let senderName = parsed.sender;
+              let donationAmount = 1000;
+              let actualMessage = fullMessage;
+              
+              if (match && match.length >= 4) {
+                senderName = match[1];
+                donationAmount = parseInt(match[2]);
+                actualMessage = match[3] || '';
+              }
+              
+              // 메시지 객체를 명시적으로 구성하여 저장
+              const newMessage = {
+                messageId: parsed.messageId,
+                roomId: parsed.roomId || this.roomId,
+                memberId: parsed.memberId,
+                message: fullMessage,
+                parsedMessage: actualMessage,
+                sender: parsed.sender,
+                type: parsed.type,
+                berryAmount: donationAmount,
+                donationSender: senderName,
+                createdTime: parsed.createdTime || new Date().toISOString()
+              };
+              
+              console.log('최종 구성된 후원 메시지:', newMessage);
+              
+              // 메시지 저장 및 스크롤 처리
+              this.messages.push(newMessage);
+            } else {
+              // 일반 메시지 객체를 명시적으로 구성하여 저장
+              const newMessage = {
+                messageId: parsed.messageId,
+                roomId: parsed.roomId || this.roomId,
+                memberId: parsed.memberId,
+                message: parsed.message || '',
+                sender: parsed.sender || '익명',
+                type: parsed.type || 'TALK',
+                createdTime: parsed.createdTime || new Date().toISOString()
+              };
+              
+              console.log('최종 구성된 일반 메시지:', newMessage);
+              
+              // 메시지 저장
+              this.messages.push(newMessage);
+            }
             
-            console.log('최종 구성된 메시지:', newMessage);
-            
-            // 메시지 저장 및 스크롤 처리
-            this.messages.push(newMessage);
             this.scrollToBottom();
           } catch (err) {
             console.error('메시지 파싱 실패:', err);
@@ -731,15 +791,48 @@ export default {
               console.log('채팅 기록 데이터 배열 길이:', chatResponse.data.length);
               
               // 메시지 객체 생성 및 저장
-              this.messages = chatResponse.data.map(item => ({
-                messageId: item.messageId || `history-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-                roomId: item.roomId || this.roomId,
-                memberId: item.memberId,
-                message: item.message || '',
-                sender: item.sender || '익명',
-                type: item.type || 'TALK',
-                createdTime: item.createdTime || new Date().toISOString()
-              }));
+              this.messages = chatResponse.data.map(item => {
+                // CHAT_DONATION 타입 메시지 처리
+                if (item.type === "CHAT_DONATION") {
+                  const fullMessage = item.message;
+                  const donationPattern = /(.+)님이 (\d+)원을 후원하셨습니다\.(.*)/;
+                  const match = fullMessage.match(donationPattern);
+                  
+                  let senderName = item.sender;
+                  let donationAmount = 1000;
+                  let actualMessage = fullMessage;
+                  
+                  if (match && match.length >= 4) {
+                    senderName = match[1];
+                    donationAmount = parseInt(match[2]);
+                    actualMessage = match[3] || '';
+                  }
+                  
+                  return {
+                    messageId: item.messageId || `history-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+                    roomId: item.roomId || this.roomId,
+                    memberId: item.memberId,
+                    message: fullMessage,
+                    parsedMessage: actualMessage,
+                    sender: item.sender || '익명',
+                    type: item.type,
+                    berryAmount: donationAmount,
+                    donationSender: senderName,
+                    createdTime: item.createdTime || new Date().toISOString()
+                  };
+                } else {
+                  // 일반 메시지 처리
+                  return {
+                    messageId: item.messageId || `history-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+                    roomId: item.roomId || this.roomId,
+                    memberId: item.memberId,
+                    message: item.message || '',
+                    sender: item.sender || '익명',
+                    type: item.type || 'TALK',
+                    createdTime: item.createdTime || new Date().toISOString()
+                  };
+                }
+              });
               
               // 메시지 로드 후 맨 아래로 스크롤
               this.$nextTick(() => {
@@ -1188,6 +1281,11 @@ export default {
         this.releaseBanModalVisible = false;
       }
     },
+
+    // 숫자에 천 단위 쉼표 추가
+    formatNumber(number) {
+      return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    },
   },
   onMounted() {
     this.initializeStreaming();
@@ -1564,6 +1662,47 @@ export default {
   margin-left: auto;
   border-radius: 8px;
   max-width: 80%;
+}
+
+/* 후원 메시지 스타일 추가 */
+.donation-message {
+  margin-bottom: 16px;
+  width: 100%;
+}
+
+.donation-box {
+  background: rgba(176, 132, 204, 0.15);
+  border-radius: 8px;
+  padding: 10px;
+  width: 100%;
+  animation: donationPulse 2s ease infinite;
+}
+
+@keyframes donationPulse {
+  0% { box-shadow: 0 0 0 0 rgba(176, 132, 204, 0.4); }
+  70% { box-shadow: 0 0 0 6px rgba(176, 132, 204, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(176, 132, 204, 0); }
+}
+
+.donation-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.donation-title {
+  font-weight: 600;
+  color: #B084CC;
+}
+
+.donation-amount {
+  font-weight: 700;
+  color: #B084CC;
+}
+
+.donation-body {
+  padding: 8px 0 4px;
 }
 </style>
 
