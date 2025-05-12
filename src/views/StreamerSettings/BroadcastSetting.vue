@@ -88,6 +88,19 @@
             </div>
         </div>
     </div>
+    
+    <!-- 클립보드 복사 모달 -->
+    <div class="modal-overlay" v-if="showModal" @click="closeModal">
+        <div class="modal-content" @click.stop>
+            <div class="modal-header">
+                <h3>알림</h3>
+                <button class="close-btn" @click="closeModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                클립보드에 복사되었습니다.
+            </div>
+        </div>
+    </div>
 </template>
 
 <script>
@@ -101,7 +114,10 @@ export default {
             showStreamKey: false,
             roomId: '',
             chattingUrl: '',
-            donationUrl: ''
+            donationUrl: '',
+            missionDonationUrl: '',
+            showModal: false,
+            modalTimeout: null
         }
     },
     computed:{
@@ -191,11 +207,21 @@ export default {
             const textToCopy = text === this.streamKey ? this.actualStreamKey : text;
             navigator.clipboard.writeText(textToCopy)
                 .then(() => {
-                    alert('클립보드에 복사되었습니다.');
+                    this.showModal = true;
+                    // 2초 후에 모달 자동 닫기
+                    this.modalTimeout = setTimeout(() => {
+                        this.closeModal();
+                    }, 2000);
                 })
                 .catch(err => {
                     console.error('클립보드 복사 실패:', err);
                 });
+        },
+        closeModal() {
+            this.showModal = false;
+            if (this.modalTimeout) {
+                clearTimeout(this.modalTimeout);
+            }
         },
         toggleStreamKeyVisibility() {
             this.showStreamKey = !this.showStreamKey;
@@ -381,6 +407,63 @@ textarea {
     cursor: pointer;
     font-size: 18px;
     padding: 10px;
+}
+
+/* 모달 스타일 */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background-color: #1e1e1e;
+    border-radius: 8px;
+    width: 300px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    animation: fadeIn 0.3s;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    border-bottom: 1px solid #333;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 18px;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #888;
+}
+
+.close-btn:hover {
+    color: #fff;
+}
+
+.modal-body {
+    padding: 20px;
+    text-align: center;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 </style>
   
