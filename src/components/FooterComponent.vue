@@ -81,7 +81,6 @@ export default {
 
 .team-name {
   font-size: 1.2rem;
-  font-weight: bold;
   margin-bottom: 0.4rem;
 }
 

@@ -1784,12 +1784,12 @@ export default {
 }
 
 .donation-title {
-  font-weight: 600;
+  font-weight: 500;
   color: #B084CC;
 }
 
 .donation-amount {
-  font-weight: 700;
+  font-weight: 500;
   color: #B084CC;
 }
 

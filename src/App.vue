@@ -51,8 +51,8 @@ export default {
     },
     mainStyle() {
       return {
-        'background-color': this.isTransparent || this.isChatDonationRoute ? 'transparent' : '#141517',
-        'padding': this.isTransparent || this.isChatDonationRoute ? '0' : undefined
+        'background-color': this.isTransparent || this.isChatDonationRoute || this.isMissionDonationRoute ? 'transparent' : '#141517',
+        'padding': this.isTransparent || this.isChatDonationRoute || this.isMissionDonationRoute ? '0' : undefined
       };
     }
   },

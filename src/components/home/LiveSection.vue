@@ -19,7 +19,19 @@
               muted
               playsinline
               class="video-player"
+              :class="{
+                'blur-thumbnail': shouldBlurThumbnail(mainStream),
+                'hide-thumbnail': shouldHideThumbnail(mainStream)
+              }"
             ></video>
+            
+            <!-- 연령 제한 표시 -->
+            <div v-if="isAdultContent(mainStream)" class="age-restriction-overlay">
+              <div class="age-restriction-content">
+                <div class="age-icon-circle">19</div>
+                <div class="age-text">연령 제한</div>
+              </div>
+            </div>
             
             <!-- 비디오 위 오버레이 -->
             <div class="video-overlay">
@@ -52,6 +64,52 @@
           </div>
         </div>
       </div>
+      
+      <!-- 미성년자/비로그인 사용자 알림 모달 -->
+      <v-dialog v-model="adultAlertModalOpen" max-width="400" content-class="adult-alert-modal">
+        <div class="modal-container">
+          <div class="modal-header">
+            <div class="modal-title">연령 제한 컨텐츠</div>
+            <v-btn icon @click="closeAdultAlertModal" class="close-btn">
+              <v-icon>mdi-close</v-icon>
+            </v-btn>
+          </div>
+          
+          <div class="modal-content">
+            <div class="adult-alert-icon">
+              <div class="age-icon-circle modal-icon">19</div>
+            </div>
+            <p class="adult-alert-message" v-if="isLoggedIn">
+              미성년자는 이용 불가능한 컨텐츠입니다.
+            </p>
+            <p class="adult-alert-message" v-else>
+              이 컨텐츠는 성인만 이용할 수 있습니다.<br>
+              로그인 후 성인인증이 필요합니다.
+            </p>
+          </div>
+          
+          <div class="modal-footer">
+            <v-btn 
+              v-if="!isLoggedIn"
+              color="#b084cc" 
+              block 
+              @click="goToLogin"
+              class="submit-btn"
+            >
+              로그인하기
+            </v-btn>
+            <v-btn 
+              v-else
+              color="#b084cc" 
+              block 
+              @click="closeAdultAlertModal"
+              class="submit-btn"
+            >
+              확인
+            </v-btn>
+          </div>
+        </div>
+      </v-dialog>
     </div>
   </template>
   
@@ -60,6 +118,7 @@
   import { useRouter } from 'vue-router';
   import axios from 'axios';
   import Hls from 'hls.js';
+  import { jwtDecode } from 'jwt-decode';
   
   const streamingApi = process.env.VUE_APP_STREAMING_API
   const router = useRouter();
@@ -70,10 +129,31 @@
   const currentMainStreamIndex = ref(0);
   const videoPlayer = ref(null);
   const hlsInstance = ref(null);
+  const adultAlertModalOpen = ref(false);
+  
+  // 로그인 및 성인 인증 상태
+  const isLoggedIn = ref(false);
+  const userIsAdult = ref(false);
   
   // 스트림 정보 계산 속성
   const hasStreams = computed(() => streams.value.length > 0);
   const mainStream = computed(() => hasStreams.value ? streams.value[currentMainStreamIndex.value] : null);
+  
+  // 로그인 상태 확인
+  const checkLoginStatus = () => {
+    const token = localStorage.getItem('token');
+    isLoggedIn.value = !!token;
+    
+    if (isLoggedIn.value) {
+      try {
+        const decoded = jwtDecode(token);
+        userIsAdult.value = decoded.isAdult === 'Y';
+      } catch (error) {
+        console.error('토큰 디코딩 중 오류 발생:', error);
+        userIsAdult.value = false;
+      }
+    }
+  };
   
   // 스트림 데이터 가져오기
   const fetchStreamData = async () => {
@@ -107,6 +187,11 @@
       return;
     }
     
+    // 성인 컨텐츠인 경우 로그인이 안되거나 성인이 아니면 재생 안함
+    if (isAdultContent(mainStream.value) && (!isLoggedIn.value || !userIsAdult.value)) {
+      return;
+    }
+    
     const video = videoPlayer.value;
     if (!video) {
       console.error('비디오 요소를 찾을 수 없습니다.');
@@ -114,9 +199,9 @@
     }
     
     // 배포용
-    // const hlsSrc = `https://hls.bepl.site/hls/${mainStream.value.streamKey}.m3u8`;
+    const hlsSrc = `https://hls.bepl.site/hls/${mainStream.value.streamKey}.m3u8`;
     //  로컬용
-  const hlsSrc = `http://localhost:8088/hls/${mainStream.value.streamKey}.m3u8`;
+  // const hlsSrc = `http://localhost:8088/hls/${mainStream.value.streamKey}.m3u8`;
     
     // HLS.js 지원 확인
     if (Hls.isSupported()) {
@@ -191,11 +276,46 @@
   
   // 라이브 디테일 페이지로 이동
   const goToLiveDetail = (streamId) => {
-    router.push(`/live/${streamId}`);
+    const stream = streams.value.find(s => s.streamId === streamId);
+    
+    if (stream && isAdultContent(stream) && (!isLoggedIn.value || !userIsAdult.value)) {
+      // 성인 컨텐츠이고 로그인하지 않았거나 성인이 아닌 경우, 모달 표시
+      adultAlertModalOpen.value = true;
+    } else {
+      // 아니면 라이브 상세 페이지로 이동
+      router.push(`/live/${streamId}`);
+    }
+  };
+  
+  // 로그인 페이지로 이동
+  const goToLogin = () => {
+    router.push('/login');
+    closeAdultAlertModal();
+  };
+  
+  // 모달 닫기
+  const closeAdultAlertModal = () => {
+    adultAlertModalOpen.value = false;
+  };
+  
+  // 성인 콘텐츠 관련 메서드
+  const isAdultContent = (stream) => {
+    return stream && stream.adultYn === 'Y';
+  };
+  
+  const shouldBlurThumbnail = (stream) => {
+    // 성인 컨텐츠이고, 로그인한 사용자가 성인인 경우 흐리게 표시
+    return isAdultContent(stream) && isLoggedIn.value && userIsAdult.value;
+  };
+  
+  const shouldHideThumbnail = (stream) => {
+    // 성인 컨텐츠이고, 로그인하지 않았거나 성인이 아닌 경우 숨김
+    return isAdultContent(stream) && (!isLoggedIn.value || !userIsAdult.value);
   };
   
   // 컴포넌트 마운트 시 데이터 가져오기
   onMounted(() => {
+    checkLoginStatus();
     fetchStreamData();
   });
   
@@ -399,6 +519,112 @@
     border: 1px solid #bfc2c7;
     display: inline-flex;
     white-space: nowrap;
+  }
+  
+  /* 성인 컨텐츠 관련 스타일 */
+  .blur-thumbnail {
+    filter: blur(10px);
+  }
+  
+  .hide-thumbnail {
+    visibility: hidden;
+  }
+  
+  .age-restriction-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 5;
+  }
+  
+  .age-restriction-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+  }
+  
+  .age-icon-circle {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+
+    color: black;
+  }
+  
+  .age-text {
+    color: white;
+    font-size: 20px;
+    font-weight: 500;
+  }
+  
+  /* 모달 스타일 */
+  .modal-container {
+    background-color: #1a1a1a;
+    border-radius: 8px;
+    overflow: hidden;
+    color: white;
+  }
+  
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid #333;
+  }
+  
+  .modal-title {
+    font-size: 18px;
+    font-weight: 500;
+  }
+  
+  .modal-content {
+    padding: 30px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+  
+  .adult-alert-icon {
+    margin-bottom: 10px;
+  }
+  
+  .modal-icon {
+    width: 80px;
+    height: 80px;
+    font-size: 36px;
+  }
+  
+  .adult-alert-message {
+    text-align: center;
+    line-height: 1.5;
+    font-size: 16px;
+  }
+  
+  .modal-footer {
+    padding: 16px 20px;
+    border-top: 1px solid #333;
+  }
+  
+  .submit-btn {
+    color: white;
+  }
+  
+  .close-btn {
+    color: #aaa;
   }
   </style>
   
