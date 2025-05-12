@@ -45,8 +45,14 @@ export default {
   computed: {
     // 표시할 메시지만 반환
     displayMessages() {
-      // 배열의 마지막 maxMessages 개수만큼만 반환
-      return this.messages.slice(-this.maxMessages);
+      // 'donation' 또는 'adult'가 타입에 포함된 메시지는 필터링하여 제외
+      const filteredMessages = this.messages.filter(message => 
+        !message.type || 
+        (!message.type.toLowerCase().includes('donation') && 
+         !message.type.toLowerCase().includes('adult'))
+      );
+      // 필터링된 메시지 중 최대 maxMessages 개수만 반환
+      return filteredMessages.slice(-this.maxMessages);
     }
   },
   async created() {
