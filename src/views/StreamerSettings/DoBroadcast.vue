@@ -605,7 +605,7 @@ export default {
             
             // 메시지 객체를 명시적으로 구성하여 저장
             const newMessage = {
-              messageId: parsed.messageId || `live-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+              messageId: parsed.messageId,
               roomId: parsed.roomId || this.roomId,
               memberId: parsed.memberId,
               message: parsed.message || '',

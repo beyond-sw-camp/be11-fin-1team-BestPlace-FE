@@ -37,60 +37,66 @@ export default {
     return {
       nickname: '',
       nicknameError: '',
-      showNicknameDialog: true,
+      showNicknameDialog: false,
       code: null,
-      isLoading: false
+      naverProfileDto: null,
     }
   },
-  mounted() {
+  async mounted() {
     this.code = new URL(window.location.href).searchParams.get("code");
     if (!this.code) {
-      window.location.href = "/"; // 코드가 없으면 홈으로 리다이렉트
+      window.location.href = "/";
+      return;
+    }
+    try {
+      const response = await axios.post(`${process.env.VUE_APP_MEMBER_API}/member/naver/doLogin`, {
+        code: this.code
+      });
+
+      if (response.data.status_message === "NOT_REGISTERED") {
+        this.naverProfileDto = response.data.result;
+        this.showNicknameDialog = true;
+      } else if (response.data.status_message === "LOGIN_SUCCESS") {
+        const loginInfo = response.data.result;
+        localStorage.setItem("token", loginInfo.token);
+        localStorage.setItem("refreshToken", loginInfo.refreshToken);
+        localStorage.setItem("userId", loginInfo.id);
+        window.location.href = "/";
+      }
+    } catch (error) {
+      console.error("로그인 오류", error);
+      alert("로그인 중 오류가 발생했습니다.");
+      window.location.href = "/";
     }
   },
   methods: {
     validateNickname() {
-      if (this.nickname && this.nickname.length < 8) {
-        this.nicknameError = '닉네임은 8자 이상이어야 합니다.';
-      } else {
-        this.nicknameError = '';
-      }
+      this.nicknameError = (this.nickname && this.nickname.length < 2)
+        ? '닉네임은 두 글자 이상이어야 합니다.'
+        : '';
     },
     skipNickname() {
-      this.nickname = '';
-      this.showNicknameDialog = false;
-      this.isLoading = true;
-      this.sendCodeToServer(this.code, '');
+      this.registerNickname('');
     },
     continueWithNickname() {
-      if (this.nickname && this.nickname.length < 8) {
-        this.nicknameError = '닉네임은 8자 이상이어야 합니다.';
+      if (this.nickname && this.nickname.length < 2) {
+        this.nicknameError = '닉네임은 두 글자 이상이어야 합니다.';
         return;
       }
-      this.showNicknameDialog = false;
-      this.isLoading = true;
-      this.sendCodeToServer(this.code, this.nickname);
+      this.registerNickname(this.nickname);
     },
-    async sendCodeToServer(code, registerNickname) {
+    async registerNickname(nickname) {
       try {
-        console.log('Sending code to server with nickname:', registerNickname);
-        const response = await axios.post(`${process.env.VUE_APP_MEMBER_API}/member/naver/doLogin`, {
-          code,
-          registerNickname
+        await axios.post(`${process.env.VUE_APP_MEMBER_API}/member/naver/register`, {
+          naverProfileDto: this.naverProfileDto,
+          registerNickname: nickname
         });
-        const token = response.data.token;
-        const refreshToken = response.data.refreshToken;
-        const userId = response.data.id;
-        localStorage.setItem("token", token);
-        localStorage.setItem("refreshToken", refreshToken);
-        localStorage.setItem("userId", userId);
-        setTimeout(() => {
-          window.location.href = "/";
-        }, 3000);
-      } catch (error) {
-        console.error('Login error:', error);
-        alert('로그인 중 오류가 발생했습니다.');
+
+        alert("회원가입이 완료되었습니다. 다시 로그인해주세요.");
         window.location.href = "/";
+      } catch (error) {
+        console.error("회원가입 실패", error);
+        alert("회원가입 중 오류 발생");
       }
     }
   }
