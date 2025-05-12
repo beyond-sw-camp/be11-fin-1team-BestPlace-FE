@@ -22,6 +22,35 @@
             </v-card>
         </v-dialog>
 
+        <v-dialog v-model="alertModalOpen" max-width="400" content-class="community-modal">
+            <div class="modal-container">
+                <div class="modal-header">
+                    <div class="modal-title">알림</div>
+                    <v-btn icon @click="alertModalOpen = false" class="close-btn">
+                        <v-icon>mdi-close</v-icon>
+                    </v-btn>
+                </div>
+                
+                <div class="modal-content">
+                    <div class="message-container">
+                        <v-icon :icon="alertModalIcon" :color="alertModalIconColor" size="x-large" class="message-icon"></v-icon>
+                        <div class="message-text">{{ alertModalMessage }}</div>
+                    </div>
+                </div>
+                
+                <div class="modal-footer">
+                    <v-btn 
+                        color="#B084CC" 
+                        block
+                        @click="alertModalOpen = false"
+                        class="confirm-btn"
+                    >
+                        확인
+                    </v-btn>
+                </div>
+            </div>
+        </v-dialog>
+
         <div v-if="!showNicknameDialog">
           <v-img src="@/assets/BEST_PLACE_logo.gif" alt="로딩 중..." class="loading-gif" />
           <p>구글 로그인 진행중...</p>
@@ -40,6 +69,10 @@ export default{
             showNicknameDialog: false,
             code: null,
             googleProfileDto: null,
+            alertModalOpen: false,
+            alertModalMessage: '',
+            alertModalIcon: 'mdi-information',
+            alertModalIconColor: '#B084CC'
         }
     },
     async mounted(){
@@ -64,8 +97,7 @@ export default{
             window.location.href = "/";
         }
         } catch (error) {
-        alert("로그인 중 오류가 발생했습니다.");
-        window.location.href = "/";
+            this.showAlertModal('로그인 중 오류가 발생했습니다.', 'mdi-alert-circle', '#FF5252');
         }
     },
     methods:{
@@ -93,13 +125,21 @@ export default{
                 registerNickname: nickname
                 });
 
-                alert("회원가입이 완료되었습니다. 다시 로그인해주세요.");
-                window.location.href = "/";
+                this.showAlertModal('회원가입이 완료되었습니다. 다시 로그인해주세요.', 'mdi-check-circle', '#4CAF50');
+                setTimeout(() => {
+                    window.location.href = "/";
+                }, 2000);
             } catch (error) {
                 console.error("회원가입 실패", error);
-                alert("회원가입 중 오류 발생");
+                this.showAlertModal('회원가입 중 오류가 발생했습니다.', 'mdi-alert-circle', '#FF5252');
             }
         },
+        showAlertModal(message, icon = 'mdi-information', color = '#B084CC') {
+            this.alertModalMessage = message;
+            this.alertModalIcon = icon;
+            this.alertModalIconColor = color;
+            this.alertModalOpen = true;
+        }
     }
 }
 </script>
@@ -116,5 +156,64 @@ export default{
   width: 90px;
   height: 30px;
   margin-bottom: 1rem;
+}
+
+/* 알림 모달 스타일 */
+.modal-container {
+  background-color: #1a1a1a;
+  border-radius: 12px;
+  overflow: hidden;
+  color: white;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid #333;
+}
+
+.modal-title {
+  font-size: 18px;
+  font-weight: 500;
+  color: white;
+}
+
+.close-btn {
+  color: #aaa;
+}
+
+.modal-content {
+  padding: 20px;
+}
+
+.message-container {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  background-color: rgba(176, 132, 204, 0.1);
+  border-radius: 8px;
+}
+
+.message-icon {
+  margin-right: 16px;
+}
+
+.message-text {
+  font-size: 16px;
+  line-height: 1.5;
+  color: #fff;
+}
+
+.modal-footer {
+  padding: 16px;
+  border-top: 1px solid #333;
+}
+
+.confirm-btn {
+  height: 44px;
+  font-size: 16px;
+  font-weight: 500;
 }
 </style>
