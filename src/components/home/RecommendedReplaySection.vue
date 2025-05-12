@@ -491,13 +491,18 @@ onMounted(() => {
 
 .streamer-profile {
     flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+    overflow: hidden;
+    border-radius: 50%;
+    position: relative;
 }
 
 .profile-img {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
+    width: 100%;
+    height: 100%;
     object-fit: cover;
+    transform: scale(1.1);
 }
 
 .video-details {
