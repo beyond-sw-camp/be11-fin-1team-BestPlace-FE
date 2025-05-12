@@ -50,7 +50,7 @@
     </div>
     
     <!-- 테스트용 입력폼 -->
-    <div class="test-panel">
+    <!-- <div class="test-panel">
       <h3>테스트 도구</h3>
       <div class="test-form">
         <div class="input-group">
@@ -75,7 +75,7 @@
       <div class="test-info">
         <p>이 테스트 도구는 개발용으로, 실제 웹소켓을 통해 전송되지 않습니다.</p>
       </div>
-    </div>
+    </div> -->
   </div>
 </template>
 
