@@ -190,13 +190,10 @@
         <div class="broadcast-info">
           <div class="broadcast-title">{{ broadcast.title }}</div>
           <div class="streamer-info">
-            <div class="streamer-profile">
-              <img :src="broadcast.streamerProfileUrl || defaultProfileImage" alt="Streamer Profile" class="profile-img">
-            </div>
+            <img :src="broadcast.streamerProfileUrl || defaultProfileImage" alt="Streamer Profile" class="profile-image">
             <div class="streamer-detail">
               <div class="streamer-name">{{ broadcast.streamerNickname }}</div>
               <div class="tags-container">
-                <div class="category-badge">{{ broadcast.category }}</div>
                 <div v-if="broadcast.hashTag && broadcast.hashTag.length > 0" class="hashtags">
                   <span v-for="(tag, i) in broadcast.hashTag" :key="i" class="hashtag">{{ tag }}</span>
                 </div>
@@ -1159,7 +1156,9 @@ export default {
   width: 48px;
   height: 48px;
   border-radius: 50%;
+  -o-object-fit: cover;
   object-fit: cover;
+  cursor: pointer;
 }
 
 .live-badge {
@@ -1323,7 +1322,9 @@ export default {
   width: 48px;
   height: 48px;
   border-radius: 50%;
+  -o-object-fit: cover;
   object-fit: cover;
+  cursor: pointer;
 }
 
 .streamer-name {
@@ -1737,6 +1738,16 @@ export default {
   font-size: 12px;
   font-weight: 400;
   display: inline-block;
+}
+
+/* 라이브 탭 프로필 이미지 스타일 */
+.broadcast-item .profile-image {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  cursor: pointer;
+  flex-shrink: 0;
 }
 </style>
 
