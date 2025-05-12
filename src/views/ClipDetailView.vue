@@ -824,6 +824,7 @@ onMounted(() => {
   height: 100%;
   object-fit: cover;
   background: transparent;
+  border-radius: 50%;
 }
 .live-badge {
   position: absolute;
