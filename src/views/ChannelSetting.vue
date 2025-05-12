@@ -726,7 +726,7 @@ export default {
             formData.append('image', this.bannerForm.file);
           }
           
-          await axios.post(`${this.memberApi}/member/banner/update`, formData, {
+          await axios.patch(`${this.memberApi}/member/banner/update`, formData, {
             headers: {
               'Content-Type': 'multipart/form-data'
             }

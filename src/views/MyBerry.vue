@@ -57,7 +57,7 @@
             <div class="history-cell history-sender">
               <div class="sender-info">
                 <img :src="history.memberProfileUrl || defaultProfileImage" alt="프로필" class="sender-avatar" />
-                <span>{{ history.memberNickname }}</span>
+                <span>{{ history.memberNickname.length > 9 ? history.memberNickname.substring(0, 9) + '...' : history.memberNickname }}</span>
               </div>
             </div>
             <div class="history-cell history-message">
