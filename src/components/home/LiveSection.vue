@@ -559,7 +559,7 @@
     align-items: center;
     justify-content: center;
     font-size: 28px;
-    font-weight: bold;
+
     color: black;
   }
   

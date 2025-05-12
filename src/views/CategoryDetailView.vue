@@ -1004,7 +1004,7 @@ export default {
 
 .tab-btn.active {
   color: white;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .tab-btn.active::after {

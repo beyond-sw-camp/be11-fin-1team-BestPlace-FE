@@ -3079,7 +3079,7 @@ video {
 }
 
 .temp-ban-title {
-  font-weight: 600;
+  font-weight: 500;
   font-size: 16px;
   color: #ff3b3b;
 }
@@ -3090,7 +3090,7 @@ video {
 }
 
 .temp-ban-time {
-  font-weight: 600;
+  font-weight: 500;
   color: #ff3b3b;
 }
 
@@ -3195,7 +3195,7 @@ video {
 
 .cute-alert-title {
   font-size: 20px;
-  font-weight: 600;
+  font-weight: 500;
   margin: 0 0 8px 0;
   color: #fff;
 }
@@ -3751,7 +3751,7 @@ body .global-temp-ban-modal {
 
 .berry-value.mission-donation-dropdown {
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 500;
   color: #b084cc;
 }
 

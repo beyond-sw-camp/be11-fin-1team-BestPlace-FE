@@ -603,7 +603,6 @@ h1 {
 .mission-title {
   color: #FF5E5B;
   font-size: 38px; /* 20% 작게 (원래 48px) */
-  font-weight: bold;
   text-shadow: 0 0 10px rgba(255, 94, 91, 0.7);
   text-align: center;
 }
@@ -733,7 +732,6 @@ h1 {
   border: none;
   border-radius: 6px;
   font-size: 14px; /* 20% 작게 (원래 18px) */
-  font-weight: bold;
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -769,7 +767,6 @@ h1 {
   border: none;
   border-radius: 6px;
   font-size: 14px;
-  font-weight: bold;
   cursor: pointer;
   background-color: #4CAF50;
   color: white;
@@ -822,7 +819,6 @@ h1 {
 
 .input-group label {
   margin-bottom: 5px;
-  font-weight: bold;
   color: #333;
 }
 
