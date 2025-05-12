@@ -6,19 +6,30 @@
         </div>
         <div class="stream-list">
             <div v-for="stream in followingStreams" :key="stream.streamId" class="stream-item">
-                <div class="thumbnail-container" @click="goToLiveDetail(stream.streamId)">
-                    <img :src="stream.thumbnailUrl" :alt="stream.title" class="thumbnail">
+                <div class="thumbnail-container" @click="goToLiveDetail(stream.streamId, stream)">
+                    <img :src="stream.thumbnailUrl" :alt="stream.title" class="thumbnail"
+                        :class="{
+                            'blur-thumbnail': shouldBlurThumbnail(stream),
+                            'hide-thumbnail': shouldHideThumbnail(stream)
+                        }">
                     <div class="live-badge">LIVE</div>
                     <div class="viewer-count">
                         <span class="viewer-icon">👁</span>
                         {{ stream.viewerCount }}명
+                    </div>
+                    <!-- 연령 제한 표시 -->
+                    <div v-if="isAdultContent(stream)" class="age-restriction-overlay">
+                        <div class="age-restriction-content">
+                            <div class="age-icon-circle">19</div>
+                            <div class="age-text">연령 제한</div>
+                        </div>
                     </div>
                 </div>
                 <div class="stream-info">
                     <div class="streamer-info">
                         <img :src="stream.streamerProfileUrl" :alt="stream.streamerNickname" class="profile-image" @click.stop="goToStreamerProfile(stream.streamerId)">
                         <div class="streamer-details">
-                            <div class="stream-title" @click="goToLiveDetail(stream.streamId)">{{ stream.title }}</div>
+                            <div class="stream-title" @click="goToLiveDetail(stream.streamId, stream)">{{ stream.title }}</div>
                             <div class="streamer-name" @click.stop="goToStreamerProfile(stream.streamerId)">{{ stream.streamerNickname }}</div>
                         </div>
                     </div>
@@ -33,6 +44,52 @@
                 </div>
             </div>
         </div>
+        
+        <!-- 미성년자/비로그인 사용자 알림 모달 -->
+        <v-dialog v-model="adultAlertModalOpen" max-width="400" content-class="adult-alert-modal">
+            <div class="modal-container">
+                <div class="modal-header">
+                    <div class="modal-title">연령 제한 컨텐츠</div>
+                    <v-btn icon @click="closeAdultAlertModal" class="close-btn">
+                        <v-icon>mdi-close</v-icon>
+                    </v-btn>
+                </div>
+                
+                <div class="modal-content">
+                    <div class="adult-alert-icon">
+                        <div class="age-icon-circle modal-icon">19</div>
+                    </div>
+                    <p class="adult-alert-message" v-if="isLoggedIn">
+                        미성년자는 이용 불가능한 컨텐츠입니다.
+                    </p>
+                    <p class="adult-alert-message" v-else>
+                        이 컨텐츠는 성인만 이용할 수 있습니다.<br>
+                        로그인 후 성인인증이 필요합니다.
+                    </p>
+                </div>
+                
+                <div class="modal-footer">
+                    <v-btn 
+                        v-if="!isLoggedIn"
+                        color="#b084cc" 
+                        block 
+                        @click="goToLogin"
+                        class="submit-btn"
+                    >
+                        로그인하기
+                    </v-btn>
+                    <v-btn 
+                        v-else
+                        color="#b084cc" 
+                        block 
+                        @click="closeAdultAlertModal"
+                        class="submit-btn"
+                    >
+                        확인
+                    </v-btn>
+                </div>
+            </div>
+        </v-dialog>
     </div>
 </template>
 
@@ -40,10 +97,17 @@
 import { ref, onMounted } from 'vue';
 import axios from 'axios';
 import { useRouter } from 'vue-router';
+import { jwtDecode } from 'jwt-decode';
 
 const router = useRouter();
 const followingStreams = ref([]);
 const fetchError = ref(false);
+
+// 성인 콘텐츠 관련 상태 추가
+const userIsAdult = ref(false);
+const isLoggedIn = ref(false);
+const adultAlertModalOpen = ref(false);
+const selectedStream = ref(null);
 
 const fetchFollowingStreams = async () => {
     try {
@@ -62,6 +126,25 @@ const fetchFollowingStreams = async () => {
     }
 };
 
+const checkLoginStatus = () => {
+    const token = localStorage.getItem('token');
+    isLoggedIn.value = !!token;
+    
+    if (isLoggedIn.value) {
+        try {
+            const decoded = jwtDecode(token);
+            if(decoded.isAdult === 'Y'){
+                userIsAdult.value = true;
+            } else {
+                userIsAdult.value = false;
+            }
+        } catch (error) {
+            console.error('토큰 디코딩 중 오류 발생:', error);
+            userIsAdult.value = false;
+        }
+    }
+};
+
 const goToAllFollowing = () => {
     router.push('/following?tab=live');
 };
@@ -70,12 +153,44 @@ const goToCategory = (category) => {
     router.push(`/category/${category}`);
 };
 
-const goToLiveDetail = (streamId) => {
-    router.push(`/live/${streamId}`);
+const goToLiveDetail = (streamId, stream) => {
+    // 성인 컨텐츠 처리
+    if (stream.adultYn === 'Y' && (!isLoggedIn.value || !userIsAdult.value)) {
+        selectedStream.value = stream;
+        adultAlertModalOpen.value = true;
+    } else {
+        router.push(`/live/${streamId}`);
+    }
 };
 
 const goToStreamerProfile = (streamerId) => {
     router.push(`/channel/${streamerId}`);
+};
+
+// 성인 콘텐츠 관련 메서드
+const isAdultContent = (stream) => {
+    return stream.adultYn === 'Y';
+};
+
+const shouldBlurThumbnail = (stream) => {
+    // 성인 컨텐츠이고, 로그인한 사용자가 성인인 경우 흐리게 표시
+    return isAdultContent(stream) && isLoggedIn.value && userIsAdult.value;
+};
+
+const shouldHideThumbnail = (stream) => {
+    // 성인 컨텐츠이고, 로그인하지 않았거나 성인이 아닌 경우 숨김
+    return isAdultContent(stream) && (!isLoggedIn.value || !userIsAdult.value);
+};
+
+const closeAdultAlertModal = () => {
+    adultAlertModalOpen.value = false;
+    selectedStream.value = null;
+};
+
+const goToLogin = () => {
+    closeAdultAlertModal();
+    // 로그인 페이지로 이동
+    router.push('/member/login');
 };
 
 // 카테고리+해시태그 20자 제한, 해시태그 자르기
@@ -104,6 +219,7 @@ function isHashtagTruncated(stream) {
 }
 
 onMounted(() => {
+    checkLoginStatus();
     fetchFollowingStreams();
 });
 </script>
@@ -282,5 +398,118 @@ onMounted(() => {
     color: #aaa;
     padding: 0 4px;
     margin: 0;
+}
+
+/* 연령 제한 관련 스타일 */
+.age-restriction-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 3;
+    border-radius: 8px;
+}
+
+.age-restriction-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.age-icon-circle {
+    width: 48px;
+    height: 48px;
+    background-color: rgba(255, 255, 255, 0.9);
+    color: black;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    margin-bottom: 10px;
+}
+
+.age-text {
+    color: white;
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.blur-thumbnail {
+    filter: blur(3px);
+    opacity: 0.9;
+}
+
+.hide-thumbnail {
+    opacity: 0;
+}
+
+/* 모달 스타일 */
+.adult-alert-modal {
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+.modal-container {
+    background-color: #1a1a1a;
+    border-radius: 12px;
+    overflow: hidden;
+    color: white;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px;
+    border-bottom: 1px solid #333;
+}
+
+.modal-title {
+    font-size: 18px;
+    font-weight: 500;
+    color: white;
+}
+
+.modal-content {
+    padding: 30px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.adult-alert-icon {
+    margin-bottom: 20px;
+}
+
+.modal-icon {
+    width: 60px;
+    height: 60px;
+    font-size: 24px;
+}
+
+.adult-alert-message {
+    font-size: 16px;
+    line-height: 1.6;
+    color: #eee;
+}
+
+.modal-footer {
+    padding: 16px;
+    border-top: 1px solid #333;
+}
+
+.submit-btn {
+    height: 44px;
+    font-size: 16px;
+    font-weight: 500;
+    text-transform: none;
 }
 </style>

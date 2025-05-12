@@ -43,17 +43,26 @@
       >
         <div class="thumbnail-container" @click="goToLiveDetail(stream.streamId)">
           <img 
-            :src="stream.thumbnailUrl + '?ts=' + Date.now()" 
+            :src="stream.thumbnailUrl" 
             :alt="stream.title" 
             class="thumbnail"
-            :class="{ 'darken': isHovered === stream.streamId }"
-            @mouseover="isHovered = stream.streamId"
-            @mouseleave="isHovered = null"
+            :class="{
+              'blur-thumbnail': shouldBlurThumbnail(stream),
+              'hide-thumbnail': shouldHideThumbnail(stream)
+            }"
           >
           <div class="live-badge">LIVE</div>
           <div class="viewer-count">
             <span class="viewer-icon">👁</span>
             {{ stream.viewerCount }}명
+          </div>
+          
+          <!-- 연령 제한 표시 -->
+          <div v-if="isAdultContent(stream)" class="age-restriction-overlay">
+            <div class="age-restriction-content">
+              <div class="age-icon-circle">19</div>
+              <div class="age-text">연령 제한</div>
+            </div>
           </div>
         </div>
         <div class="stream-info">
@@ -219,7 +228,10 @@ const fetchStreams = async (type) => {
       : '/streaming/streamListStartTime'
     const response = await axios.get(`${streamingApi}${endpoint}`)
     if (response.data && response.data.result) {
-      streams.value = response.data.result.content
+      streams.value = response.data.result.content.map(stream => ({
+        ...stream,
+        isAdult: stream.adultYn
+      }))
       
       // 해시태그 측정을 위한 딜레이
       setTimeout(() => {
@@ -291,7 +303,15 @@ const changeContentType = async (type) => {
 }
 
 const goToLiveDetail = (streamId) => {
-  router.push(`/live/${streamId}`)
+  const stream = streams.value.find(s => s.streamId === streamId);
+  
+  if (stream && isAdultContent(stream) && (!isLoggedIn.value || !userIsAdult.value)) {
+    // 성인 컨텐츠이고 로그인하지 않았거나 성인이 아닌 경우, 로그인 페이지로 유도
+    router.push('/member/login');
+  } else {
+    // 아니면 방송 페이지로 이동
+    router.push(`/live/${streamId}`);
+  }
 }
 
 const goToVideoDetail = (videoId) => {
@@ -344,16 +364,16 @@ const checkLoginStatus = () => {
 }
 
 // 성인 컨텐츠 관련 함수
-const isAdultContent = (video) => {
-  return video.adultYn === 'Y' || video.isAdult === 'Y';
+const isAdultContent = (stream) => {
+  return stream.adultYn === 'Y' || stream.isAdult === 'Y';
 }
 
-const shouldBlurThumbnail = (video) => {
-  return isAdultContent(video) && isLoggedIn.value && userIsAdult.value;
+const shouldBlurThumbnail = (stream) => {
+  return isAdultContent(stream) && isLoggedIn.value && userIsAdult.value;
 }
 
-const shouldHideThumbnail = (video) => {
-  return isAdultContent(video) && (!isLoggedIn.value || !userIsAdult.value);
+const shouldHideThumbnail = (stream) => {
+  return isAdultContent(stream) && (!isLoggedIn.value || !userIsAdult.value);
 }
 
 // 시간 포맷팅
@@ -650,11 +670,16 @@ const formatHashtags = (hashtags) => {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: filter 0.3s ease;
+  transition: opacity 0.3s ease;
 }
 
-.thumbnail.darken {
-  filter: brightness(0.5);
+.blur-thumbnail {
+  filter: blur(3px);
+  opacity: 0.9;
+}
+
+.hide-thumbnail {
+  opacity: 0;
 }
 
 .live-badge {
@@ -803,15 +828,6 @@ const formatHashtags = (hashtags) => {
   height: 100%;
   object-fit: cover;
   transition: opacity 0.3s ease;
-}
-
-.blur-thumbnail {
-  filter: blur(3px);
-  opacity: 0.9;
-}
-
-.hide-thumbnail {
-  opacity: 0;
 }
 
 .video-preview {
