@@ -303,15 +303,7 @@ const changeContentType = async (type) => {
 }
 
 const goToLiveDetail = (streamId) => {
-  const stream = streams.value.find(s => s.streamId === streamId);
-  
-  if (stream && isAdultContent(stream) && (!isLoggedIn.value || !userIsAdult.value)) {
-    // 성인 컨텐츠이고 로그인하지 않았거나 성인이 아닌 경우, 로그인 페이지로 유도
-    router.push('/member/login');
-  } else {
-    // 아니면 방송 페이지로 이동
-    router.push(`/live/${streamId}`);
-  }
+  router.push(`/live/${streamId}`);
 }
 
 const goToVideoDetail = (videoId) => {

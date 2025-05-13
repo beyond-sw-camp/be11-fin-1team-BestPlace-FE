@@ -20,15 +20,7 @@
       </div>
 
       <div class="stream-header">
-        <div class="title-container">
-          <h1 class="stream-title">{{ vodInfo.title }}</h1>
-          <button 
-            class="clip-create-button" 
-            @click="goToClipCreate"
-          >
-            클립 생성
-          </button>
-        </div>
+                <div class="title-container">          <h1 class="stream-title">{{ vodInfo.title }}</h1>          <div class="title-actions">            <button               class="clip-create-button"               @click="goToClipCreate"            >              클립 생성            </button>            <div v-if="isOwnVod" class="vod-menu">              <button class="menu-button" @click="toggleVodMenu">⋮</button>              <div v-if="showVodMenu" class="menu-dropdown">                <button class="edit-button" @click="showEditTitleModal">수정</button>                <button class="delete-button" @click="showDeleteVodModal">삭제</button>              </div>            </div>          </div>        </div>
         <div class="stream-meta">
           <span 
             class="category"
@@ -444,6 +436,93 @@
         </div>
       </div>
     </v-dialog>
+
+    <!-- VOD 제목 수정 모달 -->
+    <v-dialog v-model="editTitleModalOpen" max-width="400" content-class="community-modal">
+      <div class="modal-container">
+        <div class="modal-header">
+          <div class="modal-title">VOD 제목 수정</div>
+          <v-btn icon @click="closeEditTitleModal" class="close-btn">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </div>
+        
+        <div class="modal-content">
+          <div class="edit-title-form">
+            <label for="vod-title">VOD 제목</label>
+            <input 
+              v-model="newVodTitle" 
+              type="text" 
+              id="vod-title"
+              placeholder="새 제목을 입력하세요"
+              class="edit-title-input"
+              maxlength="100"
+            />
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <div class="button-group">
+            <v-btn 
+              variant="outlined" 
+              class="cancel-btn" 
+              @click="closeEditTitleModal"
+            >
+              취소
+            </v-btn>
+            <v-btn 
+              color="#B084CC" 
+              class="confirm-btn" 
+              @click="updateVodTitle"
+              :disabled="!newVodTitle.trim()"
+            >
+              확인
+            </v-btn>
+          </div>
+        </div>
+      </div>
+    </v-dialog>
+
+    <!-- VOD 삭제 확인 모달 -->
+    <v-dialog v-model="deleteVodModalOpen" max-width="400" content-class="community-modal">
+      <div class="modal-container">
+        <div class="modal-header">
+          <div class="modal-title">VOD 삭제</div>
+          <v-btn icon @click="closeDeleteVodModal" class="close-btn">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </div>
+        
+        <div class="modal-content">
+          <div class="message-container warning-container">
+            <v-icon icon="mdi-alert" color="#FF5252" size="x-large" class="message-icon"></v-icon>
+            <div class="message-text">
+              <p>정말 삭제하시겠습니까?</p>
+              <p class="warning-submessage">삭제된 VOD는 복구할 수 없습니다.</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <div class="button-group">
+            <v-btn 
+              variant="outlined" 
+              class="cancel-btn" 
+              @click="closeDeleteVodModal"
+            >
+              취소
+            </v-btn>
+            <v-btn 
+              color="#FF5252" 
+              class="delete-confirm-btn" 
+              @click="deleteVod"
+            >
+              삭제
+            </v-btn>
+          </div>
+        </div>
+      </div>
+    </v-dialog>
   </div>
 </template>
 
@@ -466,6 +545,16 @@ const loginConfirmModalOpen = ref(false)
 
 // 성인 콘텐츠 경고 모달 관련 상태 추가
 const adultContentModalOpen = ref(false)
+
+// VOD 메뉴 관련 상태
+const showVodMenu = ref(false)
+
+// VOD 제목 수정 모달 관련 상태
+const editTitleModalOpen = ref(false)
+const newVodTitle = ref("")
+
+// VOD 삭제 확인 모달 관련 상태
+const deleteVodModalOpen = ref(false)
 
 // VOD 정보
 const vodInfo = ref({
@@ -1132,10 +1221,72 @@ const goToHome = () => {
 }
 
 // Add a computed property to check if the logged-in user is the VOD owner
-const isOwnProfile = computed(() => {
-  if (!memberId.value || !vodInfo.value.memberId) return false
+const isOwnProfile = computed(() => { 
+  if (!memberId.value || !vodInfo.value.memberId) return false 
   return String(memberId.value) === String(vodInfo.value.memberId)
 })
+
+// VOD 소유자인지 확인하는 computed 속성
+const isOwnVod = computed(() => { 
+  if (!memberId.value || !vodInfo.value.memberId) return false 
+  return String(memberId.value) === String(vodInfo.value.memberId)
+})
+
+// VOD 메뉴 토글
+const toggleVodMenu = () => {
+  showVodMenu.value = !showVodMenu.value
+}
+
+// VOD 제목 수정 모달 표시
+const showEditTitleModal = () => {
+  newVodTitle.value = vodInfo.value.title
+  editTitleModalOpen.value = true
+  showVodMenu.value = false
+}
+
+// VOD 제목 수정 모달 닫기
+const closeEditTitleModal = () => {
+  editTitleModalOpen.value = false
+}
+
+// VOD 제목 업데이트
+const updateVodTitle = async () => {
+  if (!newVodTitle.value.trim()) return
+  
+  try {
+    await axios.post(`${memberApi}/video/update/${vodInfo.value.id}`, {
+      videoId: vodInfo.value.id,
+      title: newVodTitle.value
+    })
+    vodInfo.value.title = newVodTitle.value
+    closeEditTitleModal()
+  } catch (error) {
+    console.error('VOD 제목 수정 실패:', error)
+  }
+}
+
+// VOD 삭제 모달 표시
+const showDeleteVodModal = () => {
+  deleteVodModalOpen.value = true
+  showVodMenu.value = false
+}
+
+// VOD 삭제 모달 닫기
+const closeDeleteVodModal = () => {
+  deleteVodModalOpen.value = false
+}
+
+// VOD 삭제
+const deleteVod = async () => {
+  try {
+    await axios.post(`${memberApi}/video/delete/${vodInfo.value.id}`)
+    closeDeleteVodModal()
+    // 삭제 후 홈으로 이동
+    router.push('/')
+  } catch (error) {
+    console.error('VOD 삭제 실패:', error)
+  }
+}
 
 onMounted(() => {
   initializeVod()
@@ -2249,5 +2400,60 @@ video {
 .donation-amount {
   font-weight: 500;
   color: #B084CC;
+}
+
+/* VOD 관리 관련 스타일 */
+.title-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.vod-menu {
+  position: relative;
+}
+
+.vod-menu .menu-button {
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 24px;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.vod-menu .menu-button:hover {
+  background: #2D2D2D;
+}
+
+.edit-title-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.edit-title-form label {
+  font-size: 14px;
+  color: #7B7B7B;
+}
+
+.edit-title-input {
+  width: 100%;
+  padding: 12px;
+  background: #2D2D2D;
+  border: 1px solid #3D3D3D;
+  border-radius: 4px;
+  color: white;
+  font-size: 16px;
+}
+
+.edit-title-input:focus {
+  outline: none;
+  border-color: #B084CC;
 }
 </style>
