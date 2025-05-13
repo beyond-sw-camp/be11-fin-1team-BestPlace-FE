@@ -201,7 +201,7 @@
     // 배포용
     const hlsSrc = `https://hls.bepl.site/hls/${mainStream.value.streamKey}.m3u8`;
     //  로컬용
-  // const hlsSrc = `http://localhost:8088/hls/${mainStream.value.streamKey}.m3u8`;
+    // const hlsSrc = `http://localhost:8088/hls/${mainStream.value.streamKey}.m3u8`;
     
     // HLS.js 지원 확인
     if (Hls.isSupported()) {
@@ -289,7 +289,7 @@
   
   // 로그인 페이지로 이동
   const goToLogin = () => {
-    router.push('/login');
+    router.push('/member/login');
     closeAdultAlertModal();
   };
   
