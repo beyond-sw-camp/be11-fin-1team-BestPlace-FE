@@ -106,6 +106,8 @@
 
 <script>
 import axios from 'axios';
+import { jwtDecode } from 'jwt-decode';
+import { EventSourcePolyfill } from 'event-source-polyfill';
 
 export default {
   data() {
@@ -114,7 +116,9 @@ export default {
       loading: true,
       isLoggedIn: false,
       memberApi: process.env.VUE_APP_MEMBER_API,
-      isRefreshing: false
+      isRefreshing: false,
+      userId: null,
+      sse: null
     };
   },
 
@@ -154,6 +158,49 @@ export default {
     checkLoginStatus() {
       const userId = localStorage.getItem('userId');
       this.isLoggedIn = !!userId;
+    },
+
+    sseConnect() {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      const options = {
+        heartbeatTimeout: 60000,
+        headers: {Authorization: `Bearer ${token}`}
+      };
+      
+      if (this.sse) {
+        this.sse.close();
+        console.log("기존 SSE 연결 닫음");
+      }
+      
+      this.sse = new EventSourcePolyfill(`${this.memberApi}/alarm/subscribe`, options);
+      
+      this.sse.addEventListener('connect', (event) => {
+        console.log(event.data);
+        console.log("SSE 연결 성공");
+      });
+      
+      this.sse.addEventListener('alarm', (event) => {
+        console.log(event.data);
+        if (Notification.permission === "granted") {
+          const data = JSON.parse(event.data);
+          new Notification("Best-Place 알림", {
+            body: data.content,
+            icon: require("@/assets/default-avatar.png"),
+          }).onclick = () => {
+            window.location.href = data.url;
+          }
+        }
+      });
+    },
+
+    requestNotificationPermission() {
+      if (Notification.permission === "default") {
+        Notification.requestPermission().then((permission) => {
+          console.log("알림 권한:", permission);
+        });
+      }
     }
   },
 
@@ -161,6 +208,15 @@ export default {
     this.checkLoginStatus();
     if (this.isLoggedIn) {
       this.fetchFollowedChannels();
+      this.sseConnect();
+      this.requestNotificationPermission();
+    }
+  },
+
+  beforeUnmount() {
+    if (this.sse) {
+      this.sse.close();
+      console.log("SSE 연결 닫음 (컴포넌트 언마운트)");
     }
   }
 };
