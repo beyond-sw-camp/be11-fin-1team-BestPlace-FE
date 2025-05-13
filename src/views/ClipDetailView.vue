@@ -325,7 +325,7 @@ async function fetchClips() {
 const memberAdultYn = async () => {
   try {
     const response = await axios.get(`${memberApi}/member/detail/${memberId.value}`)
-    if(response.data.result.adultYn === 'Y'){
+    if(response.data.result.adult === 'Y'){
       return true
     }else{
       return false
