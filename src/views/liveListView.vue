@@ -910,18 +910,25 @@ const formatHashtags = (hashtags) => {
 .profile-row {
   display: flex;
   gap: 12px;
+  align-items: flex-start;
 }
 
 .streamer-profile {
   flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 9999px; /* 완전한 원 보장 */
   overflow: hidden;
-  border-radius: 50%;
+  background-color: #222;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .profile-img {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
+  display: block;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
 }
 
