@@ -32,7 +32,7 @@
                         muted 
                         loop
                     ></video>
-                    <div class="duration">{{ video.duration }}</div>
+                    <div class="duration">{{ formatDuration(video.duration) }}</div>
                     
                     <!-- 연령 제한 표시 -->
                     <div v-if="isAdultContent(video)" class="age-restriction-overlay">
@@ -283,6 +283,25 @@ const formatHashtags = (hashtags) => {
     }
     
     return [];
+};
+
+const formatDuration = (duration) => {
+    // 숫자인 경우 (초 단위만 있을 때)
+    if (!isNaN(duration) || (typeof duration === 'string' && !duration.includes(':'))) {
+        const seconds = parseInt(duration);
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const remainingSeconds = seconds % 60;
+        
+        return [
+            hours.toString().padStart(2, '0'),
+            minutes.toString().padStart(2, '0'),
+            remainingSeconds.toString().padStart(2, '0')
+        ].join(':');
+    }
+    
+    // 이미 포맷팅된 경우 그대로 반환
+    return duration;
 };
 
 onMounted(() => {
